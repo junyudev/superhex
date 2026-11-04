@@ -1,0 +1,19 @@
+docs/features/dictation.md
+  s_eaf24bb7841bbf::t_5dd79f3bd44b36 907,910-911,916
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a13a231f0f47e6188b3ceb136f6bd60c64aa79ab",
+  "prompts": {},
+  "sessions": {
+    "s_eaf24bb7841bbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e8fb7ff1-d8c5-4052-b6df-2d0682da4efe",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
