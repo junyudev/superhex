@@ -8,9 +8,11 @@ use rune::{Edge, El, Key, KeyEvent, Transition, Tx, col, row, spacer, text};
 
 use super::controls::{
     ButtonKind, Choice, DESCRIPTION, KEY_GAP, KeySize, METRICS, Paint, button, fixed_select,
-    keycap, note, pulsing_dot, section, select, setting_row, status_dot,
+    icon_described_row, keycap, note, pulsing_dot, section, select, setting_row, status_dot,
 };
 use super::host;
+use super::icons::MOUSE;
+use super::platform::{MouseAccessNeeded, PlatformRequest};
 use super::{Menu, Request, Service, ShortcutTarget, Ui};
 use crate::app_settings::{
     AppSettings, HotkeyBinding, HotkeyKey, HotkeyModifiers, KeyboardModelChoice, ModifierSide,
@@ -853,6 +855,56 @@ pub(super) fn refused_note(ui: &Ui, p: Paint, target: ShortcutTarget) -> Option<
         })
 }
 
+/// Direct mouse access, where it matters to this shortcut: while recording, for
+/// a side button the usual route can't see, and when a saved shortcut's button
+/// can no longer be read.
+pub(super) fn mouse_access_row(ui: &Ui, p: Paint, target: ShortcutTarget) -> Option<El> {
+    let needed = ui.platform.mouse_access.needed?;
+    let listening = matches!(
+        ui.capture,
+        Capture::Listening { target: active, .. } if active == target
+    );
+    let stopped = ui.platform.mouse_access.shortcut_stopped
+        && binding(&ui.settings, target)
+            .and_then(|binding| binding.key.as_ref())
+            .is_some_and(|key| key.native_mouse.is_some());
+    let (title, description, color) = if stopped {
+        (
+            tr("This mouse button needs Input Monitoring"),
+            tr("Hex reads it directly from the mouse, and macOS no longer allows that"),
+            p.danger(),
+        )
+    } else if listening {
+        (
+            tr("Side button not detected?"),
+            tr("Some mice only report their side buttons to apps with Input Monitoring"),
+            p.muted(),
+        )
+    } else {
+        return None;
+    };
+    let (label, request): (_, fn() -> PlatformRequest) = match needed {
+        MouseAccessNeeded::Ask => (tr("Allow…"), || PlatformRequest::RequestMouseAccess),
+        MouseAccessNeeded::Settings => (tr("Open System Settings"), || {
+            PlatformRequest::OpenMouseInputMonitoring
+        }),
+    };
+    Some(icon_described_row(
+        p,
+        "mouse-access",
+        &MOUSE,
+        title,
+        Some((description.to_owned(), color)),
+        button(
+            p,
+            "mouse-access-allow",
+            label,
+            ButtonKind::Secondary,
+            move |ui: &mut Ui, _| ui.ask(request()),
+        ),
+    ))
+}
+
 /// Without a shortcuts portal the desktop's keybindings own every shortcut:
 /// the commands to bind there.
 pub(super) fn desktop_commands(ui: &Ui, p: Paint) -> El {
@@ -1441,5 +1493,48 @@ mod gnome_keys_tests {
         assert!(!gnome_keeps("Ctrl+Alt+Space"));
         assert!(!gnome_keeps("F9"));
         assert!(!gnome_keeps("Super+D"));
+    }
+}
+
+#[cfg(test)]
+mod mouse_access_tests {
+    use super::super::scenes::mac_fixture;
+    use super::*;
+
+    fn offers(ui: &Ui) -> bool {
+        mouse_access_row(ui, Paint::new(false, 1.0), ShortcutTarget::Dictation).is_some()
+    }
+
+    #[test]
+    fn direct_mouse_access_is_offered_while_recording_only_until_it_is_granted() {
+        let mut ui = mac_fixture();
+        ui.platform.mouse_access.needed = Some(MouseAccessNeeded::Ask);
+        assert!(!offers(&ui), "nothing needs it yet");
+        ui.capture = Capture::Listening {
+            target: ShortcutTarget::Dictation,
+            message: None,
+            held: HotkeyModifiers::default(),
+        };
+        assert!(offers(&ui));
+        ui.platform.mouse_access.needed = None;
+        assert!(!offers(&ui), "granted says nothing");
+    }
+
+    #[test]
+    fn a_saved_button_read_directly_says_so_when_it_can_no_longer_be_read() {
+        let mut ui = mac_fixture();
+        ui.platform.mouse_access.needed = Some(MouseAccessNeeded::Settings);
+        ui.platform.mouse_access.shortcut_stopped = true;
+        assert!(!offers(&ui), "a keyboard shortcut needs no mouse access");
+        let native = crate::app_settings::NativeMouseButton {
+            vendor: 1,
+            product: 2,
+            usage: 5,
+        };
+        ui.settings.dictation_hotkey = HotkeyBinding {
+            modifiers: HotkeyModifiers::default(),
+            key: native.key(),
+        };
+        assert!(offers(&ui));
     }
 }

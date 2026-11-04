@@ -44,6 +44,14 @@ line_icon!(
     ]
 );
 line_icon!(
+    MOUSE,
+    "hex-row-mouse",
+    [
+        "M12 2a6 6 0 0 0-6 6v8a6 6 0 0 0 12 0V8a6 6 0 0 0-6-6z",
+        "M12 6v4",
+    ]
+);
+line_icon!(
     MODEL,
     "hex-row-model",
     ["M12 2 3 7l9 5 9-5-9-5Z", "m3 12 9 5 9-5", "m3 17 9 5 9-5",]

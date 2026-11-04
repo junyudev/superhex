@@ -94,6 +94,21 @@ impl ChordWatch {
     }
 }
 
+/// What the panes say about direct mouse access.
+pub(super) fn mouse_access_view() -> super::super::platform::MouseAccessView {
+    use super::super::platform::{MouseAccessNeeded, MouseAccessView};
+    use crate::suppression::mouse::{Access, MonitorStatus, status};
+    let status = status();
+    MouseAccessView {
+        needed: match status.access {
+            Access::Granted => None,
+            Access::NotDetermined => Some(MouseAccessNeeded::Ask),
+            Access::Denied => Some(MouseAccessNeeded::Settings),
+        },
+        shortcut_stopped: status.runtime == MonitorStatus::AccessRequired,
+    }
+}
+
 impl Drop for ChordWatch {
     fn drop(&mut self) {
         // SAFETY: this is the monitor installed by this owner on this main thread.

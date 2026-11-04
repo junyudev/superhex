@@ -269,12 +269,31 @@ pub(super) enum ScrawlRequest {
     ChooseFolder,
 }
 
+/// How the person can let Hex read a mouse's buttons directly (macOS's Input
+/// Monitoring): some mice report their side buttons no other way.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum MouseAccessNeeded {
+    /// macOS can ask.
+    Ask,
+    /// It was refused: only System Settings can turn it on.
+    Settings,
+}
+
+/// What the recorder and a saved shortcut need to say about direct mouse
+/// access. The default says nothing, as on the OSes without it.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(super) struct MouseAccessView {
+    /// `None` once access is granted.
+    pub(super) needed: Option<MouseAccessNeeded>,
+    /// A saved shortcut's button can only be read directly, and now can't be.
+    pub(super) shortcut_stopped: bool,
+}
+
 /// The OS-only state the panes show; the host keeps it current.
 #[derive(Clone, Debug)]
 pub(super) struct PlatformState {
     pub(super) caps: Capabilities,
-    #[cfg(target_os = "macos")]
-    pub(super) mouse_shortcut: crate::suppression::mouse::Status,
+    pub(super) mouse_access: MouseAccessView,
     pub(super) input_sources: Vec<crate::transcription::keyboard_model_switching::InputSource>,
     /// Microphone, Accessibility, and whether the selected
     /// speech model is installed. Every permission is ready where the OS has
@@ -373,8 +392,7 @@ impl PlatformState {
     pub(super) fn new(caps: Capabilities) -> Self {
         Self {
             caps,
-            #[cfg(target_os = "macos")]
-            mouse_shortcut: crate::suppression::mouse::Status::default(),
+            mouse_access: MouseAccessView::default(),
             input_sources: Vec::new(),
             permissions: crate::desktop::onboarding::status_with_transcription_model(false),
             permissions_asked: Vec::new(),
@@ -577,9 +595,7 @@ pub(super) enum PlatformRequest {
     /// Screen & System Audio Recording, for meetings.
     SystemAudio,
     /// Explicit mouse action: the only route to an Input Monitoring prompt.
-    #[allow(dead_code)] // Reserved for the window designer's explicit mouse action.
     RequestMouseAccess,
-    #[allow(dead_code)]
     OpenMouseInputMonitoring,
     SetLaunchAtLogin(bool),
     OpenLoginItemSettings,

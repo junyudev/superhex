@@ -1105,6 +1105,11 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Choose its context.json next", "Em seguida, escolha o context.json"),
     ("Choose how Hex hears you", "Escolha como o Hex ouve você"),
     ("MouseVoice streams your voice to its service. A local model stays on this Mac.", "O MouseVoice transmite sua voz para o serviço dele. Um modelo local fica neste Mac."),
+    ("Side button not detected?", "Botão lateral não detectado?"),
+    ("Some mice only report their side buttons to apps with Input Monitoring", "Alguns mouses só informam os botões laterais a apps com Monitoramento de Entrada"),
+    ("This mouse button needs Input Monitoring", "Este botão do mouse precisa do Monitoramento de Entrada"),
+    ("Hex reads it directly from the mouse, and macOS no longer allows that", "O Hex o lê diretamente do mouse, e o macOS não permite mais isso"),
+    ("Allow…", "Permitir…"),
 ];
 
 #[cfg(test)]

@@ -204,6 +204,11 @@ pub(super) const SCENES: &[Scene] = &[
     ("shortcut-row-recording", |ui| {
         shortcut_row(ui, listening(None, HotkeyModifiers::default()));
     }),
+    // Recording with direct mouse access still to allow.
+    ("shortcut-row-recording-mouse-access", |ui| {
+        shortcut_row(ui, listening(None, HotkeyModifiers::default()));
+        ui.platform.mouse_access.needed = Some(platform::MouseAccessNeeded::Ask);
+    }),
     ("shortcut-row-held", |ui| {
         shortcut_row(ui, listening(None, HotkeyModifiers::option_command()));
     }),

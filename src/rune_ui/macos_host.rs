@@ -158,7 +158,7 @@ mod chord;
 #[path = "macos_host/recorder.rs"]
 mod recorder;
 use chord::{ChordCapture, hotkey_key};
-use recorder::ChordWatch;
+use recorder::{ChordWatch, mouse_access_view};
 
 /// The key a typed name records, with the label recording it would show.
 pub(super) fn hotkey_key_named(name: &str) -> Result<HotkeyKey, &'static str> {
@@ -530,10 +530,7 @@ impl NativeHost for MacHost {
     }
 
     fn poll(&mut self, state: &mut PlatformState) -> bool {
-        let mut changed = update(
-            &mut state.mouse_shortcut,
-            crate::suppression::mouse::status(),
-        );
+        let mut changed = update(&mut state.mouse_access, mouse_access_view());
         for &kind in &state.permissions_shown {
             crate::desktop::permission_guide::clear_legacy_entries_async(kind);
         }
