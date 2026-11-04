@@ -1,0 +1,45 @@
+crates/mouse-voice/src/session.rs
+  s_983694f8de582e::t_e4b5dd8f7713ee 77
+  s_983694f8de582e::t_8cee53aeea394d 78,90,445
+crates/mouse-voice/src/tests.rs
+  s_983694f8de582e::t_1cd8b797b77061 862,957-984,991
+  s_983694f8de582e::t_52725ce0d7a550 11,17,22,193-194,199-210,316-321,404-421,423-424,427,678,830-833,835-843,849,859-861,863,865-867,954-956,985-990,992-1000
+crates/mouse-voice/README.md
+  s_983694f8de582e::t_55ccc6b433c022 20,67-72
+  s_983694f8de582e::t_e4b5dd8f7713ee 21-22,29-31
+  s_eaf24bb7841bbf::t_c8c8146cf3d2f3 11-13,16-19,56-57,64-66,79-81
+  s_983694f8de582e::t_a60003a8903efc 94-96,100-102,105-113
+crates/mouse-voice/examples/live.rs
+  s_983694f8de582e::t_b48f228aeea735 89
+crates/mouse-voice/src/network.rs
+  s_983694f8de582e::t_b48f228aeea735 35-37,41
+  s_983694f8de582e::t_8cee53aeea394d 14,20,48,85,89,369,378-383,385-387,389-390,399,431-443
+crates/mouse-voice/Cargo.toml
+  s_983694f8de582e::t_8cee53aeea394d 30
+Cargo.lock
+  s_983694f8de582e::t_7343bfa32d3388 4102,4386,5237-5238,5240,5316,5983-5984,5986,5988,6019,6022
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f36cf4057bef4f9af8dead2f15c889d827ba383b",
+  "prompts": {},
+  "sessions": {
+    "s_983694f8de582e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a669-16e8-7762-8341-080cf354fd7a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    },
+    "s_eaf24bb7841bbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e8fb7ff1-d8c5-4052-b6df-2d0682da4efe",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
