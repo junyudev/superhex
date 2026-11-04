@@ -119,7 +119,8 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     let overlay = app.overlay(spec, Plate::default());
     let _ = LIVE.set(overlay.clone());
     let shown = Arc::new(AtomicBool::new(false));
-    crate::dictation::live_text::watch(move |partial| {
+    crate::dictation::live_text::watch(move |line| {
+        let partial = line.map(|line| &line.partial);
         let partial = partial.filter(|partial| !is_blank(partial));
         let Some(Partial { stable, tentative }) = partial.cloned() else {
             if shown.swap(false, Ordering::AcqRel) {

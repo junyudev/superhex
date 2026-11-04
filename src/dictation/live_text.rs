@@ -8,25 +8,52 @@
 //! A HUD registers a [`watch`]er and is told each change from the capture
 //! loop's thread; it must hand the text to its own thread and never wait.
 //! The text is provisional: it is only ever shown, never pasted or kept.
+//!
+//! MouseVoice's text outlives the recording: the [`Publisher`] travels with
+//! the clip until the final text is ready, because the service keeps
+//! rewriting the words after the audio ends. Its [`Phase`] says so.
 
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::transcription::engine::Partial;
 
-type Watcher = Arc<dyn Fn(Option<&Partial>) + Send + Sync>;
+type Watcher = Arc<dyn Fn(Option<&Line>) + Send + Sync>;
+
+/// Where the words on show are in their journey. Only a remote speech service
+/// has anything but [`Phase::Hearing`] to say.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) enum Phase {
+    /// The recording is going on and the words follow it.
+    #[default]
+    Hearing,
+    /// The connection failed while recording: the audio is kept and sent
+    /// again once the recording ends.
+    Offline,
+    /// The recording ended; the final text is on its way.
+    Finishing,
+    /// The service is polishing the final text.
+    Polishing,
+}
+
+/// What a HUD shows: the words and where they are in their journey.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(crate) struct Line {
+    pub(crate) partial: Partial,
+    pub(crate) phase: Phase,
+}
 
 struct Board {
     /// The publisher whose text is current, or 0 when none is.
     owner: u64,
-    /// The current publisher's latest text.
-    text: Option<Partial>,
+    /// The current publisher's latest line.
+    line: Option<Line>,
     watchers: Vec<Watcher>,
 }
 
 static BOARD: Mutex<Board> = Mutex::new(Board {
     owner: 0,
-    text: None,
+    line: None,
     watchers: Vec::new(),
 });
 static NEXT_PUBLISHER: AtomicU64 = AtomicU64::new(1);
@@ -38,13 +65,13 @@ fn board() -> MutexGuard<'static, Board> {
 
 /// Calls `watcher` with each new text, and with `None` once the recording
 /// that published it ends.
-pub(crate) fn watch(watcher: impl Fn(Option<&Partial>) + Send + Sync + 'static) {
+pub(crate) fn watch(watcher: impl Fn(Option<&Line>) + Send + Sync + 'static) {
     board().watchers.push(Arc::new(watcher));
 }
 
 /// The text the recording in progress has shown, if any.
 pub(crate) fn current() -> Option<Partial> {
-    board().text.clone()
+    board().line.as_ref().map(|line| line.partial.clone())
 }
 
 /// Asks dictation streams to publish their text while it is held, without
@@ -82,14 +109,23 @@ impl Publisher {
 
     /// Shows `partial`, replacing any other recording's text.
     pub(crate) fn show(&self, partial: &Partial) {
+        self.show_line(Line {
+            partial: partial.clone(),
+            phase: Phase::Hearing,
+        });
+    }
+
+    /// Shows `line`, replacing any other recording's. A line in a phase other
+    /// than [`Phase::Hearing`] shows even with no words yet.
+    pub(crate) fn show_line(&self, line: Line) {
         let watchers = {
             let mut board = board();
             board.owner = self.id;
-            board.text = Some(partial.clone());
+            board.line = Some(line.clone());
             board.watchers.clone()
         };
         for watcher in watchers {
-            watcher(Some(partial));
+            watcher(Some(&line));
         }
     }
 }
@@ -103,7 +139,7 @@ impl Drop for Publisher {
                 return;
             }
             board.owner = 0;
-            board.text = None;
+            board.line = None;
             board.watchers.clone()
         };
         for watcher in watchers {
@@ -134,10 +170,10 @@ mod tests {
     fn watched() -> Arc<Mutex<Vec<Option<String>>>> {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let log = seen.clone();
-        watch(move |partial| {
+        watch(move |line| {
             log.lock()
                 .unwrap()
-                .push(partial.map(|partial| partial.stable.clone()));
+                .push(line.map(|line| line.partial.stable.clone()));
         });
         seen
     }
@@ -177,6 +213,26 @@ mod tests {
         );
         drop(newer);
         assert_eq!(seen.lock().unwrap().last(), Some(&None));
+    }
+
+    #[test]
+    fn a_line_keeps_its_phase_for_the_watchers_and_its_words_for_the_practice_field() {
+        let _turn = turn();
+        let phases = Arc::new(Mutex::new(Vec::new()));
+        let log = phases.clone();
+        watch(move |line| log.lock().unwrap().push(line.map(|line| line.phase)));
+        let recording = Publisher::new();
+        recording.show(&said("so the plan"));
+        recording.show_line(Line {
+            partial: said("so the plan"),
+            phase: Phase::Polishing,
+        });
+        assert_eq!(current().unwrap().stable, "so the plan");
+        drop(recording);
+        assert_eq!(
+            *phases.lock().unwrap(),
+            [Some(Phase::Hearing), Some(Phase::Polishing), None]
+        );
     }
 
     #[test]
