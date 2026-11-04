@@ -236,6 +236,10 @@ const PATHS: &[(&str, &str)] = &[
     ("mac-activity", "Window/Activity/Activity"),
     ("mac-onboarding", "Window/Onboarding/Setting up Hex"),
     (
+        "mac-onboarding-voice-buddy",
+        "Window/Onboarding/Choose how Hex hears you",
+    ),
+    (
         "mac-onboarding-voice-buddy-found",
         "Window/Onboarding/VoiceBuddy found on this Mac",
     ),

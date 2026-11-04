@@ -700,7 +700,14 @@ pub(super) const SCENES: &[Scene] = &[
     ("mac-onboarding", |ui| {
         mac_first_run(ui, onboarding::MacStep::Setup, Page::Download)
     }),
-    // The speech step with VoiceBuddy's configuration found on this Mac.
+    // The speech step on a new Mac, with nothing saved anywhere.
+    ("mac-onboarding-voice-buddy", |ui| {
+        *ui = mac_fixture();
+        voice_buddy::fixture(ui, Setup::Missing, false);
+        onboarding::mac_fixture(ui, onboarding::MacStep::Setup);
+        onboarding_kit::live::fixture(ui, Page::Download);
+    }),
+    // The same step with a configuration found on this Mac.
     ("mac-onboarding-voice-buddy-found", |ui| {
         *ui = mac_fixture();
         voice_buddy::fixture(ui, Setup::Missing, true);
