@@ -1,0 +1,78 @@
+src/macos_rune.rs
+  s_eaf24bb7841bbf::t_c29d6dcf80064e 503-507,1004-1006
+  s_eaf24bb7841bbf::t_786dc11f38a414 1007-1008
+src/rune_ui/icons.rs
+  s_eaf24bb7841bbf::t_78041fed80e6a7 46-55
+src/rune_ui/mouse_voice.rs
+  s_eaf24bb7841bbf::t_78041fed80e6a7 1-11,14-111,119-342,344-347,349,351-352,354-404,406-407,409-416,418-419,421-473,476,479-498,559-608,611-617,620-684
+  s_eaf24bb7841bbf::t_679ba78b8854cc 112-118
+  s_eaf24bb7841bbf::t_d7e60eb93c9e73 12-13,343,348,350,353,405,408,417,420,499-558,618-619
+  s_eaf24bb7841bbf::t_0fd02a5a8dd080 609-610
+  s_eaf24bb7841bbf::t_7fbbdaa3db0a0b 474-475,477-478,685-731
+src/rune_ui/onboarding.rs
+  s_eaf24bb7841bbf::t_679ba78b8854cc 40-41,55-56,78-79,109-114
+src/rune_ui/meeting_capsules.rs
+  s_eaf24bb7841bbf::t_c29d6dcf80064e 1145,1151
+src/rune_ui/general.rs
+  s_eaf24bb7841bbf::t_78041fed80e6a7 116-118,176-197
+src/rune_ui.rs
+  s_eaf24bb7841bbf::t_beb1781309add3 796
+  s_eaf24bb7841bbf::t_679ba78b8854cc 765
+  s_eaf24bb7841bbf::t_78041fed80e6a7 679,1271,1427
+  s_9c72cf791afc7e::t_1872a5bc4dff96 18-19,46,1428-1429
+src/rune_ui/dictation_failed.rs
+  s_eaf24bb7841bbf::t_c29d6dcf80064e 1-12,14-15,17-67,70-125,128-222,224-382
+  s_eaf24bb7841bbf::t_77b9a92564f0c7 16,223
+  s_9c72cf791afc7e::t_d7591af0a36c9f 13,68-69,126-127
+src/rune_ui/onboarding_kit/first_run.rs
+  s_eaf24bb7841bbf::t_679ba78b8854cc 196-207,212
+  s_eaf24bb7841bbf::t_d70d05e122d104 226-228
+src/rune_ui/vocabulary.rs
+  s_eaf24bb7841bbf::t_d7e60eb93c9e73 143-148
+src/rune_ui/live_text.rs
+  s_eaf24bb7841bbf::t_beb1781309add3 1-7,21-23,37,104-105,119,128,136,146-148,160-164,166-174,199-206,208-211,222-224,227-241,243-249,272,274,282,287,305-308,312,416-422,425-454,464-472,475
+  s_9c72cf791afc7e::t_e984f9bd3a8590 165,207
+src/rune_ui/onboarding_kit/live.rs
+  s_eaf24bb7841bbf::t_679ba78b8854cc 212,387-391,494,604-605
+src/rune_ui/found_choice.rs
+  s_eaf24bb7841bbf::t_d70d05e122d104 114,116-117
+  s_eaf24bb7841bbf::t_679ba78b8854cc 1-10,15,19-32,34-35,56,58,70-73,91-92,105-113,115,118-120,122-130,132,140,163-164,166,178-200,218-223,229-231
+  s_eaf24bb7841bbf::t_76186725ace857 266-339
+src/rune_ui/scenes.rs
+  s_eaf24bb7841bbf::t_927e554526f5eb 5
+  s_eaf24bb7841bbf::t_0fd02a5a8dd080 269-300
+  s_eaf24bb7841bbf::t_679ba78b8854cc 702-705,708,711
+  s_eaf24bb7841bbf::t_1ec8561777ae4f 706-707,709-710,712,780-784,806-812
+src/desktop/i18n.rs
+  s_eaf24bb7841bbf::t_00f4e279824d6e 1397-1439,1594-1596
+src/desktop/i18n/french.rs
+  s_eaf24bb7841bbf::t_ec3180bf51298c 1068-1110
+src/desktop/i18n/portuguese.rs
+  s_eaf24bb7841bbf::t_4bca6d4569e46c 1065-1107
+src/rune_ui/tests/onboarding_check.rs
+  s_eaf24bb7841bbf::t_691dafdb039f30 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7613f02e5aa729aa448fdcf6248f05dd9bc5fbf6",
+  "prompts": {},
+  "sessions": {
+    "s_9c72cf791afc7e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f60befb-2dce-47e5-b785-5d81c9b7ef5e",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    },
+    "s_eaf24bb7841bbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e8fb7ff1-d8c5-4052-b6df-2d0682da4efe",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
