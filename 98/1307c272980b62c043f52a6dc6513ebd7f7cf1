@@ -1,0 +1,50 @@
+crates/mouse-voice/README.md
+  s_b9b53a50875180::t_7ca6851aefcea5 1-102
+crates/mouse-voice/src/lib.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 16-27,31-32,57-58,63,68,73,106,153,159-168,171-174,177-182,185-190
+crates/mouse-voice/src/tests.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-927
+crates/mouse-voice/src/vectors.in
+  s_b9b53a50875180::t_7ca6851aefcea5 1-14
+crates/mouse-voice/src/wire.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-116
+crates/mouse-voice/src/encryption_vectors.in
+  s_b9b53a50875180::t_7ca6851aefcea5 1-17
+crates/mouse-voice/examples/live.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-132
+crates/mouse-voice/src/crypto.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-218
+crates/mouse-voice/src/config.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-144
+crates/mouse-voice/src/session.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-767
+crates/mouse-voice/Cargo.toml
+  s_b9b53a50875180::t_7ca6851aefcea5 11,14-47
+  s_b9b53a50875180::t_9eed4de09b0349 48
+crates/mouse-voice/src/codec.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-88
+crates/mouse-voice/src/network.rs
+  s_b9b53a50875180::t_7ca6851aefcea5 1-641
+crates/mouse-voice/.gitignore
+  s_b9b53a50875180::t_7ca6851aefcea5 1-2
+crates/mouse-voice/OPUS-COPYING
+  s_b9b53a50875180::t_7ca6851aefcea5 1-44
+Cargo.lock
+  s_b9b53a50875180::t_5688ab602ef382 36-46,167,178,434-442,598-608,621-630,991-1008,1057-1067,1216-1221,1352,1436-1444,1535,1911,2085-2154,2426-2435,2449-2470,2479,2754-2763,2832-2848,2852-2875,3061,3670-3673,3730-3738,3745-3753,3814,4255,4444-4454,4550-4561,4573-4578,4831-4836,4883-4896,5173-5199,5211-5221,5474-5484,5559,5673-5678,5686,5951-5971,5983-5988,5996,5999,6021,6252-6261,6276-6296,6490-6505,6526,6573-6578,7183-7188,7211,7374-7384
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "981307c272980b62c043f52a6dc6513ebd7f7cf1",
+  "prompts": {},
+  "sessions": {
+    "s_b9b53a50875180": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a66f-1225-78c2-8aae-490d7005c347",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
