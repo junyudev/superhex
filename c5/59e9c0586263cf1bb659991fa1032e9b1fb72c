@@ -1,0 +1,19 @@
+src/rune_ui/playground.rs
+  s_eaf24bb7841bbf::t_76678d3b09b6af 216-235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c559e9c0586263cf1bb659991fa1032e9b1fb72c",
+  "prompts": {},
+  "sessions": {
+    "s_eaf24bb7841bbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e8fb7ff1-d8c5-4052-b6df-2d0682da4efe",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
