@@ -1415,9 +1415,7 @@ fn view(ui: &Ui, cx: &mut Cx<Ui>) -> El {
     if let Some(modal) = vocabulary::modal(ui, p) {
         layer.extend(modal);
     }
-    if let Some(modal) = mouse_voice::modal(ui, p) {
-        layer.extend(modal);
-    }
+    layer.extend(mouse_voice::modal(ui, p).into_iter().flatten());
     if let Some(drawer) = labs::drawer(ui, p) {
         layer.extend(drawer);
     }

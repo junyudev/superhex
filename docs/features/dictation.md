@@ -834,6 +834,43 @@ Explicit configuration import              // dictate.mouse-voice-setup
 └── Service Rejected -> Broken; import another valid configuration to recover
 ```
 
+```ts
+General > Speech: MouseVoice | Local model          // dictate.mouse-voice-window
+├── Local model -> the Speech model and Language rows, as before
+├── Ready -> "Your voice goes to <host> while you dictate" -> Options
+│   └── Options sheet: polish, remove repetition, paragraphs, Traditional Chinese,
+│       Test connection, Replace…, Remove… (two presses)
+├── Not set up -> what Hex uses until then, and:
+│   ├── MouseVoice's file found -> Use it, or Choose file…
+│   └── Nothing found -> Choose file…
+└── Refused or unreadable -> "MouseVoice can't run" -> Choose file…
+
+First run on macOS -> "Choose how Hex hears you"    // dictate.mouse-voice-first-run
+├── MouseVoice first, recommended, selected; its row says where the voice goes
+├── Nothing downloads until a pick
+├── Continue -> saved: use it; found: import it; neither: the file dialog
+│   └── Dialog cancelled or file refused -> The list asks again
+└── A local row -> Chooses Local and prepares that model
+
+The live text plate, with no Labs toggle            // dictate.mouse-voice-live
+├── Hearing -> The words, newest in view
+├── Offline -> "No connection, still recording"; the words dim
+├── Finishing -> A pulsing dot; the words dim (past the recording)
+└── Polishing -> "Polishing" beside the words
+
+A failed dictation's capsule                        // dictate.mouse-voice-failed
+├── Where the words were, just past the HUD; non-activating, so focus stays
+├── Retryable -> Try again; Use local model when one is installed; Paste heard text
+├── Refused or not set up -> Open Settings; Use local model when one is installed
+├── ✕ forgets it; the capsule leaves with the last recording held
+└── Audio stays in memory only: 8 recordings, 10 minutes, gone on quit
+```
+
+Checks: `found_choice` and `mouse_voice` tests in `rune_ui`, `live_text` and
+`dictation_failed` tests (fixtures; `--snap` scenes `mac-mouse-voice-*` and
+`mac-onboarding-mouse-voice-found`, and those tests' ignored `snapshots`). No
+capsule or plate was observed on a real screen.
+
 The window calls the unchanged API in
 [mouse_voice.rs](../../src/dictation/mouse_voice.rs), whose store, capture and
 recovery owners live alongside it. The local model stays cold at startup while
@@ -864,6 +901,25 @@ release-gate run was observed. Meetings, Annotate and host-audio checks use
 synthetic adapters; their physical/native paths remain unverified here. Both
 client commits through `f36cf405` are integrated; none of these paths use the
 stub client.
+
+**Observed November 4, 2026, Apple Silicon, debug build, the real speech service,
+a real imported configuration in a private temporary data folder, and a
+synthetic spoken clip through `HEX_AUDIO_FIXTURE` (never a microphone):** six
+`hex dictation start` / `stop --print` runs, including one from a cold start with
+no local model installed, returned the polished text in 0.87 to 2.55 s from stop
+to text. `hex dictation cancel` discarded the recording with nothing kept. With
+the configuration's host pointed at a closed local port, nothing was pasted, the
+clip was held in memory, `hex dictation retry` tried it again, and no audio
+reached the disk. One further run's `stop --print` answered "the listener didn't
+answer in time" (its 3 s budget) while the machine's load average was over 100,
+though the job finished and printed in History; it did not recur in the runs
+above. Fixed from these runs: a configuration under a linked folder (macOS's own
+`/tmp`) read as broken, and a failed session's finished wait cancelled the
+automatic retry linked to it. Not observed: a physical microphone, the plate and
+capsule on a real screen, a paste the person meant, `Rejected` from the real
+service, or an automatic retry recovering against the real service (the retry is
+checked against a local fake service,
+`a_retry_linked_to_a_failed_session_really_runs_and_can_still_be_cancelled`).
 
 The following stream rules describe the **local** backend. The MouseVoice
 Publisher always publishes, regardless of Labs; an older job cannot overwrite a

@@ -1,13 +1,17 @@
 # Hex
 
-Hex is local voice dictation for Mac, Windows and Linux. Hold a key, speak, and
-it pastes.
+Hex is voice dictation for Mac, Windows and Linux. Hold a key, speak, and it
+pastes.
 
 ## How it works
 
 - hold the shortcut, speak, then let go
-- Hex transcribes on your device and pastes into whatever app you're in
-- the first run downloads a speech model; after that nothing leaves your machine
+- Hex pastes the text into whatever app you're in
+- on a Mac, Hex uses the MouseVoice speech service once you give it a configuration,
+  which sends your voice to that service while you dictate
+- with General › Speech set to Local model, and on Windows and Linux, Hex transcribes
+  on your device: the first run downloads a speech model, and after that nothing
+  leaves your machine
 - experimental features live in Labs, at the bottom of the sidebar
 
 ## Downloads

@@ -24,6 +24,26 @@ const LINUX_WINDOWS: &str = "Linux & Windows";
 /// name. The list follows this order. Every scene but `live` has one.
 const PATHS: &[(&str, &str)] = &[
     ("mac-settings", "Window/General/Settings"),
+    (
+        "mac-mouse-voice-found",
+        "Window/General/MouseVoice/Found on this Mac",
+    ),
+    (
+        "mac-mouse-voice-missing",
+        "Window/General/MouseVoice/Not set up",
+    ),
+    (
+        "mac-mouse-voice-broken",
+        "Window/General/MouseVoice/Refused",
+    ),
+    (
+        "mac-mouse-voice-options",
+        "Window/General/MouseVoice/Options",
+    ),
+    (
+        "mac-mouse-voice-local",
+        "Window/General/MouseVoice/Local model chosen",
+    ),
     ("mac-settings-sides", "Window/General/Left Option shortcut"),
     ("toggle-cancel", "Window/General/Toggle cancel shortcut"),
     (
@@ -83,6 +103,10 @@ const PATHS: &[(&str, &str)] = &[
     (
         "shortcut-row-recording",
         "Window/General/Shortcut/Recording",
+    ),
+    (
+        "shortcut-row-recording-mouse-access",
+        "Window/General/Shortcut/Recording · mouse access",
     ),
     (
         "mac-settings-recording",
@@ -211,6 +235,10 @@ const PATHS: &[(&str, &str)] = &[
     ("mac-production", "Window/General/Production build"),
     ("mac-activity", "Window/Activity/Activity"),
     ("mac-onboarding", "Window/Onboarding/Setting up Hex"),
+    (
+        "mac-onboarding-mouse-voice-found",
+        "Window/Onboarding/MouseVoice found on this Mac",
+    ),
     (
         "mac-onboarding-permissions",
         "Window/Onboarding/Permissions",

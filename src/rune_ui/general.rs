@@ -177,11 +177,7 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         rows.push(super::mouse_voice::status_row(ui, p));
     } else {
         // With the choice above leading the card, the model is its detail.
-        let glyph = if ui.platform.caps.mouse_voice {
-            &MODEL
-        } else {
-            &WAVE
-        };
+        let glyph = [&WAVE, &MODEL][usize::from(ui.platform.caps.mouse_voice)];
         rows.push(
             icon_described_row(
                 p,
