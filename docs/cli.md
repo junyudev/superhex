@@ -402,7 +402,11 @@ observe input-source changes or show these controls.
 - Shortcuts take text such as `option`, `right-command`, `option+shift+v`,
   `control+space`, `fn`, `f5`, or `left-option+right-option` (both Options
   held together). `left-` and `right-` apply to shortcuts without a key. On macOS, Windows and X11, `mouse4` and `option+mouse4`
-  also work (Mouse 1/2/3 are left/right/middle). Key names resolve on the active keyboard
+  also work (Mouse 1/2/3 are left/right/middle). macOS mouse shortcuts are
+  always available; `labs.mouse_shortcuts` is retired. A native mouse binding
+  uses `mouse5@6421:44572` (button usage @ vendor:product, decimal), with
+  optional modifiers. This text round-trips the saved native identity.
+  Key names resolve on the active keyboard
   layout, the OS's rules for Settings' recorder apply, and a binding another
   Hex shortcut uses is refused with `shortcut-in-use`. `double_tap_only`
   needs a key chord, as in Settings.

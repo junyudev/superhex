@@ -742,16 +742,7 @@ impl Ui {
             ui.platform.paste = paste;
             ui.platform.clipboard_unrestorable = clipboard_unrestorable;
         }
-        // A mouse-button shortcut went back to its default: say so once.
-        if ui.settings.mouse_shortcut_notice {
-            ui.settings.mouse_shortcut_notice = false;
-            if let Err(error) = ui.settings.save() {
-                tracing::warn!(%error, "could not clear the mouse shortcut note");
-            }
-            ui.error.get_or_insert_with(|| {
-                tr("Mouse shortcuts are in Labs now, so your mouse-button shortcut went back to the default. Turn on Labs › Mouse shortcuts to use one again.").to_owned()
-            });
-        }
+
         ui.history = history::HistoryPane::shared(store);
         ui.output = output::OutputPane::shuffled();
         ui.modes.load_personal_commands();

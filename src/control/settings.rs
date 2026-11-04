@@ -309,11 +309,6 @@ const KEYS: &[Key] = &[
         "Labs: bias Parakeet transcription toward the vocabulary",
     ),
     key(
-        "labs.mouse_shortcuts",
-        Kind::Bool,
-        "Labs: record mouse buttons as shortcuts (macOS)",
-    ),
-    key(
         "labs.unload_idle",
         Kind::Bool,
         "Labs: unload the speech model when idle, freeing its memory",
@@ -759,7 +754,7 @@ fn keys() -> impl Iterator<Item = &'static Key> {
 
 /// Settings `hex settings` never shows: Hex's own bookkeeping.
 #[cfg(test)]
-const INTERNAL: &[&str] = &["migrations", "mouse_shortcut_notice"];
+const INTERNAL: &[&str] = &["migrations"];
 
 /// Settings another `hex` command edits instead (`hex vocabulary`).
 #[cfg(test)]
@@ -977,15 +972,6 @@ pub fn apply(
                 HotkeySlot::Capture => Some(&candidate.capture.hotkey),
             };
             if let Some(binding) = binding {
-                if cfg!(target_os = "macos")
-                    && !candidate.labs.mouse_shortcuts
-                    && binding.key.as_ref().is_some_and(HotkeyKey::is_mouse)
-                {
-                    return Err(invalid(
-                        name,
-                        "mouse buttons need Labs › Mouse shortcuts: hex labs on mouse-shortcuts",
-                    ));
-                }
                 if let Some(why) = special_key_refusal(&candidate, binding) {
                     return Err(invalid(name, &why));
                 }
@@ -1279,7 +1265,12 @@ pub fn parse_hotkey(
                 if key.is_some() {
                     return Err("a shortcut has at most one key".into());
                 }
-                key = Some(key_named(part)?);
+                key = Some(if part.contains('@') {
+                    crate::app_settings::NativeMouseButton::parse(part)
+                        .ok_or("invalid native mouse button")?
+                } else {
+                    key_named(part)?
+                });
             }
         }
     }
@@ -1376,7 +1367,11 @@ pub fn format_hotkey(binding: &HotkeyBinding) -> String {
     .flatten()
     .collect();
     if let Some(key) = &binding.key {
-        parts.push(key.label.to_lowercase().replace(' ', ""));
+        let mut name = key.label.to_lowercase().replace(' ', "");
+        if let Some(native) = key.native_mouse {
+            name.push_str(&format!("@{}:{}", native.vendor, native.product));
+        }
+        parts.push(name);
     }
     parts.join("+")
 }
@@ -1426,22 +1421,27 @@ mod tests {
         ShortcutRules {
             key_named: |name| match name.to_ascii_lowercase().as_str() {
                 "space" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 49,
                     label: "Space".into(),
                 }),
                 "f5" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 96,
                     label: "F5".into(),
                 }),
                 "left" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 123,
                     label: "Left".into(),
                 }),
                 "menu" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 0,
                     label: "Menu".into(),
                 }),
                 name if name.chars().count() == 1 => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: u16::from(name.as_bytes()[0]),
                     label: name.to_uppercase(),
                 }),
@@ -1913,6 +1913,27 @@ mod tests {
         assert!(parse_hotkey("option+mouse1", named).is_ok());
         assert!(parse_hotkey("mouse2", named).is_ok());
         assert!(parse_hotkey("mouse4", named).is_ok());
+    }
+
+    #[test]
+    fn graduated_mouse_shortcuts_are_cli_settings_without_a_labs_switch() {
+        let named: fn(&str) -> Result<HotkeyKey, String> = |name| Ok(HotkeyKey::named(name));
+        let rules = ShortcutRules {
+            key_named: named,
+            ..rules()
+        };
+        let settings = AppSettings::default();
+        assert!(get(&settings, "labs.mouse_shortcuts").is_err());
+        for text in ["mouse4", "option+mouse5@6421:44572"] {
+            let updated = apply(&settings, "dictation_hotkey", text, &rules)
+                .unwrap()
+                .settings;
+            assert_eq!(format_hotkey(&updated.dictation_hotkey), text);
+            assert_eq!(parse_hotkey(text, named).unwrap(), updated.dictation_hotkey);
+        }
+        for text in ["mouse2@6421:44572", "mouse5@65536:1", "mouse5@1:bad"] {
+            assert!(parse_hotkey(text, named).is_err());
+        }
     }
 
     #[test]

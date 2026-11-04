@@ -372,7 +372,6 @@ fn contributed_options_are_labs_toggles_off_by_default() {
     let mut rt = runtime("mac-settings", true, (980.0, 2000.0));
     tap(&mut rt, "nav-labs");
     for row in [
-        "lab-mouse-shortcuts",
         "lab-pause-browser",
         "lab-keep-on-clipboard",
         "lab-copy-only",
@@ -392,9 +391,10 @@ fn contributed_options_are_labs_toggles_off_by_default() {
     tap(&mut rt, "lab-filler-words");
     assert!(rt.state.settings.labs.filler_words);
     assert!(rt.find("lab-share-shortcut").is_none(), "Windows only");
-    assert!(!rt.state.settings.labs.mouse_shortcuts);
-    tap(&mut rt, "lab-mouse-shortcuts");
-    assert!(rt.state.settings.labs.mouse_shortcuts);
+    assert!(
+        rt.find("lab-mouse-shortcuts").is_none(),
+        "Mouse shortcuts graduated"
+    );
     assert!(!rt.state.settings.labs.keep_on_clipboard);
     tap(&mut rt, "lab-keep-on-clipboard");
     assert!(rt.state.settings.labs.keep_on_clipboard);
