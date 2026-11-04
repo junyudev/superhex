@@ -904,16 +904,16 @@ stub client.
 
 **Observed November 4, 2026, Apple Silicon, debug build, the real speech service,
 a real imported configuration in a private temporary data folder, and a
-synthetic spoken clip through `HEX_AUDIO_FIXTURE` (never a microphone):** six
+synthetic spoken clip through `HEX_AUDIO_FIXTURE` (never a microphone):** four
 `hex dictation start` / `stop --print` runs, including one from a cold start with
 no local model installed, returned the polished text in 0.87 to 2.55 s from stop
-to text. `hex dictation cancel` discarded the recording with nothing kept. With
+to text. A fifth, ended by a real press of the default shortcut, pasted its text
+into the foreground app, so a test instance must not keep a real shortcut. `hex dictation cancel` discarded the recording with nothing kept. With
 the configuration's host pointed at a closed local port, nothing was pasted, the
 clip was held in memory, `hex dictation retry` tried it again, and no audio
 reached the disk. One further run's `stop --print` answered "the listener didn't
 answer in time" (its 3 s budget) while the machine's load average was over 100,
-though the job finished and printed in History; it did not recur in the runs
-above. Fixed from these runs: a configuration under a linked folder (macOS's own
+though the job finished; it did not recur in the runs above. Fixed from these runs: a configuration under a linked folder (macOS's own
 `/tmp`) read as broken, and a failed session's finished wait cancelled the
 automatic retry linked to it. Not observed: a physical microphone, the plate and
 capsule on a real screen, a paste the person meant, `Rejected` from the real
