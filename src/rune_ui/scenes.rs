@@ -2,6 +2,7 @@
 //! opens.
 
 use super::*;
+use crate::dictation::backend::Setup;
 
 /// A named starting state for `--scene`.
 pub(super) type Scene = (&'static str, fn(&mut Ui));
@@ -11,7 +12,7 @@ pub(super) const SCENES: &[Scene] = &[
     // (`--snap`): waits for its first snapshot instead of drawing
     // "Connecting…" at virtual time zero.
     ("live", |ui| {
-        // Reads the saved settings and the running Hex; writes neither.
+        // Reads the saved settings and the running Superhex; writes neither.
         let settings = AppSettings::read().unwrap_or_default();
         crate::desktop::i18n::apply(settings.ui_language.as_deref());
         *ui = Ui::with(settings, Service::Fixture(Vec::new()));
@@ -203,6 +204,11 @@ pub(super) const SCENES: &[Scene] = &[
     ("shortcut-row-recording", |ui| {
         shortcut_row(ui, listening(None, HotkeyModifiers::default()));
     }),
+    // Recording with direct mouse access still to allow.
+    ("shortcut-row-recording-mouse-access", |ui| {
+        shortcut_row(ui, listening(None, HotkeyModifiers::default()));
+        ui.platform.mouse_access.needed = Some(platform::MouseAccessNeeded::Ask);
+    }),
     ("shortcut-row-held", |ui| {
         shortcut_row(ui, listening(None, HotkeyModifiers::option_command()));
     }),
@@ -219,9 +225,9 @@ pub(super) const SCENES: &[Scene] = &[
             },
         );
     }),
-    // The first run on Linux (Windows is the same window): setting up Hex
+    // The first run on Linux (Windows is the same window): setting up Superhex
     // with nothing found, the model step with models found here, the demo,
-    // waiting for the model, the practice game, and Hex is ready.
+    // waiting for the model, the practice game, and Superhex is ready.
     ("onboarding", |ui| {
         first_run(ui, FirstRun::Fresh, Page::Download)
     }),
@@ -265,6 +271,34 @@ pub(super) const SCENES: &[Scene] = &[
     }),
     // macOS and Windows surfaces, from preview data (see `platform`).
     ("mac-settings", |ui| *ui = mac_fixture()),
+    // VoiceBuddy's Speech rows: set up from what another app saved, from a
+    // file, refused, and ready, with its options; and the local model chosen.
+    ("mac-voice-buddy-found", |ui| {
+        *ui = mac_fixture();
+        voice_buddy::fixture(ui, Setup::Missing, true);
+    }),
+    ("mac-voice-buddy-missing", |ui| {
+        *ui = mac_fixture();
+        voice_buddy::fixture(ui, Setup::Missing, false);
+    }),
+    ("mac-voice-buddy-broken", |ui| {
+        *ui = mac_fixture();
+        voice_buddy::fixture(
+            ui,
+            Setup::Broken {
+                reason: "VoiceBuddy refused this configuration".into(),
+            },
+            false,
+        );
+    }),
+    ("mac-voice-buddy-options", |ui| {
+        *ui = mac_fixture();
+        voice_buddy::options_fixture(ui, true);
+    }),
+    ("mac-voice-buddy-local", |ui| {
+        *ui = mac_fixture();
+        ui.settings.dictation_backend = crate::dictation::backend::DictationBackend::Local;
+    }),
     // The microphone row following a recorded voice (`--video`), and with
     // the microphone released while idle, when no audio arrives.
     ("mac-settings-mic-level", |ui| {
@@ -597,7 +631,7 @@ pub(super) const SCENES: &[Scene] = &[
         if let Some(source) = &mut ui.platform.hex_microphone {
             source.driver_loaded = false;
             source.action_state = crate::audio::hex_microphone::DriverActionState::Failed(
-                "pw-cat was not found; Hex Microphone needs PipeWire".into(),
+                "pw-cat was not found; Superhex Microphone needs PipeWire".into(),
             );
         }
         ui.settings.experimental.hex_microphone = true;
@@ -661,10 +695,24 @@ pub(super) const SCENES: &[Scene] = &[
             key: None,
         };
     }),
-    // The first run on macOS: setting up Hex, each permission state, the
-    // practice game, and Hex is ready.
+    // The first run on macOS: setting up Superhex, each permission state, the
+    // practice game, and Superhex is ready.
     ("mac-onboarding", |ui| {
         mac_first_run(ui, onboarding::MacStep::Setup, Page::Download)
+    }),
+    // The speech step on a new Mac, with nothing saved anywhere.
+    ("mac-onboarding-voice-buddy", |ui| {
+        *ui = mac_fixture();
+        voice_buddy::fixture(ui, Setup::Missing, false);
+        onboarding::mac_fixture(ui, onboarding::MacStep::Setup);
+        onboarding_kit::live::fixture(ui, Page::Download);
+    }),
+    // The same step with a configuration found on this Mac.
+    ("mac-onboarding-voice-buddy-found", |ui| {
+        *ui = mac_fixture();
+        voice_buddy::fixture(ui, Setup::Missing, true);
+        onboarding::mac_fixture(ui, onboarding::MacStep::Setup);
+        onboarding_kit::live::fixture(ui, Page::Download);
     }),
     ("mac-onboarding-permissions", |ui| {
         mac_first_run(ui, onboarding::MacStep::Setup, Page::Permissions)
@@ -700,7 +748,7 @@ enum FirstRun {
     Failed,
     /// The model is installed.
     Ready,
-    /// The model is installed, and the desktop asks before Hex's first
+    /// The model is installed, and the desktop asks before Superhex's first
     /// paste (GNOME and KDE on Wayland).
     PasteAccess,
 }
@@ -733,6 +781,11 @@ fn first_run(ui: &mut Ui, state: FirstRun, page: Page) {
 
 fn mac_first_run(ui: &mut Ui, step: onboarding::MacStep, page: Page) {
     *ui = mac_fixture();
+    // A new Mac starts at the speech step; the pages after it have VoiceBuddy
+    // set up.
+    if page == Page::Download {
+        voice_buddy::fixture(ui, Setup::Missing, false);
+    }
     onboarding::mac_fixture(ui, step);
     onboarding_kit::live::fixture(ui, page);
 }
@@ -754,6 +807,13 @@ pub(super) fn mac_fixture() -> Ui {
     let mut ui = fixture(DesktopShortcuts::Registered);
     ui.platform = platform::PlatformState::preview(platform::Capabilities::MACOS);
     ui.host = platform::PlatformHost::Fixture(Vec::new());
+    voice_buddy::fixture(
+        &mut ui,
+        Setup::Ready {
+            host: voice_buddy::FIXTURE_HOST.into(),
+        },
+        false,
+    );
     ui.settings.dictation_hotkey = AppSettings::default().dictation_hotkey;
     ui.settings.paste_with_shift = false;
     ui.settings.meetings.enabled = true;

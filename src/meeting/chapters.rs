@@ -979,7 +979,7 @@ fn truncate_words(text: &str, max_chars: usize) -> String {
 
 /// Runs the real model over a transcript Markdown file as a recording
 /// would: one pass per `PASS_INTERVAL_MS` of meeting time, then the
-/// boundary pass. Saves nothing. Debug CLI: `hex meeting chapters <path>`.
+/// boundary pass. Saves nothing. Debug CLI: `superhex meeting chapters <path>`.
 #[cfg(debug_assertions)]
 pub fn chapters_file(path: &Path) -> Result<String> {
     use color_eyre::eyre::WrapErr;

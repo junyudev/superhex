@@ -15,7 +15,7 @@ pub(super) use self::category::Category;
 pub(super) use self::drawer::drawer;
 pub(super) use self::store::{page, search_field, tabs};
 use super::controls::{self, Paint};
-use super::icons::{BOOK, GLOBE, KEYBOARD, MOUSE, SPARKLES, TERMINAL, TIMER, WAVE};
+use super::icons::{BOOK, GLOBE, KEYBOARD, SPARKLES, TERMINAL, TIMER, WAVE};
 use super::sidebar::{NAV_ROW_GAP, NAV_ROW_HEIGHT, VOICE_FILTER_ICON};
 use super::{Pane, Ui};
 use crate::desktop::i18n::{tr, tr_fill};
@@ -110,7 +110,7 @@ pub(super) enum Lab {
 }
 
 impl Lab {
-    /// Its stable id, in `hex://labs/<id>`.
+    /// Its stable id, in `superhex://labs/<id>`.
     pub(super) fn id(self) -> &'static str {
         match self {
             Self::Feature(feature) => feature.name(),
@@ -171,7 +171,7 @@ impl Store {
     }
 }
 
-/// What a `hex://labs` link asks the store to show.
+/// What a `superhex://labs` link asks the store to show.
 #[cfg_attr(
     not(any(target_os = "macos", all(test, target_os = "linux"))),
     allow(dead_code)
@@ -216,7 +216,7 @@ pub(super) fn reveal(ui: &mut Ui, link: &LabsLink, tx: &mut Tx) {
     let Some(id) = &link.lab else { return };
     match shown(ui).into_iter().find(|row| row.lab.id() == id) {
         Some(row) => ui.lab_store.drawer = Some(row.lab),
-        None => tracing::warn!(feature = %id, "a Labs link named no feature this Hex has"),
+        None => tracing::warn!(feature = %id, "a Labs link named no feature this Superhex has"),
     }
 }
 
@@ -248,7 +248,7 @@ struct Row {
     title: &'static str,
     about: &'static str,
     on: bool,
-    /// Can't be switched: on while an installed Hex Microphone driver or
+    /// Can't be switched: on while an installed Superhex Microphone driver or
     /// the dictation model needs it, off under an organization's lock.
     locked: bool,
     category: Category,
@@ -310,9 +310,9 @@ fn rows(ui: &Ui) -> Vec<Row> {
             on: super::fun::running(ui),
             locked,
             about: if locked {
-                tr("On while the Hex Microphone driver is installed. Uninstall the driver in Voice Filter to turn it off.")
+                tr("On while the Superhex Microphone driver is installed. Uninstall the driver in Voice Filter to turn it off.")
             } else {
-                tr("Hex Microphone virtual input and real-time voice filters")
+                tr("Superhex Microphone virtual input and real-time voice filters")
             },
             ..row(Feature::VoiceFilter, Some(&VOICE_FILTER_ICON), tr("Voice Filter"), "")
         });
@@ -349,7 +349,7 @@ fn rows(ui: &Ui) -> Vec<Row> {
                 Feature::StopWhenCallEnds,
                 Some(&TIMER),
                 tr("Stop when the call ends"),
-                tr("Stop a recording Hex started on its own 30 s after the call app leaves the microphone and goes quiet"),
+                tr("Stop a recording Superhex started on its own 30 s after the call app leaves the microphone and goes quiet"),
             ));
             // Only macOS's capsules know the screen to snap a drag against.
             rows.push(row(
@@ -376,7 +376,7 @@ fn rows(ui: &Ui) -> Vec<Row> {
             Feature::MeetingFinishedEvent,
             Some(&GLOBE),
             tr("Meeting finished event"),
-            tr("Tell apps on this computer when a meeting's transcript is ready. They get only the meeting's ID, through Hex's local API"),
+            tr("Tell apps on this computer when a meeting's transcript is ready. They get only the meeting's ID, through Superhex's local API"),
         ));
     }
     rows.push(row(
@@ -395,16 +395,10 @@ fn rows(ui: &Ui) -> Vec<Row> {
     }
     if caps.os == super::platform::Os::Macos {
         rows.push(row(
-            Feature::MouseShortcuts,
-            Some(&MOUSE),
-            tr("Mouse shortcuts"),
-            tr("Record mouse buttons as shortcuts"),
-        ));
-        rows.push(row(
             Feature::PauseBrowser,
             Some(&GLOBE),
             tr("Also pause the browser"),
-            tr("While dictating with Pause media: YouTube and other tabs, resumed only if Hex paused them"),
+            tr("While dictating with Pause media: YouTube and other tabs, resumed only if Superhex paused them"),
         ));
         rows.push(row(
             Feature::KeepOnClipboard,
@@ -459,7 +453,7 @@ fn rows(ui: &Ui) -> Vec<Row> {
                 Feature::HideMenuBarIcon,
                 None,
                 tr("Hide menu bar icon"),
-                tr("Hide Hex's icon from the menu bar. Shortcuts keep working; open Hex again from Finder or Spotlight for Settings"),
+                tr("Hide Superhex's icon from the menu bar. Shortcuts keep working; open Superhex again from Finder or Spotlight for Settings"),
             ));
             // macOS's HUD reads the screen's notch from NSScreen.
             rows.push(row(
@@ -482,7 +476,7 @@ fn rows(ui: &Ui) -> Vec<Row> {
             Feature::SectionKeyAlone,
             Some(&KEYBOARD),
             tr("Section key alone"),
-            tr("Use the § key, left of 1 on ISO keyboards, as a shortcut without a modifier. Hex takes § from every app while it's bound"),
+            tr("Use the § key, left of 1 on ISO keyboards, as a shortcut without a modifier. Superhex takes § from every app while it's bound"),
         ));
         // Linux's shortcut machine reads it with the listener's options.
         rows.push(row(
@@ -653,7 +647,6 @@ fn row_key(lab: Lab) -> &'static str {
         Feature::VocabularyBiasing => "lab-vocabulary-biasing",
         Feature::TerminalPaste => "lab-terminal-paste",
         Feature::KeyboardModelSwitching => "lab-keyboard-model-switching",
-        Feature::MouseShortcuts => "lab-mouse-shortcuts",
         Feature::PauseBrowser => "lab-pause-browser",
         Feature::ShareShortcut => "lab-share-shortcut",
         Feature::UnloadIdle => "lab-unload-idle",
@@ -712,7 +705,7 @@ fn flip(ui: &mut Ui, lab: Lab) {
     ui.update(|settings| feature.set(settings, on));
     match feature {
         Feature::KeyboardModelSwitching => ui.open = None,
-        // Hex hears the browser through System Audio Recording.
+        // Superhex hears the browser through System Audio Recording.
         Feature::PauseBrowser if on && !ui.platform.system_audio => {
             ui.ask(super::platform::PlatformRequest::SystemAudio);
         }

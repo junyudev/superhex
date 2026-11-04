@@ -125,7 +125,7 @@ pub fn panel_front(
 }
 
 /// Whether the topmost normal window on screen (in `raw`, front to back) is this process's, such
-/// as Hex's Settings. Its overlays, HUDs and panels sit above the normal level and don't count.
+/// as Superhex's Settings. Its overlays, HUDs and panels sit above the normal level and don't count.
 pub fn own_window_in_front(raw: &[RawWindow], own_pid: i32) -> bool {
     raw.iter()
         .find(|w| w.layer == 0 && w.alpha > 0.01 && w.bounds[2] >= 80.0 && w.bounds[3] >= 80.0)
@@ -134,7 +134,7 @@ pub fn own_window_in_front(raw: &[RawWindow], own_pid: i32) -> bool {
 
 /// Whether `w` is the host's capture chrome rather than one of its app windows: a window the
 /// host named (`excluded`, its capsule, ink and picker), or any window of this process above
-/// the normal level (overlays, HUDs and panels). The host's normal windows, such as Hex's
+/// the normal level (overlays, HUDs and panels). The host's normal windows, such as Superhex's
 /// Settings, are windows like any other app's: a capture can be about them.
 pub fn is_own_chrome(w: &RawWindow, own_pid: i32, excluded: &[u32]) -> bool {
     excluded.contains(&w.id) || (w.pid == own_pid && w.layer != 0)
@@ -889,14 +889,14 @@ mod tests {
         assert!(hidden.iter().all(|w| w.id != 3));
     }
 
-    /// Hosted in an app (Hex), the capture keeps the host's normal windows, which a capture can
+    /// Hosted in an app (Superhex), the capture keeps the host's normal windows, which a capture can
     /// be about, and leaves out only its chrome: the windows it named and its overlays and panels.
     #[test]
     fn the_hosts_normal_windows_count_and_its_chrome_does_not() {
         let raw = |id, title: &str, layer| RawWindow {
             id,
             pid: 9,
-            owner: "Hex".into(),
+            owner: "Superhex".into(),
             title: title.into(),
             bounds: [100.0, 50.0, 600.0, 400.0],
             layer,
@@ -916,7 +916,7 @@ mod tests {
         ];
         let out = filter_windows(&windows, frame(), 9, &[4], Some(9), None, &mut |_| {
             AppMeta {
-                bundle_id: Some("anomaly.hex".into()),
+                bundle_id: Some("io.github.junyudev.superhex".into()),
                 regular: true,
             }
         });
@@ -954,7 +954,7 @@ mod tests {
         let windows = [
             raw(1, 20, "Invoke", [520.0, 150.0, 200.0, 180.0], 25),
             raw(2, 20, "Invoke", [350.0, 110.0, 400.0, 260.0], 25),
-            raw(3, 21, "Hex", [450.0, 460.0, 100.0, 30.0], 25),
+            raw(3, 21, "Superhex", [450.0, 460.0, 100.0, 30.0], 25),
             raw(4, 13, "OpenCode Beta", [0.0, 0.0, 1000.0, 500.0], 0),
         ];
         assert_eq!(panel_front(&windows, Some(13), Some(20), 9), Some(20));

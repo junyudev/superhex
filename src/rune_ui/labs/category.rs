@@ -29,7 +29,7 @@ impl Category {
         Self::App,
     ];
 
-    /// Its id in `hex://labs?category=<id>`.
+    /// Its id in `superhex://labs?category=<id>`.
     pub(in crate::rune_ui) const fn id(self) -> &'static str {
         match self {
             Self::Dictation => "dictation",
@@ -95,8 +95,7 @@ impl Category {
             | Feature::OutputFixes
             | Feature::HistoryStats
             | Feature::SkipPauses => Self::Dictation,
-            Feature::MouseShortcuts
-            | Feature::SecondDictationShortcut
+            Feature::SecondDictationShortcut
             | Feature::SidedChords
             | Feature::TapOrHold
             | Feature::RestoreShortcutDefault
@@ -164,7 +163,6 @@ impl Place {
             | Feature::GnomeClipboardRestore
             | Feature::TerminalPaste => Self::Elsewhere(tr("Every dictation")),
             Feature::PauseBrowser
-            | Feature::MouseShortcuts
             | Feature::SidedChords
             | Feature::StandaloneSpecialKeys
             | Feature::SectionKeyAlone

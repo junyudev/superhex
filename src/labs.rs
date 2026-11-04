@@ -28,7 +28,7 @@ use color_eyre::eyre::eyre;
 use crate::app_settings::{AppSettings, LabsSettings};
 
 /// Where people send feedback on Labs features.
-pub const FEEDBACK_URL: &str = "https://github.com/anomalyco/hex/issues/new";
+pub const FEEDBACK_URL: &str = "https://github.com/junyudev/superhex/issues/new";
 
 /// Who a Labs feature is for.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -67,7 +67,6 @@ pub enum Feature {
     VocabularyBiasing,
     TerminalPaste,
     KeyboardModelSwitching,
-    MouseShortcuts,
     PauseBrowser,
     ShareShortcut,
     UnloadIdle,
@@ -106,7 +105,7 @@ pub enum Feature {
 }
 
 impl Feature {
-    pub const ALL: [Self; 44] = [
+    pub const ALL: [Self; 43] = [
         Self::Meetings,
         Self::VoiceFilter,
         Self::Playground,
@@ -115,7 +114,6 @@ impl Feature {
         Self::VocabularyBiasing,
         Self::TerminalPaste,
         Self::KeyboardModelSwitching,
-        Self::MouseShortcuts,
         Self::PauseBrowser,
         Self::ShareShortcut,
         Self::UnloadIdle,
@@ -182,7 +180,6 @@ impl Feature {
             | Self::VocabularyBiasing
             | Self::TerminalPaste
             | Self::KeyboardModelSwitching
-            | Self::MouseShortcuts
             | Self::PauseBrowser
             | Self::ShareShortcut
             | Self::UnloadIdle
@@ -232,7 +229,6 @@ impl Feature {
             | Self::VocabularyBiasing
             | Self::TerminalPaste
             | Self::KeyboardModelSwitching
-            | Self::MouseShortcuts
             | Self::PauseBrowser
             | Self::ShareShortcut => 20261030,
             Self::UnloadIdle
@@ -282,7 +278,7 @@ impl Feature {
             )
     }
 
-    /// The feature `hex settings` key `key` switches (its toggle, or
+    /// The feature `superhex settings` key `key` switches (its toggle, or
     /// Unload when idle's minutes).
     pub fn for_settings_key(key: &str) -> Option<Self> {
         if key == "labs.unload_idle_minutes" {
@@ -307,8 +303,7 @@ impl Feature {
             Self::StandaloneSpecialKeys | Self::SkipPauses => {
                 cfg!(any(target_os = "linux", target_os = "windows"))
             }
-            Self::MouseShortcuts
-            | Self::PauseBrowser
+            Self::PauseBrowser
             | Self::KeepOnClipboard
             | Self::CopyOnly
             | Self::SecondDictationShortcut
@@ -342,7 +337,7 @@ impl Feature {
         }
     }
 
-    /// The name `hex labs on|off` takes.
+    /// The name `superhex labs on|off` takes.
     pub const fn name(self) -> &'static str {
         match self {
             Self::Meetings => "meetings",
@@ -353,7 +348,6 @@ impl Feature {
             Self::VocabularyBiasing => "vocabulary-biasing",
             Self::TerminalPaste => "terminal-paste",
             Self::KeyboardModelSwitching => "keyboard-model-switching",
-            Self::MouseShortcuts => "mouse-shortcuts",
             Self::PauseBrowser => "pause-browser",
             Self::ShareShortcut => "share-shortcut",
             Self::UnloadIdle => "unload-idle",
@@ -392,7 +386,7 @@ impl Feature {
         }
     }
 
-    /// Its `hex settings` key.
+    /// Its `superhex settings` key.
     pub const fn settings_key(self) -> &'static str {
         match self {
             Self::Meetings => "meetings.enabled",
@@ -403,7 +397,6 @@ impl Feature {
             Self::VocabularyBiasing => "labs.vocabulary_biasing",
             Self::TerminalPaste => "paste_with_shift",
             Self::KeyboardModelSwitching => "keyboard_model_switching.enabled",
-            Self::MouseShortcuts => "labs.mouse_shortcuts",
             Self::PauseBrowser => "pause_browser_media",
             Self::ShareShortcut => "share_dictation_shortcut",
             Self::UnloadIdle => "labs.unload_idle",
@@ -448,7 +441,7 @@ impl Feature {
         match self {
             Self::Meetings => "Record calls and keep transcripts (its own pane)",
             Self::VoiceFilter => {
-                "Hex Microphone virtual input and real-time voice filters (its own pane)"
+                "Superhex Microphone virtual input and real-time voice filters (its own pane)"
             }
             Self::Playground => "Scene and story browser in the window",
             Self::LiveText => "Show provisional words beside the HUD while dictating",
@@ -460,7 +453,6 @@ impl Feature {
             Self::KeyboardModelSwitching => {
                 "Changing the keyboard language switches the speech model and language"
             }
-            Self::MouseShortcuts => "Record mouse buttons as shortcuts",
             Self::PauseBrowser => "Also pause the browser while dictating, with Pause media",
             Self::ShareShortcut => "Let apps such as Discord see the dictation shortcut too",
             Self::UnloadIdle => {
@@ -520,7 +512,7 @@ impl Feature {
                 "Shorten long pauses before a whole dictation goes to the model, so slow computers paste sooner"
             }
             Self::StopWhenCallEnds => {
-                "Stop a meeting recording Hex started on its own 30 s after the call app leaves the microphone and goes quiet"
+                "Stop a meeting recording Superhex started on its own 30 s after the call app leaves the microphone and goes quiet"
             }
             Self::OutputFixes => {
                 "Offer Vocabulary and Fix this beside Output's Try result, to correct a wrong result"
@@ -533,13 +525,13 @@ impl Feature {
                 "Show only downloaded speech models in the picker, with the space they take"
             }
             Self::SectionKeyAlone => {
-                "Use the § key, left of 1 on ISO keyboards, alone as a shortcut; Hex takes § from every app while it's bound"
+                "Use the § key, left of 1 on ISO keyboards, alone as a shortcut; Superhex takes § from every app while it's bound"
             }
             Self::KeepRecordings => {
                 "Keep the audio of dictations saved to History, so you can transcribe them again with another model"
             }
             Self::HideMenuBarIcon => {
-                "Hide Hex's menu bar icon; shortcuts keep working, and opening Hex again shows Settings"
+                "Hide Superhex's menu bar icon; shortcuts keep working, and opening Superhex again shows Settings"
             }
             Self::MovableMeetingCapsules => {
                 "Drag meeting capsules such as Meeting transcript ready out of the way; they come back in the corner you left them"
@@ -577,7 +569,6 @@ impl Feature {
             Self::VocabularyBiasing => settings.labs.vocabulary_biasing,
             Self::TerminalPaste => settings.paste_with_shift,
             Self::KeyboardModelSwitching => settings.keyboard_model_switching.enabled,
-            Self::MouseShortcuts => settings.labs.mouse_shortcuts,
             Self::PauseBrowser => settings.pause_browser_media,
             Self::ShareShortcut => settings.share_dictation_shortcut,
             Self::UnloadIdle => settings.labs.unload_idle,
@@ -631,7 +622,6 @@ impl Feature {
             &mut labs.live_text,
             &mut labs.live_chapters,
             &mut labs.vocabulary_biasing,
-            &mut labs.mouse_shortcuts,
             &mut labs.unload_idle,
             &mut labs.restore_shortcut_default,
             &mut labs.keep_on_clipboard,
@@ -683,7 +673,6 @@ impl Feature {
             Self::VocabularyBiasing => settings.labs.vocabulary_biasing = on,
             Self::TerminalPaste => settings.paste_with_shift = on,
             Self::KeyboardModelSwitching => settings.keyboard_model_switching.enabled = on,
-            Self::MouseShortcuts => settings.labs.mouse_shortcuts = on,
             Self::PauseBrowser => settings.pause_browser_media = on,
             Self::ShareShortcut => settings.share_dictation_shortcut = on,
             Self::UnloadIdle => settings.labs.unload_idle = on,
@@ -736,7 +725,6 @@ const LIVE_TEXT: u64 = 1 << 1;
 const LIVE_CHAPTERS: u64 = 1 << 2;
 const PLAYGROUND: u64 = 1 << 3;
 const VOCABULARY_BIASING: u64 = 1 << 4;
-const MOUSE_SHORTCUTS: u64 = 1 << 5;
 const UNLOAD_IDLE: u64 = 1 << 6;
 const KEEP_ON_CLIPBOARD: u64 = 1 << 7;
 const COPY_ONLY: u64 = 1 << 8;
@@ -802,12 +790,6 @@ pub fn vocabulary_biasing() -> bool {
     on(VOCABULARY_BIASING)
 }
 
-/// Mouse buttons may be recorded as shortcuts (macOS).
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub fn mouse_shortcuts() -> bool {
-    on(MOUSE_SHORTCUTS)
-}
-
 /// A pasted dictation stays on the clipboard rather than the previous
 /// clipboard being restored (macOS; read as each paste commits).
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
@@ -840,7 +822,7 @@ pub fn filler_words() -> bool {
     on(FILLER_WORDS)
 }
 
-/// `hex meetings show --srt|--vtt` may export subtitles (read when the
+/// `superhex meetings show --srt|--vtt` may export subtitles (read when the
 /// command starts).
 pub fn subtitle_export() -> bool {
     on(SUBTITLE_EXPORT)
@@ -874,7 +856,7 @@ pub fn parakeet_ultra() -> bool {
     on(PARAKEET_ULTRA)
 }
 
-/// History's summary of retained dictations and `hex history stats` (read
+/// History's summary of retained dictations and `superhex history stats` (read
 /// when the History pane reloads and when the command starts).
 pub fn history_stats() -> bool {
     on(HISTORY_STATS)
@@ -894,7 +876,7 @@ pub fn skip_pauses() -> bool {
     on(SKIP_PAUSES) && Feature::SkipPauses.on_this_os()
 }
 
-/// A meeting recording Hex started on its own stops once its call app has
+/// A meeting recording Superhex started on its own stops once its call app has
 /// left the microphone and gone quiet for a grace period (macOS; read on
 /// each pass of the meeting controller).
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
@@ -992,11 +974,6 @@ fn encode_where(settings: &LabsSettings, reaches: impl Fn(Feature) -> bool) -> u
             settings.vocabulary_biasing,
             VOCABULARY_BIASING,
         ),
-        (
-            Feature::MouseShortcuts,
-            settings.mouse_shortcuts,
-            MOUSE_SHORTCUTS,
-        ),
         (Feature::UnloadIdle, settings.unload_idle, UNLOAD_IDLE),
         (
             Feature::KeepOnClipboard,
@@ -1090,7 +1067,7 @@ fn encode_where(settings: &LabsSettings, reaches: impl Fn(Feature) -> bool) -> u
     .fold(KNOWN | minutes, |state, (_, _, bit)| state | bit)
 }
 
-/// The names of the features on, for `hex status`.
+/// The names of the features on, for `superhex status`.
 pub fn active_names(settings: &AppSettings) -> Vec<String> {
     Feature::available()
         .filter(|feature| feature.on(settings))
@@ -1098,7 +1075,7 @@ pub fn active_names(settings: &AppSettings) -> Vec<String> {
         .collect()
 }
 
-/// Logs the switches to process.log; call once logging is up in a long-lived Hex.
+/// Logs the switches to process.log; call once logging is up in a long-lived Superhex.
 pub fn log_launch() {
     tracing::info!(
         live_text = live_text(),
@@ -1117,12 +1094,12 @@ pub enum LabsCommand {
     On { feature: String },
     /// Turn a Labs feature off.
     Off { feature: String },
-    /// Print the link that opens Hex's Labs page at a feature's row (macOS).
+    /// Print the link that opens Superhex's Labs page at a feature's row (macOS).
     #[cfg(target_os = "macos")]
     Link { feature: String },
 }
 
-/// `hex labs`: edits `settings.json`; a running Hex applies most changes
+/// `superhex labs`: edits `settings.json`; a running Superhex applies most changes
 /// when it next starts.
 pub fn run(command: Option<&LabsCommand>) -> Result<()> {
     #[cfg(target_os = "macos")]
@@ -1136,7 +1113,7 @@ pub fn run(command: Option<&LabsCommand>) -> Result<()> {
         );
         return Ok(());
     }
-    // Listing, or handing the change to a running Hex, never writes the file.
+    // Listing, or handing the change to a running Superhex, never writes the file.
     let settings = AppSettings::read()?;
     let (name, on) = match command {
         None | Some(LabsCommand::List) => {
@@ -1161,14 +1138,14 @@ pub fn run(command: Option<&LabsCommand>) -> Result<()> {
         && crate::audio::hex_microphone::driver_bundle_installed()
     {
         return Err(eyre!(
-            "voice-filter stays on while the Hex Microphone driver is installed; uninstall the driver in its pane to turn it off"
+            "voice-filter stays on while the Superhex Microphone driver is installed; uninstall the driver in its pane to turn it off"
         ));
     }
     if !on && let Some(why) = feature.off_refusal(&settings) {
         return Err(eyre!(why));
     }
     let state = if on { "on" } else { "off" };
-    // A running Hex saves and applies it at once, as its Labs row would.
+    // A running Superhex saves and applies it at once, as its Labs row would.
     if let Some(reply) = crate::control::cli::set_in_running_hex(
         feature.settings_key(),
         if on { "true" } else { "false" },
@@ -1193,7 +1170,7 @@ pub fn run(command: Option<&LabsCommand>) -> Result<()> {
 }
 
 /// The feature `name` names, if this OS has it and `reaches` admits it.
-/// Features that left Labs: `hex labs` still knows their names.
+/// Features that left Labs: `superhex labs` still knows their names.
 const GRADUATED: [(&str, &str); 1] = [(
     "custom-models",
     "custom-models graduated: adding a model file and models found on this computer are always on now",
@@ -1207,7 +1184,7 @@ fn resolve(name: &str, reaches: impl Fn(Feature) -> bool + Copy) -> Result<Featu
         .filter(|feature| feature.on_this_os() && reaches(*feature))
         .ok_or_else(|| {
             eyre!(
-                "unknown Labs feature {name:?}; this Hex has: {}",
+                "unknown Labs feature {name:?}; this Superhex has: {}",
                 Feature::available_where(reaches)
                     .map(Feature::name)
                     .collect::<Vec<_>>()
@@ -1244,7 +1221,7 @@ fn list(settings: &AppSettings) -> String {
     out
 }
 
-/// `hex experiments …`, from before Labs.
+/// `superhex experiments …`, from before Labs.
 pub fn run_retired_experiments() -> Result<()> {
     println!("Experiments are now Labs: hex labs, hex labs on|off <feature>");
     Ok(())

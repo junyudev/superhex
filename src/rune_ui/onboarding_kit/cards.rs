@@ -1,6 +1,6 @@
 //! Example macOS notifications to answer by voice, drawn strictly with
 //! OpenCode theme tokens. Supports stacked sent bubbles above the input field
-//! during the `"Without Hex"` double-send typo comedy!
+//! during the `"Without Superhex"` double-send typo comedy!
 
 use rune::{Color, El, Path, Shape, Spring, TextStyle, Transition, canvas, col, el, row, text};
 

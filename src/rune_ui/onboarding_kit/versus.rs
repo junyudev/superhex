@@ -1,4 +1,4 @@
-//! Without Hex, then with it:
+//! Without Superhex, then with it:
 //!
 //! 1. The 14.5u Apple Magic Keyboard glides into place over `1.35 s` before the
 //!    first keystroke lands, with crisp 2D scissor keycaps and nested Inter
@@ -6,7 +6,7 @@
 //! 2. Jay (CEO) pings: `"The investors are in the room. Are we ready to ship?"`
 //!    Typing by hand fumbles `"Yse, we're dead"` and accidentally hits Return,
 //!    freezes in horror, then fires off `"oh god *reayd"` — another typo!
-//! 3. Switching to `"With Hex"` gently recedes the keyboard while opening Hex's
+//! 3. Switching to `"With Superhex"` gently recedes the keyboard while opening Superhex's
 //!    real `Dot scope` phosphor HUD (`rune_hud.wgsl`), lighting `⌥`, and
 //!    delivering `"Every test is green and prod is warm. Ship it right now."`
 //!    in **1.5 seconds**.
@@ -190,12 +190,12 @@ pub(super) fn heading(p: Paint, s: &Onboard) -> El {
             tr("Talk instead of typing"),
             line(
                 "lead-intro",
-                tr("Hold a key and talk. Hex types it wherever your cursor is.").into(),
+                tr("Hold a key and talk. Superhex types it wherever your cursor is.").into(),
             ),
         ),
         Step::Parked if !typed_done(s) => (
             "without",
-            tr("Without Hex"),
+            tr("Without Superhex"),
             line(
                 "lead-usual",
                 tr("Answering under pressure, the usual way.").into(),
@@ -203,20 +203,20 @@ pub(super) fn heading(p: Paint, s: &Onboard) -> El {
         ),
         Step::Parked if s.demo_hears() => (
             "without",
-            tr("Without Hex"),
+            tr("Without Superhex"),
             line("lead-sent", tr("Two panic typos later.").into()),
         ),
         Step::Parked => (
             "with",
-            tr("With Hex"),
+            tr("With Superhex"),
             line(
                 "lead-wait",
-                tr("Hex starts listening once the speech model has downloaded.").into(),
+                tr("Superhex starts listening once the speech model has downloaded.").into(),
             ),
         ),
         Step::YourTurn | Step::Hearing => (
             "with",
-            tr("With Hex"),
+            tr("With Superhex"),
             row()
                 .key("hold")
                 .gap(8.0)
@@ -304,7 +304,7 @@ pub(super) fn stage(p: Paint, s: &Onboard) -> El {
         |id| key_glow(s, id, voice_u),
     );
 
-    // Real `Dot scope` phosphor HUD (`rune_hud.wgsl`) during `With Hex`: it
+    // Real `Dot scope` phosphor HUD (`rune_hud.wgsl`) during `With Superhex`: it
     // unfolds as it rises a little off the keyboard, where `⌥` lights.
     let rise = s.motion.roll(10.0);
     let hud_el = if voice_phase {
@@ -389,7 +389,7 @@ fn key_glow(s: &Onboard, id: &str, voice_u: f32) -> f32 {
     }
 }
 
-/// How many `"Without Hex"` bubbles Jay's card shows now.
+/// How many `"Without Superhex"` bubbles Jay's card shows now.
 pub(super) fn sent_count(s: &Onboard) -> usize {
     match jay_reply(s) {
         Reply::Lines { sent_bubbles, .. } => sent_bubbles.len(),
@@ -475,7 +475,7 @@ fn verdict(p: Paint, key: &str, label: &str, feeling: Option<&str>, tone: Color)
         )
 }
 
-/// `Typing … too long` against `Hex … fast`: how each answer felt, not a
+/// `Typing … too long` against `Superhex … fast`: how each answer felt, not a
 /// stopwatch.
 fn stopwatch_pill(p: Paint, s: &Onboard) -> El {
     let k = p.k;
@@ -518,7 +518,7 @@ fn stopwatch_pill(p: Paint, s: &Onboard) -> El {
             .child(verdict(
                 p,
                 "voice-stat",
-                "Hex",
+                "Superhex",
                 finished.then_some(tr("fast")),
                 if finished { p.success() } else { p.text() },
             ));

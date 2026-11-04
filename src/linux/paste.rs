@@ -36,7 +36,7 @@ const PORTAL_IDLE: Duration = Duration::from_secs(15);
 /// How long after the paste shortcut the previous clipboard comes back, as
 /// on macOS. Nothing acknowledges that the target read the paste.
 const RESTORE_DELAY: Duration = Duration::from_millis(500);
-/// How long an X11 paste waits for modifiers no Hex shortcut holds.
+/// How long an X11 paste waits for modifiers no Superhex shortcut holds.
 const MODIFIER_WAIT_LIMIT: Duration = Duration::from_secs(2);
 
 pub(crate) struct LinuxPaster {
@@ -527,7 +527,7 @@ fn paste_keys(with_shift: bool) -> Vec<String> {
     keys
 }
 
-/// Waits until the X server reports no held modifiers. While one of Hex's
+/// Waits until the X server reports no held modifiers. While one of Superhex's
 /// shortcuts is down, a newer capture owns them, so its predecessor stays
 /// queued for as long as it is held. Otherwise the wait ends after `limit`
 /// and the paste goes ahead: XWayland's modifier state goes stale while a
@@ -550,7 +550,7 @@ fn wait_for_modifiers(
         if began.elapsed() >= limit && !shortcut_held() {
             tracing::warn!(
                 waited_ms = began.elapsed().as_millis() as u64,
-                "modifiers still read as held with no Hex shortcut down; pasting anyway"
+                "modifiers still read as held with no Superhex shortcut down; pasting anyway"
             );
             return Ok(());
         }

@@ -32,7 +32,7 @@ use super::input_format::{InputStream, StartedStream};
 use super::mix_format::MixFormat;
 use super::{CaptureInstant, duration_for_frames};
 
-/// How long opening may take before Hex gives up on this path.
+/// How long opening may take before Superhex gives up on this path.
 const OPEN_TIMEOUT: Duration = Duration::from_secs(5);
 /// The polling fallback's buffer: one second, which the Intel Smart Sound
 /// driver accepted without event callbacks in #988.
@@ -332,7 +332,7 @@ fn open_with(
     if !format.is_decodable() {
         return Err(Failure {
             format: Some(format),
-            error: "Hex cannot decode this mix format".into(),
+            error: "Superhex cannot decode this mix format".into(),
         });
     }
     unsafe {

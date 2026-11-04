@@ -1,7 +1,7 @@
-//! The Annotate pane (macOS and Linux): Scrawl's captures inside Hex. The opt-in, the capture shortcut,
+//! The Annotate pane (macOS and Linux): Scrawl's captures inside Superhex. The opt-in, the capture shortcut,
 //! the send-to list's shortcut, Screen Recording, the transcriber, the captures folder and how long
 //! captures are kept, and Scrawl's own app, which keeps the shortcut while
-//! it runs until "Use Hex for annotations" asks it to quit.
+//! it runs until "Use Superhex for annotations" asks it to quit.
 
 use rune::{El, row};
 use scrawl_capture::retention::{Policy, Preset};
@@ -23,7 +23,7 @@ fn description(enabled: bool) -> &'static str {
     if enabled {
         tr("Record your screen, draw on it, and talk over it with the shortcut below")
     } else {
-        tr("Off. Hex records nothing and keeps no shortcut until you turn this on.")
+        tr("Off. Superhex records nothing and keeps no shortcut until you turn this on.")
     }
 }
 
@@ -61,7 +61,7 @@ pub(super) fn toggle(ui: &mut Ui) {
 fn transcriber_description(transcriber: CaptureTranscriber) -> &'static str {
     match transcriber {
         CaptureTranscriber::Parakeet => {
-            tr("The model Hex dictates with, with a time for every word")
+            tr("The model Superhex dictates with, with a time for every word")
         }
         CaptureTranscriber::Apple => tr("Apple's speech recognizer, as Scrawl uses"),
     }
@@ -115,7 +115,7 @@ fn folder_label(ui: &Ui) -> String {
 fn how_it_works(ui: &Ui, p: Paint) -> Vec<El> {
     let shortcut = ui.settings.capture.hotkey.keycaps();
     let keys = |key: &str, parts: &[String]| super::controls::keycaps(p, key, parts);
-    // Wayland tells Hex nothing of Shift outside its own windows.
+    // Wayland tells Superhex nothing of Shift outside its own windows.
     let draw_how = if cfg!(not(target_os = "linux")) {
         tr(
             "While it records, hold the shortcut and move the pointer; no click needed. Shift draws too",
@@ -178,7 +178,7 @@ fn scrawl_running(p: Paint, view: &ScrawlView) -> El {
     let description = if view.quitting_scrawl {
         tr("Waiting for Scrawl to quit…")
     } else {
-        tr("Hex leaves the Annotate shortcut to Scrawl until you switch")
+        tr("Superhex leaves the Annotate shortcut to Scrawl until you switch")
     };
     card(
         p,
@@ -191,7 +191,7 @@ fn scrawl_running(p: Paint, view: &ScrawlView) -> El {
             super::controls::button(
                 p,
                 "use-hex-for-captures",
-                tr("Use Hex for annotations"),
+                tr("Use Superhex for annotations"),
                 ButtonKind::Primary,
                 |ui: &mut Ui, _| scrawl_request(ui, ScrawlRequest::QuitScrawl),
             ),
@@ -221,11 +221,11 @@ fn shortcut_rows(ui: &Ui, p: Paint, view: &ScrawlView) -> Vec<El> {
             p,
             "screen-recording",
             tr("Screen Recording"),
-            Some(tr("Turns on when Hex restarts")),
+            Some(tr("Turns on when Superhex restarts")),
             button(
                 p,
                 "screen-recording-restart",
-                tr("Restart Hex"),
+                tr("Restart Superhex"),
                 ButtonKind::Secondary,
                 |ui: &mut Ui, _| ui.ask(PlatformRequest::Permission(PermissionAction::Restart)),
             ),
@@ -240,7 +240,7 @@ fn shortcut_rows(ui: &Ui, p: Paint, view: &ScrawlView) -> Vec<El> {
             Some(if view.screen_recording {
                 tr("Lets Annotate record your screen")
             } else if stale {
-                tr("An older Hex entry can keep this off")
+                tr("An older Superhex entry can keep this off")
             } else {
                 tr("Required to record your screen. macOS asks the first time you annotate, or allow it here.")
             }),
@@ -265,14 +265,16 @@ fn shortcut_rows(ui: &Ui, p: Paint, view: &ScrawlView) -> Vec<El> {
     rows
 }
 
-/// Lets screen recordings, captures included, show Hex's overlays, for
+/// Lets screen recordings, captures included, show Superhex's overlays, for
 /// showing someone how captures work.
 fn recordings_row(ui: &Ui, p: Paint) -> El {
     toggle_row(
         p,
         "capture-show-in-recordings",
         tr("Show in screen recordings"),
-        tr("Lets recordings, annotations included, show Hex's capsule, ink, and HUD, for demos"),
+        tr(
+            "Lets recordings, annotations included, show Superhex's capsule, ink, and HUD, for demos",
+        ),
         ui.settings.capture.show_overlays_in_recordings,
         |ui: &mut Ui| {
             ui.update(|settings| {
@@ -426,7 +428,7 @@ pub(super) fn pane(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
     if enabled {
         content = content.child(section(p, "how", tr("How it works"), how_it_works(ui, p)));
     }
-    // Apple's speech recognizer is macOS's; Linux transcribes with Hex's model.
+    // Apple's speech recognizer is macOS's; Linux transcribes with Superhex's model.
     if enabled && cfg!(target_os = "macos") {
         content = content.child(section(
             p,

@@ -736,7 +736,7 @@ impl ChunkModel {
         // Quitting drops the dictation engine; a model loaded now would
         // outlast the drain.
         if crate::desktop::process_exit::quitting() {
-            return Ok(Chunked::Unavailable(eyre!("Hex is quitting")));
+            return Ok(Chunked::Unavailable(eyre!("Superhex is quitting")));
         }
         if speechless(samples) {
             return Ok(Chunked::Done(Transcript::default()));
@@ -769,7 +769,7 @@ impl ChunkModel {
             )));
         }
         if crate::desktop::process_exit::quitting() {
-            return Ok(Chunked::Unavailable(eyre!("Hex is quitting")));
+            return Ok(Chunked::Unavailable(eyre!("Superhex is quitting")));
         }
         let model = match load_model(&mut self.owned, &selection) {
             Ok(model) => model,
@@ -833,6 +833,13 @@ impl ChunkModel {
 /// behind it.
 #[cfg(target_os = "macos")]
 fn engine_model(model: &mut crate::transcription::engine::Model) -> Option<&mut Transcriber> {
+    if model.active().is_none() {
+        let selection = crate::app_settings::transcription_selection().1;
+        if let Err(error) = model.activate(&selection) {
+            tracing::warn!(%error, "could not activate the local meeting model");
+            return None;
+        }
+    }
     match model.active() {
         Some(transcriber @ Transcriber::Gguf(_)) => Some(transcriber),
         _ => None,
@@ -1880,7 +1887,7 @@ fn transcribe_file(
     Ok(transcript)
 }
 
-/// Debug CLI `hex meeting echo <dir>`: replays a recording's tracks and
+/// Debug CLI `superhex meeting echo <dir>`: replays a recording's tracks and
 /// reports how many microphone lines echo suppression keeps, before (words
 /// only, one entry per model segment) and after (signal plus words, one
 /// entry per sentence). The microphone is placed `microphone_offset_ms`

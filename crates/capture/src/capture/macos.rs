@@ -871,7 +871,7 @@ pub fn discover_target_at(window_query: Option<&str>, point: Option<[f64; 2]>) -
     if let Ok(content) = SCShareableContent::get() {
         if let Some(query) = window_query {
             let q = query.to_lowercase();
-            // Normal windows only: the host's own count (Hex's Settings), its overlays don't.
+            // Normal windows only: the host's own count (Superhex's Settings), its overlays don't.
             if let Some(win) = content.windows().into_iter().find(|w| {
                 w.is_on_screen()
                     && w.window_layer() == 0
@@ -978,7 +978,7 @@ fn display_of(screens: &[crate::screens::Screen], rect: [f64; 4]) -> (u32, f64) 
 }
 
 /// Lists all on-screen normal (`window_layer == 0`) windows in front-to-back order for the
-/// Window picker, the host's own among them (Hex's Settings); its overlays and panels sit above
+/// Window picker, the host's own among them (Superhex's Settings); its overlays and panels sit above
 /// the normal level.
 pub fn list_selectable_windows() -> Vec<TargetInfo> {
     let Ok(content) = SCShareableContent::get() else {
@@ -1070,7 +1070,7 @@ pub fn ensure_external_app_active() {
 }
 
 /// The app a paste goes to: the active app unless it's the host, else the last external one.
-/// The host's own windows (Hex's Settings) count as in front for routing, never for a paste.
+/// The host's own windows (Superhex's Settings) count as in front for routing, never for a paste.
 fn paste_app(front_pid: i32, our_pid: i32, last_external: i32) -> Option<i32> {
     if front_pid > 0 && front_pid != our_pid {
         return Some(front_pid);
@@ -1087,7 +1087,7 @@ fn key_panel_pid(front: i32) -> Option<i32> {
 }
 
 /// Whether `pid`, the active app, is what's in front: any other app, or this one while its
-/// normal window (Hex's Settings) is the topmost one. Active with only its overlays and panels
+/// normal window (Superhex's Settings) is the topmost one. Active with only its overlays and panels
 /// (a click on the capsule), the host isn't what a capture is about. For what a capture is
 /// about only: output handed to an app goes elsewhere ([`paste_app`]).
 fn counts_as_front(pid: i32, our_pid: i32) -> bool {

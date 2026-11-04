@@ -1,8 +1,10 @@
-//! The live text plate (Labs): one click-through line
-//! beside the recording HUD with what the dictation has said so far, on
-//! every OS. It shows while a recording has text and hides when the
-//! recording ends ([`crate::dictation::live_text`]); `rune_hud` says where the HUD is,
-//! so the plate sits just past it, on the HUD's screen.
+//! The live text plate: one click-through line beside the recording HUD with
+//! what the dictation has said so far, on every OS. Labs › Live text turns it
+//! on for local models; VoiceBuddy always shows it, and keeps it up past the
+//! recording while the service finishes the words, saying so with its phase.
+//! It shows while a recording has text and hides when the recording ends
+//! ([`crate::dictation::live_text`]); `rune_hud` says where the HUD is, so the
+//! plate sits just past it, on the HUD's screen.
 //!
 //! The overlay is prewarmed: macOS keeps it drawn while hidden and refreshes
 //! it before a reveal, so it never reappears with the last dictation's
@@ -16,7 +18,9 @@ use rune::{
     text,
 };
 
-use super::controls::Paint;
+use super::controls::{Paint, pulsing_dot, status_dot};
+use crate::desktop::i18n::tr;
+use crate::dictation::live_text::{Line, Phase};
 use crate::transcription::engine::Partial;
 
 /// The overlay's size: room for about a dozen words on one line.
@@ -30,6 +34,7 @@ const PAD: f32 = (SIZE.1 - PLATE_H) / 2.0;
 pub(crate) struct Plate {
     stable: String,
     tentative: String,
+    phase: Phase,
 }
 
 /// Where the plate starts, just past the HUD.
@@ -96,11 +101,11 @@ pub(crate) fn refollow_pointer() {
 pub(crate) type Place = fn() -> Spot;
 
 /// Adds the plate to the app. It shows only while a dictation publishes its
-/// text (Labs › Live text, applied at once), so it's prewarmed only when
-/// Live text is on at launch.
+/// text (Labs › Live text, applied at once, or VoiceBuddy), so it's prewarmed
+/// only when one of them is on at launch.
 pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     let spec = OverlaySpec {
-        name: "Hex live text",
+        name: "Superhex live text",
         size: SIZE,
         // Placed for real each time it appears.
         edge: ScreenEdge::Top,
@@ -111,7 +116,7 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
         view,
     }
     .options(OverlayOptions {
-        prewarm: crate::labs::live_text(),
+        prewarm: crate::labs::live_text() || voice_buddy_chosen(),
         #[cfg(not(target_os = "macos"))]
         display: crate::rune_hud::display(),
         ..Default::default()
@@ -119,9 +124,8 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     let overlay = app.overlay(spec, Plate::default());
     let _ = LIVE.set(overlay.clone());
     let shown = Arc::new(AtomicBool::new(false));
-    crate::dictation::live_text::watch(move |partial| {
-        let partial = partial.filter(|partial| !is_blank(partial));
-        let Some(Partial { stable, tentative }) = partial.cloned() else {
+    crate::dictation::live_text::watch(move |line| {
+        let Some(Line { partial, phase }) = line.filter(|line| !is_blank(line)).cloned() else {
             if shown.swap(false, Ordering::AcqRel) {
                 // Hidden from the same queue that shows it, so a recording
                 // that ends as its plate appears never leaves it showing.
@@ -129,6 +133,7 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
                 overlay.update(move |plate, tx| {
                     plate.stable.clear();
                     plate.tentative.clear();
+                    plate.phase = Phase::Hearing;
                     tx.instant();
                     handle.hide();
                 });
@@ -138,8 +143,9 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
         let appearing = !shown.swap(true, Ordering::AcqRel);
         let handle = overlay.clone();
         overlay.update(move |plate, tx| {
-            plate.stable = stable;
-            plate.tentative = tentative;
+            plate.stable = partial.stable;
+            plate.tentative = partial.tentative;
+            plate.phase = phase;
             tx.instant();
             if appearing {
                 // Placed and shown after the new words, so it appears
@@ -151,8 +157,21 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     });
 }
 
-/// The model's first update often has no words yet.
-fn is_blank(partial: &Partial) -> bool {
+/// Whether the saved settings choose VoiceBuddy, so its plate is ready.
+fn voice_buddy_chosen() -> bool {
+    use crate::dictation::backend::DictationBackend;
+    cfg!(target_os = "macos")
+        && crate::app_settings::AppSettings::read()
+            .is_ok_and(|settings| settings.dictation_backend == DictationBackend::VoiceBuddy)
+}
+
+/// The model's first update often has no words yet. A line in another phase
+/// has something to say without them.
+fn is_blank(line: &Line) -> bool {
+    line.phase == Phase::Hearing && no_words(&line.partial)
+}
+
+fn no_words(partial: &Partial) -> bool {
     partial.stable.trim().is_empty() && partial.tentative.trim().is_empty()
 }
 
@@ -177,6 +196,19 @@ fn is_rtl_letter(c: char) -> bool {
     )
 }
 
+/// What a phase says beside the words, and its dot.
+fn phase_lead(p: Paint, phase: Phase, words: bool) -> Option<(El, Option<&'static str>)> {
+    match phase {
+        Phase::Hearing => None,
+        Phase::Offline => Some((
+            status_dot(p.warning()),
+            Some(tr("No connection, still recording")),
+        )),
+        Phase::Finishing => Some((pulsing_dot(p.muted()), (!words).then(|| tr("Finishing…")))),
+        Phase::Polishing => Some((pulsing_dot(p.accent()), Some(tr("Polishing")))),
+    }
+}
+
 fn view(plate: &Plate, cx: &mut Cx<Plate>) -> El {
     let p = Paint::new(cx.system_dark(), cx.env().scale);
     let c = &p.k.c;
@@ -187,15 +219,34 @@ fn view(plate: &Plate, cx: &mut Cx<Plate>) -> El {
         .center()
         .px(4.0)
         .hover_motion_within(Anim::INSTANT, Anim::INSTANT);
-    if plate.stable.trim().is_empty() && plate.tentative.trim().is_empty() {
+    let words = !plate.stable.trim().is_empty() || !plate.tentative.trim().is_empty();
+    let lead = phase_lead(p, plate.phase, words);
+    if !words && lead.is_none() {
         return root;
     }
+    // The words wait for the service once the recording ends.
+    let settled = plate.phase == Phase::Hearing;
+    let lead = lead.map(|(dot, label)| {
+        row()
+            .key("phase")
+            .gap(8.0)
+            .center_y()
+            .child(dot)
+            .children(label.map(|label| {
+                text(label)
+                    .key("phase-label")
+                    .font(p.k.ty.ui)
+                    .color(p.muted())
+            }))
+    });
     // The newest words stay in view: the start gives way with "…".
-    let stable = text(plate.stable.trim().to_owned())
-        .key("stable")
-        .truncate_head()
-        .font(p.k.ty.ui)
-        .color(p.text());
+    let stable = words.then(|| {
+        text(plate.stable.trim().to_owned())
+            .key("stable")
+            .truncate_head()
+            .font(p.k.ty.ui)
+            .color(if settled { p.text() } else { p.muted() })
+    });
     let rtl = is_right_to_left(&plate.stable, &plate.tentative);
     let tentative = (!plate.tentative.trim().is_empty()).then(|| {
         let words = text(if rtl {
@@ -218,9 +269,9 @@ fn view(plate: &Plate, cx: &mut Cx<Plate>) -> El {
     // Right-to-left, the newer (tentative) words read after the stable ones,
     // so they sit to their left.
     let line = if rtl {
-        line.children(tentative).child(stable)
+        line.children(tentative).children(stable)
     } else {
-        line.child(stable).children(tentative)
+        line.children(stable).children(tentative)
     };
     root.child(
         row()
@@ -228,10 +279,12 @@ fn view(plate: &Plate, cx: &mut Cx<Plate>) -> El {
             .h(PLATE_H)
             .max_w(SIZE.0 - 8.0)
             .px(14.0)
+            .gap(10.0)
             .center_y()
             .radius(PLATE_H / 2.0)
             .fill(c.bg_base)
             .border(p.hair, c.border_base)
+            .children(lead)
             .child(line),
     )
 }
@@ -249,9 +302,14 @@ mod tests {
     const HEBREW: &str = "אז התוכנית להיום";
 
     fn runtime(stable: &str, tentative: &str, dark: bool) -> Runtime<Plate> {
+        runtime_in(stable, tentative, Phase::Hearing, dark)
+    }
+
+    fn runtime_in(stable: &str, tentative: &str, phase: Phase, dark: bool) -> Runtime<Plate> {
         let plate = Plate {
             stable: stable.into(),
             tentative: tentative.into(),
+            phase,
         };
         let mut rt = crate::rune_ui::offscreen::runtime(
             plate,
@@ -355,16 +413,45 @@ mod tests {
     fn no_words_draw_nothing() {
         let rt = runtime("  ", "", false);
         assert!(rect(&rt, "plate").is_none());
-        let blank = |stable: &str, tentative: &str| {
-            is_blank(&Partial {
-                stable: stable.into(),
-                tentative: tentative.into(),
+        let blank = |stable: &str, tentative: &str, phase| {
+            is_blank(&Line {
+                partial: Partial {
+                    stable: stable.into(),
+                    tentative: tentative.into(),
+                },
+                phase,
             })
         };
-        assert!(blank("", ""));
-        assert!(blank("  ", " "));
-        assert!(!blank("", " so"));
-        assert!(!blank("so", ""));
+        assert!(blank("", "", Phase::Hearing));
+        assert!(blank("  ", " ", Phase::Hearing));
+        assert!(!blank("", " so", Phase::Hearing));
+        assert!(!blank("so", "", Phase::Hearing));
+        // Waiting on the service shows with no words yet.
+        assert!(!blank("", "", Phase::Finishing));
+        assert!(!blank("", "", Phase::Offline));
+    }
+
+    #[test]
+    fn the_phase_says_where_the_words_are_without_pushing_them_out() {
+        let rt = runtime_in(LONG, "", Phase::Polishing, false);
+        let [x, _, w, _] = rect(&rt, "plate").unwrap();
+        assert!(x >= 0.0 && x + w <= SIZE.0, "inside: {x} {w}");
+        let [_, _, label, _] = rect(&rt, "phase-label").expect("polishing says so");
+        let [_, _, line, _] = rect(&rt, "line").unwrap();
+        assert!(
+            label > 0.0 && line > label,
+            "the words keep room: {label} {line}"
+        );
+
+        // Hearing says nothing beside the words.
+        assert!(rect(&runtime(SHORT, "", false), "phase").is_none());
+        // Finishing has a dot, and words only when it has some.
+        let rt = runtime_in(SHORT, "", Phase::Finishing, false);
+        assert!(rect(&rt, "phase").is_some());
+        assert!(rect(&rt, "phase-label").is_none());
+        let rt = runtime_in("", "", Phase::Finishing, false);
+        assert!(rect(&rt, "phase-label").is_some());
+        assert!(rect(&rt, "stable").is_none());
     }
 
     /// Renders the plate to `HEX_LIVE_TEXT_SNAPS/live-text-*.png` in both
@@ -374,14 +461,18 @@ mod tests {
     fn snapshots() {
         let folder = std::path::PathBuf::from(std::env::var("HEX_LIVE_TEXT_SNAPS").unwrap());
         let gpu = rune::render::Gpu::try_new(rune::render::Gpu::instance(), None).unwrap();
-        for (name, stable, tentative) in [
-            ("short", SHORT, ""),
-            ("long", LONG, ""),
-            ("tentative", SHORT, " is to finish"),
-            ("rtl", HEBREW, " והיום"),
+        for (name, stable, tentative, phase) in [
+            ("short", SHORT, "", Phase::Hearing),
+            ("long", LONG, "", Phase::Hearing),
+            ("tentative", SHORT, " is to finish", Phase::Hearing),
+            ("rtl", HEBREW, " והיום", Phase::Hearing),
+            ("offline", SHORT, "", Phase::Offline),
+            ("finishing", LONG, "", Phase::Finishing),
+            ("finishing-empty", "", "", Phase::Finishing),
+            ("polishing", LONG, "", Phase::Polishing),
         ] {
             for dark in [false, true] {
-                let mut rt = runtime(stable, tentative, dark);
+                let mut rt = runtime_in(stable, tentative, phase, dark);
                 let (w, h) = ((SIZE.0 * 2.0) as u32, (SIZE.1 * 2.0) as u32);
                 let mut renderer = crate::rune_ui::offscreen::renderer(&gpu.device);
                 let target = crate::rune_ui::offscreen::target(&gpu.device, w, h);

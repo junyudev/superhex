@@ -397,7 +397,7 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>) -> HudSender {
         // The shaders write display (sRGB-encoded) values.
         .srgb_blend(true)
         // A burst of dictations keeps the GPU surface, so each HUD shows at
-        // once; a Hex at rest gives the GPU device back (Windows and Linux).
+        // once; a Superhex at rest gives the GPU device back (Windows and Linux).
         .release_gpu_after(GPU_IDLE)
         .compositor(HudCompositor {
             gpu: None,
@@ -659,7 +659,7 @@ impl Compositor<Hud> for HudCompositor {
         self.animating.load(Ordering::Acquire)
     }
 
-    /// The view is empty, so Rune's UI pass is skipped: Hex's own pass
+    /// The view is empty, so Rune's UI pass is skipped: Superhex's own pass
     /// clears the target.
     fn render(&mut self, f: &mut Frame<'_, Hud>) {
         let reduce = f.rt.reduced_motion;

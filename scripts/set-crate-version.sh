@@ -28,4 +28,4 @@ awk -v current="$current" -v version="$version" '
 ' "$root/Cargo.lock" > "$root/Cargo.lock.next"
 mv "$root/Cargo.lock.next" "$root/Cargo.lock"
 grep -q "^version = \"$version\"" "$root/Cargo.toml"
-echo "Building Hex as $version." >&2
+echo "Building Superhex as $version." >&2

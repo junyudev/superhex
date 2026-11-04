@@ -143,7 +143,7 @@ impl LocalApi {
         )
     }
 
-    /// Start the running Linux or Windows app's local API. Hex runs on
+    /// Start the running Linux or Windows app's local API. Superhex runs on
     /// without it, so a failure is only logged.
     #[cfg_attr(target_os = "macos", allow(dead_code))]
     pub fn start_for_app(
@@ -313,7 +313,7 @@ impl LocalApi {
         let Some(worker) = self.worker.take() else {
             return;
         };
-        // Retract discovery before draining so a replacement Hex can publish
+        // Retract discovery before draining so a replacement Superhex can publish
         // while this listener is still bound and finishing in-flight requests.
         if let Some(discovery) = &self.discovery {
             discovery.remove_if_owned();
@@ -331,7 +331,7 @@ impl LocalApi {
     }
 }
 
-/// Runs `hex service`: the local API without the app, until `shutdown`.
+/// Runs `superhex service`: the local API without the app, until `shutdown`.
 /// Published, it is the one discoverable service. Embedded (`--embedded`,
 /// the TypeScript SDK's direct child), it prints its endpoint as one JSON line
 /// on stdout instead and exits when its host closes stdin.
@@ -456,7 +456,7 @@ fn serve(listener: TcpListener, context: HttpContext, ready: mpsc::SyncSender<bo
             },
             // Waking on the next connection (or shutdown's wake) instead of
             // polling took a loopback request from 12.5 ms to 0.12 ms, and
-            // an idle Hex from 100 wakeups a second to one.
+            // an idle Superhex from 100 wakeups a second to one.
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 wait_for_connection(&listener, ACCEPT_WAIT);
             }
@@ -1822,7 +1822,7 @@ mod tests {
             raw_request_signalling(
                 port,
                 &format!(
-                    "GET /dictations/7/levels HTTP/1.1\r\nAuthorization: Bearer {level_token}\r\nX-Hex-Dictation-Token: {level_owner}\r\nConnection: close\r\n\r\n"
+                    "GET /dictations/7/levels HTTP/1.1\r\nAuthorization: Bearer {level_token}\r\nX-Superhex-Dictation-Token: {level_owner}\r\nConnection: close\r\n\r\n"
                 ),
                 b"rmsDb",
                 subscribed,
@@ -2381,7 +2381,7 @@ mod tests {
         raw_request(
             port,
             &format!(
-                "{method} {path} HTTP/1.1\r\nAuthorization: Bearer {token}\r\nX-Hex-Dictation-Token: {owner_token}\r\nConnection: close\r\n\r\n"
+                "{method} {path} HTTP/1.1\r\nAuthorization: Bearer {token}\r\nX-Superhex-Dictation-Token: {owner_token}\r\nConnection: close\r\n\r\n"
             ),
         )
     }
@@ -2390,7 +2390,7 @@ mod tests {
         raw_request_bytes(
             port,
             &format!(
-                "GET {path} HTTP/1.1\r\nAuthorization: Bearer {token}\r\nX-Hex-Dictation-Token: {owner_token}\r\nConnection: close\r\n\r\n"
+                "GET {path} HTTP/1.1\r\nAuthorization: Bearer {token}\r\nX-Superhex-Dictation-Token: {owner_token}\r\nConnection: close\r\n\r\n"
             ),
         )
     }

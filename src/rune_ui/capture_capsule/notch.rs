@@ -1,5 +1,5 @@
 //! The notch the notch flow's capsule grows out of: a MacBook's, or on a
-//! flat display one the size Hex pretends it has, as `hud_placement`'s
+//! flat display one the size Superhex pretends it has, as `hud_placement`'s
 //! `Screen::pretending_notch` does (185 pt wide, the menu bar's height).
 //! The capsule hangs from the notch's bottom edge; its walls run up past
 //! the screen's top, so it covers the notch as it grows and shrinks back
@@ -31,7 +31,7 @@ pub(crate) struct Screen {
     pub(crate) size: (f32, f32),
     /// The menu bar's height.
     pub(crate) bar: f32,
-    /// The notch's height: the hardware's, or the menu bar's when Hex
+    /// The notch's height: the hardware's, or the menu bar's when Superhex
     /// pretends one.
     pub(crate) notch: f32,
     /// Whether the notch is hardware.

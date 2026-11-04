@@ -20,7 +20,7 @@
       "layers": [
         {
           "image-name": "Image.png",
-          "name": "Hex",
+          "name": "Superhex",
           "position": {
             "scale": 0.44,
             "translation-in-points": [

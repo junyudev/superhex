@@ -88,7 +88,9 @@ impl RemoteDesktop {
             .unwrap_or(0);
         if devices & KEYBOARD == 0 {
             bus.close_session(&session);
-            return Err(eyre!("the desktop did not allow Hex to use the keyboard"));
+            return Err(eyre!(
+                "the desktop did not allow Superhex to use the keyboard"
+            ));
         }
         let prompted = restore.is_none() || began.elapsed() >= DIALOG_THRESHOLD;
         // Restore tokens are single-use: each start hands out the next one.

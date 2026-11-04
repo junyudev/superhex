@@ -1,5 +1,5 @@
-//! Links into the playground: `hex://story/<group>/<story>[?variant=V&play=1]`
-//! (`hex-test://` in a test build) and `hex window story`. Both open the
+//! Links into the playground: `superhex://story/<group>/<story>[?variant=V&play=1]`
+//! (`superhex-test://` in a test build) and `superhex window story`. Both open the
 //! window on the story, pick the variant, and with `play` run its `r`
 //! trigger, as pressing R does. Only with Labs on.
 
@@ -9,9 +9,9 @@ use super::playground;
 
 /// Why a link opened only the window.
 pub(crate) const PLAYGROUND_OFF: &str = "the playground is in Labs; turn it on with \
-     `hex labs on playground` and restart Hex";
+     `superhex labs on playground` and restart Superhex";
 
-/// Longer links are ignored: they come from outside Hex.
+/// Longer links are ignored: they come from outside Superhex.
 pub(super) const MAX_LINK: usize = 2048;
 
 /// A story to open in the playground.
@@ -35,12 +35,12 @@ impl StoryLink {
     }
 }
 
-/// The scheme this build registers: a test build's never opens the real Hex.
+/// The scheme this build registers: a test build's never opens the real Superhex.
 pub(crate) fn scheme() -> &'static str {
     if crate::app_paths::is_macos_test_build() {
-        "hex-test"
+        "superhex-test"
     } else {
-        "hex"
+        "superhex"
     }
 }
 
@@ -145,23 +145,29 @@ mod tests {
     fn reads_story_links() {
         assert_eq!(
             parse(
-                "hex://story/prototypes/hud/recording-your-voice?play=1",
-                "hex"
+                "superhex://story/prototypes/hud/recording-your-voice?play=1",
+                "superhex"
             ),
             Ok(link("prototypes-hud-recording-your-voice", None, true))
         );
         assert_eq!(
-            parse("hex://story/Prototypes/HUD/Processing?variant=2", "hex"),
+            parse(
+                "superhex://story/Prototypes/HUD/Processing?variant=2",
+                "superhex"
+            ),
             Ok(link("Prototypes/HUD/Processing", Some("2"), false))
         );
         assert_eq!(
-            parse("hex://story/Window/General/Microphone%20missing", "hex"),
+            parse(
+                "superhex://story/Window/General/Microphone%20missing",
+                "superhex"
+            ),
             Ok(link("Window/General/Microphone missing", None, false))
         );
         assert_eq!(
             parse(
-                "hex://story/Prototypes/HUD/Recording%20%C2%B7%20your%20voice?variant=Quiet&play=0",
-                "hex"
+                "superhex://story/Prototypes/HUD/Recording%20%C2%B7%20your%20voice?variant=Quiet&play=0",
+                "superhex"
             ),
             Ok(link(
                 "Prototypes/HUD/Recording · your voice",
@@ -170,7 +176,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            parse("hex://story/processing/", "hex"),
+            parse("superhex://story/processing/", "superhex"),
             Ok(link("processing", None, false))
         );
     }
@@ -179,26 +185,35 @@ mod tests {
     fn links_from_before_the_list_nested_still_open_their_story() {
         for (old, now) in [
             (
-                "hex://story/hud/recording-your-voice?play=1",
+                "superhex://story/hud/recording-your-voice?play=1",
                 "prototypes-hud-recording-your-voice",
             ),
-            ("hex://story/HUD/Processing", "Prototypes/HUD/Processing"),
-            ("hex://story/hud/processing", "Prototypes/hud/processing"),
             (
-                "hex://story/onboarding/option-pill",
+                "superhex://story/HUD/Processing",
+                "Prototypes/HUD/Processing",
+            ),
+            (
+                "superhex://story/hud/processing",
+                "Prototypes/hud/processing",
+            ),
+            (
+                "superhex://story/onboarding/option-pill",
                 "prototypes-onboarding-option-pill",
             ),
-            ("hex://story/mac-settings", "Window/General/Settings"),
+            ("superhex://story/mac-settings", "Window/General/Settings"),
             (
-                "hex://story/Meetings/meetings-calendar",
+                "superhex://story/Meetings/meetings-calendar",
                 "Window/Meetings/Calendar",
             ),
             (
-                "hex://story/general/mac-settings",
+                "superhex://story/general/mac-settings",
                 "Window/General/Settings",
             ),
         ] {
-            assert_eq!(parse(old, "hex").map(|link| link.story), Ok(now.into()));
+            assert_eq!(
+                parse(old, "superhex").map(|link| link.story),
+                Ok(now.into())
+            );
         }
         assert_eq!(
             StoryLink::new("HUD/Processing", None, false).story,
@@ -209,18 +224,18 @@ mod tests {
     #[test]
     fn ignores_other_links() {
         for bad in [
-            "hex-test://story/hud/processing",
-            "hex://settings",
-            "hex://story",
-            "hex://story/",
-            "hex://story/%FF",
+            "superhex-test://story/hud/processing",
+            "superhex://settings",
+            "superhex://story",
+            "superhex://story/",
+            "superhex://story/%FF",
             "not a link",
             "",
         ] {
-            assert!(parse(bad, "hex").is_err(), "{bad}");
+            assert!(parse(bad, "superhex").is_err(), "{bad}");
         }
-        let long = format!("hex://story/{}", "a".repeat(MAX_LINK));
-        assert!(parse(&long, "hex").is_err());
-        assert!(parse("hex-test://story/hud/processing", "hex-test").is_ok());
+        let long = format!("superhex://story/{}", "a".repeat(MAX_LINK));
+        assert!(parse(&long, "superhex").is_err());
+        assert!(parse("superhex-test://story/hud/processing", "superhex-test").is_ok());
     }
 }

@@ -3,7 +3,7 @@
 //! (`calendar.swift`) is macOS-only; the model here is plain data so Settings
 //! fixtures render on every OS.
 //!
-//! Hex asks for calendar access only when the user clicks Connect calendar,
+//! Superhex asks for calendar access only when the user clicks Connect calendar,
 //! reads events locally through EventKit, and makes no network request.
 
 use std::collections::HashMap;
@@ -18,7 +18,7 @@ pub const LATE_GRACE_MS: i64 = 5 * 60 * 1_000;
 pub const REMINDER_AFTER_START_MS: i64 = 60 * 1_000;
 /// The shortest time a reminder stays up, for one shown late.
 pub const REMINDER_MIN_MS: i64 = 30 * 1_000;
-/// How far ahead Hex reads events: enough for the reminder poll and the
+/// How far ahead Superhex reads events: enough for the reminder poll and the
 /// Settings list.
 pub const LOOKAHEAD_MS: i64 = 48 * 60 * 60 * 1_000;
 /// The most events one read returns.
@@ -61,7 +61,7 @@ pub struct AccessAnswer {
     /// EventKit's completion said yes.
     pub granted: bool,
     /// EventKit's status read right after the answer. It can still say
-    /// "not determined" in the process that asked, until Hex relaunches.
+    /// "not determined" in the process that asked, until Superhex relaunches.
     pub status: CalendarAccess,
     /// The request's error, such as a missing usage description.
     pub error: Option<String>,
@@ -115,7 +115,7 @@ pub struct CalendarEvent {
     pub url: Option<String>,
 }
 
-/// A video call service Hex recognizes in an invitation.
+/// A video call service Superhex recognizes in an invitation.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CallProvider {
     Zoom,

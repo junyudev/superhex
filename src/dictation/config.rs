@@ -10,7 +10,7 @@ static READS_BROWSER: AtomicBool = AtomicBool::new(false);
 
 /// Whether anything the user set up looks at the page: a mode chosen by
 /// website, an OpenCode rewrite (its prompt names the site), or a script
-/// transformation (it receives the page address). Otherwise Hex never asks a
+/// transformation (it receives the page address). Otherwise Superhex never asks a
 /// browser for its page, so macOS never shows an Automation prompt for it.
 pub fn reads_browser() -> bool {
     READS_BROWSER.load(Ordering::Acquire)

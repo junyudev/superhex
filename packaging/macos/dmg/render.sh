@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-# Regenerates the installer window from background.html: Hex's keycap
+# Regenerates the installer window from background.html: Superhex's keycap
 # (src/rune_ui/dmg_keycap.rs, drawn with Rune), background.tiff (1× and 2×),
 # and DS_Store (the Finder layout). Needs macOS, a Chromium-family browser
 # (CHROME, else Google Chrome or Brave), and uv.
@@ -27,8 +27,8 @@ done
 tiffutil -cathidpicheck "$work/background@1x.png" "$work/background@2x.png" \
   -out "$here/background.tiff" >/dev/null 2>&1
 
-mkdir "$work/Hex.app"
+mkdir "$work/Superhex.app"
 uv run --quiet --with dmgbuild==1.6.7 dmgbuild -s "$here/layout.py" \
-  -D app="$work/Hex.app" -D background="$here/background.tiff" Hex "$work/layout.dmg"
+  -D app="$work/Superhex.app" -D background="$here/background.tiff" Superhex "$work/layout.dmg"
 hdiutil attach -quiet -nobrowse -readonly -mountpoint "$work/mnt" "$work/layout.dmg"
 cp "$work/mnt/.DS_Store" "$here/DS_Store"

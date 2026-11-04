@@ -35,15 +35,15 @@ const DEFAULT_LANGUAGE: &str = "en";
 
 #[derive(Parser)]
 #[command(
-    name = "hex",
+    name = "superhex",
     version = crate::VERSION,
-    about = "Local Hex dictation for Windows",
-    long_about = "Local Hex dictation for Windows.\n\n\
+    about = "Local Superhex dictation for Windows",
+    long_about = "Local Superhex dictation for Windows.\n\n\
         Control commands (status, dictation, settings, model, window, …) drive the one running \
-        Hex over its owner-only pipe and never launch it, except `start` and `restart`. Every \
+        Superhex over its owner-only pipe and never launch it, except `start` and `restart`. Every \
         one takes --json for a versioned reply (docs/cli.md). Exit codes: 0 done or nothing to \
-        change, 1 refused or failed, 2 usage, 3 Hex isn't running.",
-    after_help = "Run `hex <command> --help` for details, or `hex settings list` for every setting."
+        change, 1 refused or failed, 2 usage, 3 Superhex isn't running.",
+    after_help = "Run `superhex <command> --help` for details, or `superhex settings list` for every setting."
 )]
 struct Cli {
     #[command(subcommand)]
@@ -127,10 +127,10 @@ impl SelectionArgs {
     }
 }
 
-/// Loads DLLs only from System32 and Hex's own folder, never the current
+/// Loads DLLs only from System32 and Superhex's own folder, never the current
 /// folder or PATH. Another app's incompatible `dxcompiler.dll` on PATH
-/// crashed Hex at its first shader compile (#587), and a DLL planted on PATH
-/// must not load into Hex. Hex's own imports loaded before this, except the
+/// crashed Superhex at its first shader compile (#587), and a DLL planted on PATH
+/// must not load into Superhex. Superhex's own imports loaded before this, except the
 /// delay-loaded vulkan-1.dll (`vulkan`); Windows, the GPU drivers, and COM
 /// load theirs by full path.
 pub(crate) fn restrict_dll_search() {
@@ -143,7 +143,7 @@ pub(crate) fn restrict_dll_search() {
     } == 0
     {
         eprintln!(
-            "hex: SetDefaultDllDirectories failed: {}",
+            "superhex: SetDefaultDllDirectories failed: {}",
             std::io::Error::last_os_error()
         );
     }
@@ -156,8 +156,8 @@ pub fn run(shutdown: &'static AtomicBool) -> Result<()> {
         hidden: false,
         rune_args: Vec::new(),
     });
-    // Control and read commands talk to the running Hex or read files: no
-    // log, lock, or Hex of their own.
+    // Control and read commands talk to the running Superhex or read files: no
+    // log, lock, or Superhex of their own.
     if let Command::Control(command) = command {
         crate::control::cli::finish(crate::control::cli::run(command));
     }

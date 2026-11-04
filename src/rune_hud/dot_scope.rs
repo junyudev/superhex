@@ -3,7 +3,7 @@
 //! Ported from the t422 prototype (look A), itself a port of the OpenCode iOS
 //! dot scope (`DotScopeSimulation.swift`).
 //!
-//! [`Tuning`] is what HUD Lab edits; it is saved as `dot-scope.json` in Hex's
+//! [`Tuning`] is what HUD Lab edits; it is saved as `dot-scope.json` in Superhex's
 //! Application Support folder. [`Scope`] steps the simulation at a fixed
 //! 240 Hz, so any frame rate draws the same picture, and yields one
 //! brightness pair per dot for `rune_hud.wgsl` to draw.

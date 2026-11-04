@@ -1,7 +1,9 @@
 # Dictation
 
-Hold the configured shortcut, speak, and release. Hex transcribes locally and
-inserts the result at the current focus. New captures do not cancel accepted
+Hold the configured shortcut, speak, and release. Hex transcribes through the
+chosen backend and inserts the result at the current focus. On this fork,
+macOS uses VoiceBuddy after explicit configuration import; otherwise it uses
+the selected local model. New captures do not cancel accepted
 work. Only Toggle mode has a cancel: its cancel shortcut, Escape by default,
 discards the recording (#786, #1022); every other intentional dictation
 finishes and pastes.
@@ -10,7 +12,8 @@ This map covers the macOS release path. Linux shares the basic journey, not
 every timing, input, or recovery guarantee; see the
 [platform map](README.md#other-platforms-and-consumers). This is a map, not a
 verified end-to-end driver. Linked checks are locators; no tests or previews
-were run for this rewrite.
+were run for the original rewrite. VoiceBuddy verification is recorded beside
+its contract below.
 
 ## How To Get To It
 
@@ -19,30 +22,112 @@ write fails, capture remains active with an error; retry or cancel it explicitly
 The GPUI regression that injected this failure went with GPUI; no Rune test
 injects a failed shortcut save yet.
 
-**Shortcut:** Option by default, after macOS permissions and the selected local
-model are ready. Commands and OpenCode are not required. General > Dictation >
+**Shortcut:** Option by default, after macOS permissions and speech (usable
+VoiceBuddy or the selected local model) are ready. Commands and OpenCode are not required. General > Dictation >
 Shortcut accepts modifier-only, modifier-plus-key, standalone Fn/Globe, and
-standalone function-key bindings. On Windows and Linux/X11 it also accepts mouse buttons, and on
-macOS with Labs › Mouse shortcuts on (off by default; issue 209; see labs.md),
-alone or with modifiers: click Record, then press the desired mouse button.
-Mouse 1/2/3 are left/right/middle; Mouse 4 and higher are auxiliary buttons.
-Mouse 1 (left click) needs a modifier: alone it would swallow every click,
-Settings' own included, so the recorder answers "Add a modifier", the CLI
-refuses `mouse1`, and a saved bare left-click shortcut goes back to its
-default when settings load (issue 411; checks
-`a_saved_bare_left_click_shortcut_returns_to_the_default_on_load` and
-`a_bare_left_click_is_refused_but_other_mouse_buttons_are_not`, constructed
-settings only, no physical mouse run).
-Escape cancels recording a binding. Mouse bindings use the same hold, toggle,
-and double-tap rules and conflict checks as keyboard bindings. A consumed
-mouse press, drag and release do not reach the foreground app; ordinary clicks
-retain their existing behavior. Capturing a replacement suspends global matching.
-The CLI accepts the same bindings, for example `mouse4` or `option+mouse4`.
-Windows supports the five mouse buttons exposed by its low-level mouse hook.
-Linux/X11 maps Mouse 4/5 to native buttons 8/9, skipping wheel events; the
-recorder temporarily grabs the pointer while its window has focus and releases
-it on save, cancellation, focus loss or window close. Windows waits for the
-click that opened the recorder to be released before accepting a mouse button.
+standalone function-key bindings. On macOS, Windows and Linux/X11 it also
+accepts mouse buttons, alone or with modifiers. Mouse 1/2/3 are left/right/middle;
+Mouse 4 and higher are auxiliary buttons. Mouse shortcuts have graduated on
+macOS: no Labs switch or saved-shortcut reset; retired `labs.mouse_shortcuts`
+and `mouse_shortcut_notice` fields are ignored in older settings files.
+
+On macOS, click Record, move the pointer anywhere, press and release the
+button. A temporary global filtering tap consumes the captured down, drag and
+up, so a browser does not navigate. Bare left and right clicks pass normally,
+including Cancel; either records with a modifier. A button held before Record
+must lift before it can record. Escape, cancellation, closing the window, and
+leaving the recorder stop capture. A cancelled consumed press drains only its
+remaining drag/up, then the tap is removed (two neutral samples recover a
+missed up, with a 30 s hard bound). Rejected candidates keep listening.
+Mouse 1 still requires a modifier in the CLI and persisted settings (issue 411).
+
+With already granted Input Monitoring access, the recorder also observes
+physical USB/Bluetooth/SPI/I2C pointer Button-page usages 3–32, without seizing
+the device. It reads no keyboard elements and excludes virtual pointers. A
+standard event for the same button within 80 ms wins, in either callback order;
+otherwise the binding remembers vendor, product and native usage. Usage U is
+button U-1 and displays as Mouse U. The ordinary key's optional metadata is
+`"native_mouse":{"vendor":6421,"product":44572,"usage":5}` alongside
+`"code":32772,"label":"Mouse 5"` inside `keys`. Older builds can still read
+that key. The CLI accepts and prints `mouse5@6421:44572`, with optional modifiers.
+
+The UI host exposes `PlatformState.mouse_shortcut`: access (`Granted`,
+`NotDetermined`, `Denied`), recorder status, and runtime status (`Stopped`,
+`Listening { devices }`, `AccessRequired`, `OpenFailed(code)`).
+`PlatformRequest::RequestMouseAccess` is the explicit prompting action;
+`OpenMouseInputMonitoring` opens Privacy & Security › Input Monitoring.
+Starting a recorder, launching, or reloading settings only checks access and
+never prompts. The visual mouse-access flow is owned by the window designer;
+this plumbing adds no access button or new translated UI copy.
+
+A saved native binding starts a monitor only while that binding is active,
+pins one interface to suppress duplicate reports, and feeds presses and
+releases into the same hold, toggle and double-tap state machine. Initially
+held or unreadable buttons must release first. Timestamp fences reject stale
+reports; sampling recovers a missed release. Removing the pinned device or
+losing access releases a held shortcut; reconnecting can pin a new interface.
+Permission loss is published and logged. CoreGraphics counterparts are
+consumed without delivering duplicate shortcut edges. Driver actions that
+never become CoreGraphics events cannot be suppressed by this non-seizing
+monitor. Identical mice share the saved model identity.
+
+Ordinary mouse bindings use the existing runtime path. Clicks and drags reach
+its filtering session tap only while a mouse shortcut is bound; otherwise
+they stay on the passive tap to preserve window dragging between displays and
+Spaces (#1215). The 5 s health check moves masks after a binding changes, so a
+newly bound button can still reach the foreground app for up to 5 s.
+Capturing a replacement suspends global matching. Keyboard shortcuts retain
+their existing behavior. Windows supports the five mouse buttons exposed by
+its low-level hook. Linux/X11 maps Mouse 4/5 to native buttons 8/9, skipping
+wheel events; the recorder temporarily grabs the pointer while focused.
+Windows waits for the click that opened the recorder to be released.
+
+Pure checks in `suppression/mouse/policy/tests.rs` cover recorder ownership,
+initial held buttons, primary clicks, cancellation, HID state and timestamp
+ordering, sampled releases, interface pinning/removal, standard/native
+selection, and the hold/toggle/double-tap contract. Persistence and CLI checks
+are in `app_settings/native_mouse.rs`, `app_settings.rs`, and
+`control/settings.rs`; existing recorder and Labs pane checks were updated.
+
+**Read-only observation, November 4, 2026:** `IOHIDCheckAccess(ListenEvent)`
+returned granted for the development host process. Mouse/Pointer discovery
+found ten interfaces, four with vendor 6421/product 44572 and Button usages
+3, 4, 5 over USB. No devices were opened by the probe and no physical button
+was pressed. This does not verify the installed signed app's TCC identity,
+actual HID/CG delivery, browser suppression, reconnection, or physical dictation.
+
+The 244 focused mouse, suppression, settings, CLI and Labs checks passed on
+November 4 with `RUSTUP_TOOLCHAIN=1.99.1-aarch64-apple-darwin`. Clippy with
+`-D warnings -A dead_code` passed; strict clippy was blocked by existing
+unused dictation backend/live-text stubs. No physical button was pressed.
+Linux goldens were not regenerated: this Mac had no running Linux Docker
+engine and the worktree was kept local as requested. The Labs row removal
+still needs that Linux render check when the window design is integrated.
+
+Owner's manual check (not performed by the implementation agent):
+
+1. With Hex's model ready, record Mouse 5 with the pointer over a browser that
+   has Back history. Release it: the shortcut saves and the browser stays put.
+   `hex settings get dictation_hotkey` should show `mouse5` if CG delivered it,
+   or `mouse5@6421:44572` if only HID did. Check modifier+primary recording,
+   bare primary clicks, Escape, Cancel, and closing Settings too.
+2. Hold the side button before starting Record. Its first release saves
+   nothing; the next complete press records. Cancel while holding a captured
+   button, then release: it must not navigate or leave a filtering tap behind.
+3. If the native path needs access, invoke the explicit mouse access action,
+   enable the exact signed Hex app in Input Monitoring, and record again.
+   Denial must leave standard recording usable and expose `AccessRequired`.
+4. Wait 5 s for runtime tap remasking. In a text editor, test a one-second
+   hold/release, Toggle, and double-tap lock followed by a fresh finishing
+   press. Each physical press must produce one gesture despite four HID
+   interfaces. The button must not also navigate a browser.
+5. Reconnect the mouse; repeat. Remove it mid-hold and verify capture releases.
+   Start Hex while the button is held: no dictation until it lifts and is
+   pressed again. Remove Input Monitoring access and inspect host status;
+   restore it and repeat. Keep LinearMouse/Mac Mouse Fix running for this run.
+6. Restore the previous shortcut and modes. With a keyboard-only shortcut,
+   drag windows between displays and Spaces to check #1215. Native mouse
+   monitoring should report `Stopped` once no native shortcut remains.
 
 Wayland's XDG shortcut syntax has no mouse-button trigger. Use the desktop's
 mouse bindings to run `hex dictation start`/`stop` (hold) or `hex dictation toggle`
@@ -725,6 +810,138 @@ speaker playing the tone.
 
 ### Streaming Finish
 
+On this fork, macOS defaults to the VoiceBuddy backend, independently of the
+saved local `transcription` model. It becomes effective only after the person
+imports a usable configuration. No configuration, a refused configuration, or
+choosing Local keeps dictation on the local path below. This is the owner's
+explicit exception to the off-by-default Labs policy.
+
+```ts
+macOS dictation backend                    // dictate.voice-buddy
+├── VoiceBuddy chosen + usable imported configuration -> speech service
+│   ├── Intentional hold -> one Session; complete 16 kHz timeline, no pause cap
+│   ├── Short tap / chord / cancel / silence -> drop session and live text
+│   ├── Connection fails during capture -> keep recording; line becomes Offline
+│   └── Release -> Publisher travels with clip -> Finishing -> Polishing -> text
+└── Otherwise -> selected local model, with the existing local stream/fallback
+
+Explicit setup, three ways                 // dictate.voice-buddy-setup
+├── Set up -> register this installation's own identity with the service
+│   ├── Secure-random device code; reads no hardware identifier
+│   └── Proves the new identity with a second handshake before saving it
+├── Use it -> the MouseVoice app's context.json, read only while setup shows
+├── Choose file… -> any configuration file the person picks
+├── All three -> validate bounded regular file, not itself a symlink
+│   ├── <support>/voice-buddy.json: 0600; parent: 0700
+│   └── Copy voice options into settings once; leave the source alone
+├── Nothing happens at launch, on a settings reload, or while recording
+└── Service Rejected -> Broken; set up again or import another to recover
+```
+
+```ts
+General > Speech: VoiceBuddy | Local model          // dictate.voice-buddy-window
+├── Local model -> the Speech model and Language rows, as before
+├── Ready -> "Your voice goes to <host> while you dictate" -> Options
+│   └── Options sheet: polish, remove repetition, paragraphs, Traditional Chinese,
+│       Test connection, Replace…, Remove… (two presses)
+├── Not set up -> what Hex uses until then, and:
+│   ├── A configuration found on this Mac -> Use it, or Set up
+│   └── Nothing found -> Set up, or Choose file…
+└── Refused or unreadable -> "VoiceBuddy can't run" -> the same actions
+
+First run on macOS -> "Choose how Hex hears you"    // dictate.voice-buddy-first-run
+├── VoiceBuddy first, recommended, selected; its row says where the voice goes
+├── Nothing downloads until a pick
+├── Continue -> saved: use it; found: import it; neither: set it up
+│   └── Setting up failed or a chosen file refused -> The list asks again
+└── A local row -> Chooses Local and prepares that model
+
+The live text plate, with no Labs toggle            // dictate.voice-buddy-live
+├── Hearing -> The words, newest in view
+├── Offline -> "No connection, still recording"; the words dim
+├── Finishing -> A pulsing dot; the words dim (past the recording)
+└── Polishing -> "Polishing" beside the words
+
+A failed dictation's capsule                        // dictate.voice-buddy-failed
+├── Where the words were, just past the HUD; non-activating, so focus stays
+├── Retryable -> Try again; Use local model when one is installed; Paste heard text
+├── Refused or not set up -> Open Settings; Use local model when one is installed
+├── ✕ forgets it; the capsule leaves with the last recording held
+└── Audio stays in memory only: 8 recordings, 10 minutes, gone on quit
+```
+
+Checks: `found_choice` and `voice_buddy` tests in `rune_ui`, `live_text` and
+`dictation_failed` tests (fixtures; `--snap` scenes `mac-voice-buddy-*` and
+`mac-onboarding-voice-buddy-found`, and those tests' ignored `snapshots`). No
+capsule or plate was observed on a real screen.
+
+The window calls the unchanged API in
+[voice_buddy.rs](../../src/dictation/voice_buddy.rs), whose store, capture and
+recovery owners live alongside it. The local model stays cold at startup while
+VoiceBuddy is effective. Meetings and Annotate activate locally; `/transcribe`
+uses the local service's model, and `/streams` activates the local engine on
+first admission when it has no model. Benchmarks and History's Transcribe again
+also stay local. Keyboard-language switching applies only while Local is in
+effect. Selecting a local menu model chooses Local; VoiceBuddy is the menu's
+first item and opens Settings when it needs configuration.
+
+Checks for `dictate.voice-buddy` and its recovery policy live in
+[store.rs](../../src/dictation/voice_buddy/store.rs),
+[capture.rs](../../src/dictation/voice_buddy/capture.rs),
+[tests.rs](../../src/dictation/voice_buddy/tests.rs),
+[capture_stream.rs](../../src/dictation/capture_stream.rs), and
+[jobs.rs](../../src/dictation/jobs.rs): effective-backend rules, bounded imports
+and private modes, refusal/reimport, hold gating, complete audio and delayed
+release, one retry, failure-list bounds/expiry/targets, cancellation, ordering,
+and Publisher handoff. Caller sessions use `Session::scripted` and invented
+configuration; tests never read a person's imported configuration.
+
+Observed November 4, 2026, macOS ARM64, Rust 1.99.1: 348 focused application
+checks and 27 client checks passed; all-target clippy with `onnx-benchmark`
+and `-D warnings` passed. These are unit and local-fixture/loopback checks.
+No live microphone, real configuration, real speech-service connection, native
+menu selection, paste into another app, cold-model RAM measurement, or complete
+release-gate run was observed. Meetings, Annotate and host-audio checks use
+synthetic adapters; their physical/native paths remain unverified here. Both
+client commits through `f36cf405` are integrated; none of these paths use the
+stub client.
+
+**Observed November 4, 2026, Apple Silicon, debug build, the real speech
+service, a clean temporary data folder with no configuration and no local
+model:** Set up's path (`create_identity`, the ignored
+`create_identity_saves_a_usable_configuration`) registered one identity, which
+the crate had already accepted live (registration 639 ms, `check()` 294 ms).
+Hex then started on that identity alone, reported `voice_buddy_setup: ready`
+with no local model installed, and two dictations through
+`HEX_AUDIO_FIXTURE` returned their polished text 0.81 and 0.89 s after stop
+(`source="voice-buddy"`, 433 and 541 ms of service time). No audio reached the
+disk and nothing errored. Not observed: Set up pressed in the window itself,
+the first run's own Set up path, or a second registration.
+
+**Observed November 4, 2026, Apple Silicon, debug build, the real speech service,
+a real imported configuration in a private temporary data folder, and a
+synthetic spoken clip through `HEX_AUDIO_FIXTURE` (never a microphone):** four
+`hex dictation start` / `stop --print` runs, including one from a cold start with
+no local model installed, returned the polished text in 0.87 to 2.55 s from stop
+to text. A fifth, ended by a real press of the default shortcut, pasted its text
+into the foreground app, so a test instance must not keep a real shortcut. `hex dictation cancel` discarded the recording with nothing kept. With
+the configuration's host pointed at a closed local port, nothing was pasted, the
+clip was held in memory, `hex dictation retry` tried it again, and no audio
+reached the disk. One further run's `stop --print` answered "the listener didn't
+answer in time" (its 3 s budget) while the machine's load average was over 100,
+though the job finished; it did not recur in the runs above. Fixed from these runs: a configuration under a linked folder (macOS's own
+`/tmp`) read as broken, and a failed session's finished wait cancelled the
+automatic retry linked to it. Not observed: a physical microphone, the plate and
+capsule on a real screen, a paste the person meant, `Rejected` from the real
+service, or an automatic retry recovering against the real service (the retry is
+checked against a local fake service,
+`a_retry_linked_to_a_failed_session_really_runs_and_can_still_be_cancelled`).
+
+The following stream rules describe the **local** backend. The VoiceBuddy
+Publisher always publishes, regardless of Labs; an older job cannot overwrite a
+newer capture's line, and a completed job drops its Publisher before processing.
+
+
 ```ts
 Model advertises streaming, GPU device             // dictate.streaming
   // Metal on macOS, Vulkan on Linux and x64 Windows
@@ -976,6 +1193,29 @@ letters or digits (`spoken_text_end_ms`), and no clip fell back. Check:
 macOS or a microphone.
 
 ### Ongoing Jobs And Output
+
+```ts
+Accepted VoiceBuddy job                     // dictate.voice-buddy-recovery
+├── Wait off the engine and microphone threads; dictation_busy stays true
+├── Retryable failure -> one whole-clip retry, silently, line stays Finishing
+├── Text -> unchanged ordered processing and output; source=voice-buddy
+└── Final failure -> no paste; one failed HUD event and error tone
+    ├── Paste / Raw Paste -> volatile failed list, oldest first
+    │   ├── At most 8, 10-minute expiry, 128 MiB audio, 64 KiB heard text per clip
+    │   ├── Retry / Retry Local -> new ordered job, current focus and context
+    │   ├── Paste Heard -> raw normal output; no transcription or failed-audio retention
+    │   └── Dismiss / expiry / quit -> release audio; no History or disk copy
+    └── Print / programmatic -> failure to owner, retain nothing
+hex dictation retry -> request retry of newest held failure
+Full pipeline -> leave the recovery request pending; expiry still applies
+Quit -> cancel service tokens before draining; clear held clips
+```
+
+Successful service output records History normally (model label VoiceBuddy),
+but omits its words from the persisted event log. Failed service clips bypass
+diagnostic WAV retention and History. Local capture, processing, admission and
+submission-order output retain their existing contracts. Toggle cancel still
+cancels only the recording; accepted service jobs continue, just like local jobs.
 
 ```ts
 Completed long recording                  // dictate.model-windows

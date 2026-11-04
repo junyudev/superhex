@@ -88,7 +88,7 @@ fn a_capture_logs_only_keys_that_reach_the_app() {
         callback_input_with(
             true,
             &[
-                // Hex takes Escape (the capsule's picker): it consumes it.
+                // Superhex takes Escape (the capsule's picker): it consumes it.
                 (
                     now,
                     InputEvent::Key {
@@ -2953,7 +2953,7 @@ fn locked_and_toggle_captures_break_the_chord_only_for_presses_hex_owns() {
     locked.process(InputEvent::Flags(NO_FLAGS), at(300));
     assert!(locked.is_locked());
     assert!(!locked.take_chord_break(at(2_000)));
-    // The press that finishes the lock is Hex's.
+    // The press that finishes the lock is Superhex's.
     assert_eq!(
         locked.process(InputEvent::Flags(OPTION_KEY_MASK), at(3_000)),
         Some(HotkeyAction::Finish)
@@ -2967,7 +2967,7 @@ fn locked_and_toggle_captures_break_the_chord_only_for_presses_hex_owns() {
     programmatic.process(InputEvent::Flags(NO_FLAGS), at(1_060));
     assert!(!programmatic.take_chord_break(at(1_060)));
 
-    // Toggle: the starting press is Hex's once past the chord grace.
+    // Toggle: the starting press is Superhex's once past the chord grace.
     let grace = crate::feedback::CHORD_GRACE;
     let mut toggle = test_hotkey(false, now);
     toggle.set_toggle(true);
@@ -2993,7 +2993,7 @@ fn locked_and_toggle_captures_break_the_chord_only_for_presses_hex_owns() {
 
 /// The chord breaker is posted through both taps; its mark keeps it from
 /// becoming the user's chord or HID chord evidence, and the key tap drops
-/// it so the focused app never beeps at it. Hex's other synthetic keys,
+/// it so the focused app never beeps at it. Superhex's other synthetic keys,
 /// such as the paste shortcut, still reach the app.
 #[test]
 fn marked_chord_breaker_never_reaches_the_shortcut_machines_or_the_app() {
@@ -3684,7 +3684,7 @@ fn escape_is_suppressed_only_while_hex_takes_it() {
     assert!(!suppression.process_all(down, hotkeys, false, true));
     assert!(!suppression.process_all(up, hotkeys, false, true));
 
-    // Hex can stop taking Escape before the key lifts;
+    // Superhex can stop taking Escape before the key lifts;
     // the repeat and release keep the press's suppression decision.
     assert!(suppression.process_all(down, hotkeys, true, true));
     assert!(suppression.process_all(down, hotkeys, true, false));

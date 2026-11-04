@@ -33,7 +33,7 @@ pub(crate) const DISCARD_LINGER_S: f64 = 1.5;
 /// router has that many, and the most a search shows.
 pub(crate) const SUGGEST_ROWS: usize = 5;
 /// The menu-bar flow's hint of the guesses stays this long, then the
-/// capsule folds into Hex's menu-bar item, where the capture waits.
+/// capsule folds into Superhex's menu-bar item, where the capture waits.
 pub(crate) const MENU_HINT_S: f64 = 4.0;
 /// The permission helper waits this long for a grant, then folds; the
 /// capture shortcut brings it back.
@@ -56,7 +56,7 @@ impl Mode {
     pub(crate) fn chips(phone: bool) -> impl Iterator<Item = Mode> {
         [Mode::Area, Mode::Window, Mode::Screen]
             .into_iter()
-            // Wayland gives Hex no pointer to aim an area with yet.
+            // Wayland gives Superhex no pointer to aim an area with yet.
             .filter(|mode| cfg!(not(target_os = "linux")) || *mode != Mode::Area)
             .chain(phone.then_some(Mode::Iphone))
     }
@@ -157,7 +157,7 @@ pub(crate) enum Delivered {
     },
 }
 
-/// How a send the capsule asked to take back ended (Hex's router undo).
+/// How a send the capsule asked to take back ended (Superhex's router undo).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Undone {
     /// Taken back before the session saw it, or reverted.
@@ -183,7 +183,7 @@ pub(crate) enum Grant {
     Off,
     /// Allow was pressed: System Settings and its guide are open.
     Asked,
-    /// Granted, but Hex must restart to use it.
+    /// Granted, but Superhex must restart to use it.
     Restart,
     /// Granted: the next capture records.
     Ready,
@@ -192,7 +192,7 @@ pub(crate) enum Grant {
 /// Everything that moves the capsule.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Input {
-    /// A capture was refused for a permission Hex lacks: the helper opens
+    /// A capture was refused for a permission Superhex lacks: the helper opens
     /// in its place.
     NeedsPermission(CaptureNeed),
     /// How that permission stands now, while the helper shows.
@@ -247,7 +247,7 @@ pub(crate) enum Input {
     /// The ✕, or anything that should just close it.
     Dismiss,
     /// The recording it shows left the snapshot with no outcome: a chip's
-    /// discard (the picker is already up) or `hex capture discard`.
+    /// discard (the picker is already up) or `superhex capture discard`.
     Gone,
     /// A mouse button went down while the list was open: off the capsule,
     /// the list closes, so typing goes back to the app in front.
@@ -255,7 +255,7 @@ pub(crate) enum Input {
     /// The written capture has no words: the microphone heard no speech.
     NothingHeard,
     /// The router sent the capture, from the capsule or not
-    /// (`hex capture send`): it no longer waits for a pick.
+    /// (`superhex capture send`): it no longer waits for a pick.
     Settled,
 }
 
@@ -271,7 +271,7 @@ pub(crate) enum Action {
     /// The permission helper's Allow: macOS's prompt, or System Settings
     /// with the guide beside it.
     Allow(CaptureNeed),
-    /// The permission helper's Restart Hex.
+    /// The permission helper's Restart Superhex.
     Restart,
     /// Switch the recording's mode.
     Switch(Mode),
@@ -611,7 +611,7 @@ pub(crate) struct Flow {
     /// out); news of it leaves the capsule closed.
     closed: bool,
     /// The latest capture's list, closed before anything was picked: kept
-    /// until a pick, a paste, a send from elsewhere (`hex capture send`), or
+    /// until a pick, a paste, a send from elsewhere (`superhex capture send`), or
     /// the next capture.
     waiting: Option<Routed>,
     /// The latest capture was pasted, inspected, or sent from elsewhere:
@@ -980,8 +980,8 @@ impl Flow {
                 Phase::Selecting(mode)
             }
             // Closed before the router answered (dismissed, or the answer
-            // came after the hold): it stays closed, and `hex capture list`
-            // and `hex capture send` still offer the capture.
+            // came after the hold): it stays closed, and `superhex capture list`
+            // and `superhex capture send` still offer the capture.
             // A guess still waits for Send to….
             (Phase::Hidden, Input::Routed(route)) if self.closed => {
                 if !self.settled {
@@ -1005,7 +1005,7 @@ impl Flow {
                 self.phase = Phase::Routed(Routed { at: now, ..routed });
                 return self.step(Input::OpenList, now);
             }
-            // A queued send went on a retry: Hex can't take it back.
+            // A queued send went on a retry: Superhex can't take it back.
             (_, Input::Delivered(delivered)) => match delivered {
                 Delivered::Sent { to } => Phase::Sent(Sent {
                     undoable: false,
@@ -1406,7 +1406,7 @@ impl Flow {
         }
     }
 
-    /// The keys the capsule takes from Hex's tap: the picker's, an open
+    /// The keys the capsule takes from Superhex's tap: the picker's, an open
     /// list's (Escape only in a list Kit opened or the picker). Closed or
     /// routed with nothing open, it takes none.
     pub(crate) fn keys(&self) -> Option<crate::capture_host::CapsuleKeys> {
@@ -1618,16 +1618,16 @@ fn permission_lines(need: CaptureNeed, grant: Grant) -> Done {
         Grant::Off => Done {
             why: Some(why.into()),
             ask: Some("Allow".into()),
-            ..Done::plain(Lead::Warning, format!("Hex needs {name}"))
+            ..Done::plain(Lead::Warning, format!("Superhex needs {name}"))
         },
         Grant::Asked => Done {
-            why: Some("turn Hex on in System Settings".into()),
+            why: Some("turn Superhex on in System Settings".into()),
             ask: Some("Allow".into()),
-            ..Done::plain(Lead::Warning, format!("Hex needs {name}"))
+            ..Done::plain(Lead::Warning, format!("Superhex needs {name}"))
         },
         Grant::Restart => Done {
-            why: Some("turns on when Hex restarts".into()),
-            ask: Some("Restart Hex".into()),
+            why: Some("turns on when Superhex restarts".into()),
+            ask: Some("Restart Superhex".into()),
             ..Done::plain(Lead::Warning, format!("{name} is on"))
         },
         Grant::Ready => Done {
@@ -2131,7 +2131,7 @@ mod tests {
             assert!(shown.open.is_none());
             flow.tick(MENU_HINT_S + 0.1);
             assert_eq!(flow.pres(MENU_HINT_S + 0.1), Pres::Hidden);
-            assert_eq!(flow.keys(), None, "no key is Hex's once it's gone");
+            assert_eq!(flow.keys(), None, "no key is Superhex's once it's gone");
 
             let mut flow = Flow::new();
             flow.input(Input::Stage(Stage::Done), 0.0);
@@ -2374,7 +2374,7 @@ mod tests {
             "taken back, the list opens"
         );
         // Escape never takes a send back or closes it, in the window or
-        // after it: it was never Hex's.
+        // after it: it was never Superhex's.
         for at in [1.0, 5.5] {
             let mut late = Flow::new();
             late.input(Input::Routed(rule()), 0.0);
@@ -2545,7 +2545,7 @@ mod tests {
         flow.input(Input::Undo, 1.0);
         flow.input(Input::Undone(Undone::TakenBack), 1.2);
         assert_eq!(done(&flow, 1.2).text, "Taken back");
-        // Nothing to list: no keys are Hex's, and it leaves by itself.
+        // Nothing to list: no keys are Superhex's, and it leaves by itself.
         assert_eq!(flow.keys(), None);
         let brief = tuning::get().brief_hold_s;
         assert!(!flow.tick(1.0 + brief - 0.1));
@@ -2778,7 +2778,7 @@ mod tests {
         assert!(flow.take_cues().is_empty());
     }
 
-    /// A queued send that went on a retry can't be taken back by Hex: it
+    /// A queued send that went on a retry can't be taken back by Superhex: it
     /// says so plainly, with no Undo and no Escape.
     #[test]
     fn a_retried_send_has_no_undo() {
@@ -3284,7 +3284,7 @@ mod tests {
     fn a_click_away_folds_the_suggestions_and_they_leave_like_any_capsule() {
         let mut flow = Flow::new();
         flow.input(Input::Routed(guess()), 0.0);
-        // Escape is never Hex's here: it changes nothing.
+        // Escape is never Superhex's here: it changes nothing.
         assert!(flow.input(Input::Escape, 0.5).is_empty());
         assert!(done(&flow, 0.5).open.is_some());
         flow.input(Input::ClickAway, 1.0);
@@ -3340,7 +3340,7 @@ mod tests {
 
     /// Send to… after a guess opens the list while the capsule shows, and
     /// brings it back after it closed with nothing picked, until something
-    /// settles the capture. No key is Hex's while it's closed.
+    /// settles the capture. No key is Superhex's while it's closed.
     #[test]
     fn send_to_brings_back_a_capture_waiting_for_a_pick() {
         use crate::capture_host::CapsuleKeys;
@@ -3365,7 +3365,7 @@ mod tests {
         assert_eq!(flow.pres(32.0 + hold), Pres::Hidden);
         flow.input(Input::OpenList, 40.0);
         assert!(done(&flow, 40.0).open.is_some());
-        // A pick settles it: no key is Hex's, Escape goes to the app.
+        // A pick settles it: no key is Superhex's, Escape goes to the app.
         assert_eq!(
             flow.input(Input::SendRow(1), 41.0),
             [Action::Send {
@@ -3377,7 +3377,7 @@ mod tests {
         flow.tick(41.0 + hold + 1.0);
         assert_eq!(flow.keys(), None);
 
-        // `hex capture send` while it's closed settles it too.
+        // `superhex capture send` while it's closed settles it too.
         let mut flow = Flow::new();
         flow.input(Input::Stage(Stage::Done), 0.0);
         flow.input(Input::Routed(guess()), 0.0);
@@ -3673,7 +3673,7 @@ mod tests {
         assert_eq!(done(&flow, 12.0).text, "Couldn't send to SEER");
         assert_eq!(done(&flow, 12.0).why.as_deref(), Some("offline"));
         assert_eq!(
-            short_reason("Screen Recording permission is off for Hex"),
+            short_reason("Screen Recording permission is off for Superhex"),
             "Screen Recording permission is…"
         );
     }
@@ -3690,7 +3690,7 @@ mod tests {
         flow.input(Input::NeedsPermission(screen), 1.0);
         let shown = done(&flow, 1.0);
         assert_eq!(shown.lead, Lead::Warning);
-        assert_eq!(shown.text, "Hex needs Screen Recording");
+        assert_eq!(shown.text, "Superhex needs Screen Recording");
         assert_eq!(shown.why.as_deref(), Some("to see your screen"));
         assert_eq!(shown.ask.as_deref(), Some("Allow"));
         assert_eq!(flow.keys(), None);
@@ -3703,7 +3703,7 @@ mod tests {
         let waiting = done(&flow, 4.0);
         assert_eq!(
             waiting.why.as_deref(),
-            Some("turn Hex on in System Settings")
+            Some("turn Superhex on in System Settings")
         );
         // It waits a good while, and never folds under the pointer.
         flow.tick(60.0);
@@ -3712,7 +3712,7 @@ mod tests {
         flow.input(Input::Permission(screen, Grant::Restart), 61.0);
         let restart = done(&flow, 61.0);
         assert_eq!(restart.text, "Screen Recording is on");
-        assert_eq!(restart.ask.as_deref(), Some("Restart Hex"));
+        assert_eq!(restart.ask.as_deref(), Some("Restart Superhex"));
         assert_eq!(flow.click(Id::Ask, 62.0), vec![Action::Restart]);
 
         flow.input(Input::Permission(screen, Grant::Ready), 63.0);
@@ -3727,7 +3727,7 @@ mod tests {
 
         // Unanswered, it folds; ✕ closes it at once.
         flow.input(Input::NeedsPermission(CaptureNeed::Microphone), 70.0);
-        assert_eq!(done(&flow, 70.0).text, "Hex needs Microphone");
+        assert_eq!(done(&flow, 70.0).text, "Superhex needs Microphone");
         assert!(flow.tick(70.0 + PERMISSION_HOLD_S));
         assert_eq!(flow.pres(70.0 + PERMISSION_HOLD_S), Pres::Hidden);
         flow.input(Input::NeedsPermission(screen), 300.0);

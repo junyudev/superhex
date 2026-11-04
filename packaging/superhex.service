@@ -1,0 +1,19 @@
+[Unit]
+Description=Superhex background dictation
+PartOf=graphical-session.target
+After=graphical-session.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/bin/superhex service
+EnvironmentFile=-%h/.local/share/superhex/session.env
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+UMask=0077
+
+[Install]
+WantedBy=graphical-session.target

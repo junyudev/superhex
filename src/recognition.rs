@@ -35,11 +35,11 @@ enum FinishResult {
 #[derive(Debug)]
 pub enum RecognitionControl {
     /// Pastes the last dictation once nothing records; `reply` answers
-    /// `hex paste-last`, and the menu bar sends none.
+    /// `superhex paste-last`, and the menu bar sends none.
     PasteLast {
         reply: Option<SyncSender<ControlReply>>,
     },
-    /// `hex dictation`: drives the shortcut machine as a press would, so the
+    /// `superhex dictation`: drives the shortcut machine as a press would, so the
     /// shortcut still finishes it.
     /// A dictation `stop` with `print` answers `reply` once recording stops
     /// and sends the transcript to `print` instead of pasting it.
@@ -50,9 +50,9 @@ pub enum RecognitionControl {
         raw: bool,
         reply: SyncSender<ControlReply>,
     },
-    /// What is recording, for `hex status`.
+    /// What is recording, for `superhex status`.
     CaptureStatus { reply: SyncSender<CaptureSnapshot> },
-    /// `hex capture` (the `capture` experiment; see `capture_host`).
+    /// `superhex capture` (the `capture` experiment; see `capture_host`).
     #[cfg(hex_capture)]
     ScrawlCapture {
         action: crate::control::ScrawlCaptureAction,
@@ -145,7 +145,7 @@ struct Hotkeys {
     second: Option<DictationHotkey>,
     raw: Option<DictationHotkey>,
     /// The recording (or the last) skips processing: the raw shortcut or
-    /// `hex dictation start --raw` started it.
+    /// `superhex dictation start --raw` started it.
     raw_capture: bool,
 }
 
@@ -362,6 +362,7 @@ pub fn listen(
     #[cfg(hex_capture)]
     let mut capture_shortcut = crate::capture_host::CaptureShortcut::default();
     let (mut transcription_revision, _) = crate::app_settings::transcription_selection();
+    let mut backend = crate::dictation::voice_buddy::chosen_backend();
     let mut personal_host_enabled = crate::app_settings::custom_transformations_enabled();
     let mut personal_commands = personal_host_enabled
         .then(|| crate::personal_commands::PersonalCommands::start(transformations.clone()))
@@ -397,6 +398,13 @@ pub fn listen(
     tracing::info!(device = %input.device_name(), "dictation listener started");
 
     while !shutdown.load(Ordering::Relaxed) {
+        if let Some(job_id) = dictation_worker.retry_failed(&context)
+            && let Some(indicator) = &indicator
+        {
+            indicator.send(DictationIndicatorEvent::Queued {
+                job_id: job_id.value(),
+            });
+        }
         #[cfg(hex_capture)]
         crate::capture_host::CaptureHost::reconcile(
             &mut capture_host,
@@ -428,7 +436,7 @@ pub fn listen(
                             None => ControlReply::error(
                                 "feature-off",
                                 "Annotate is off; turn it on in Settings › Annotate or \
-                                 run `hex settings set capture.enabled true`",
+                                 run `superhex settings set capture.enabled true`",
                             ),
                         };
                         let _ = reply.send(answer);
@@ -817,9 +825,17 @@ pub fn listen(
             microphone_revision = next_microphone_revision;
         }
         let (next_revision, selection) = crate::app_settings::transcription_selection();
-        if next_revision != transcription_revision && dictation_worker.reload(selection).is_ok() {
-            transcription_revision = next_revision;
+        let next_backend = crate::dictation::voice_buddy::chosen_backend();
+        let changed_to_local = backend != next_backend
+            && next_backend == crate::dictation::backend::DictationBackend::Local;
+        let local_selection_changed = next_revision != transcription_revision
+            && crate::dictation::voice_buddy::current_backend()
+                == crate::dictation::backend::DictationBackend::Local;
+        if changed_to_local || local_selection_changed {
+            let _ = dictation_worker.reload(selection);
         }
+        transcription_revision = next_revision;
+        backend = next_backend;
         let hotkey_capture_active = crate::app_settings::hotkey_capture_active();
         let hotkey_capture_suspended = hotkey_capture_active || input.is_recovering();
         if hotkey_capture_suspended && hotkeys.suspend_all() {
@@ -1008,7 +1024,7 @@ pub fn listen(
         #[cfg(not(hex_capture))]
         let capture_escape = false;
         input_monitor.set_takes_escape(claims_escape(programmatic.is_some(), capture_escape));
-        // Toggle's cancel key is Hex's only while one of its shortcuts'
+        // Toggle's cancel key is Superhex's only while one of its shortcuts'
         // recordings runs; the listener ignores keys during a programmatic one.
         input_monitor.set_takes_cancel(programmatic.is_none() && hotkeys.any_recording());
         if received_worker_event {
@@ -1363,7 +1379,7 @@ fn finish_hotkey_dictation(
     Ok(finished)
 }
 
-/// Whether Hex takes Escape from the app in front: only for a capture
+/// Whether Superhex takes Escape from the app in front: only for a capture
 /// (drawing, its press, the capsule's picker), never for dictation, and never
 /// while a programmatic dictation records: the listener ignores every key
 /// then, so Escape stays with its owner app rather than being swallowed.
@@ -1381,7 +1397,7 @@ fn capture_refusal(other_recording: bool, suspended: bool) -> Option<ControlRepl
     } else if suspended {
         Some(ControlReply::error(
             "busy",
-            "Hex is recording a shortcut in Settings or reopening the microphone; try again",
+            "Superhex is recording a shortcut in Settings or reopening the microphone; try again",
         ))
     } else {
         None
@@ -1419,7 +1435,7 @@ fn finish_reply(finished: Option<FinishResult>, submitted: &str) -> ControlReply
     }
 }
 
-/// `hex dictation`: a start locks the shortcut machine as a double tap
+/// `superhex dictation`: a start locks the shortcut machine as a double tap
 /// does, so the next press or `stop` finishes it.
 #[allow(clippy::too_many_arguments)]
 fn control_dictation(
@@ -1488,7 +1504,7 @@ fn control_dictation(
             if accepted {
                 // A warm start already queued its provisional tone.
                 make_control_capture_intentional(input, release_while_idle)?;
-                ControlReply::done("Recording; `hex dictation stop` or the shortcut finishes")
+                ControlReply::done("Recording; `superhex dictation stop` or the shortcut finishes")
             } else {
                 hotkeys.dictation.suspend();
                 ControlReply::error("busy", "the microphone is busy; try again")
@@ -1524,14 +1540,14 @@ fn control_dictation(
                 ),
                 finished => finish_reply(
                     Some(finished),
-                    "Finished recording; Hex pastes the text when it's ready",
+                    "Finished recording; Superhex pastes the text when it's ready",
                 ),
             }
         }
     })
 }
 
-/// A `hex paste-last` (or the menu bar's Paste Last Dictation) waits for
+/// A `superhex paste-last` (or the menu bar's Paste Last Dictation) waits for
 /// every capture and shortcut gesture to end: pasting cancels the audio
 /// owner's capture, which would strand the machine that started it.
 fn paste_last_refusal(capture_active: bool) -> Option<ControlReply> {
@@ -1590,7 +1606,7 @@ fn fail_capture(
 enum CaptureEnd {
     /// The capture never became a dictation; no feedback tone.
     Discarded(Option<DiscardCause>),
-    /// The capture ended unfinished: the cancel shortcut, or Hex itself
+    /// The capture ended unfinished: the cancel shortcut, or Superhex itself
     /// when its shortcuts were suspended or the event tap was lost.
     Cancelled,
 }
@@ -1757,6 +1773,7 @@ fn handle_dictation_event(
             target,
             result: Ok(text),
             processing,
+            remote,
         } => {
             let phase = match target {
                 TranscriptionTarget::Paste | TranscriptionTarget::RawPaste => {
@@ -1768,7 +1785,11 @@ fn handle_dictation_event(
                 TranscriptionTarget::Service => return Ok(()),
             };
             feedback::play(Tone::DictationDone);
-            events.processed_dictation(phase, text, processing)?;
+            events.processed_dictation(
+                phase,
+                if remote { String::new() } else { text },
+                processing,
+            )?;
             if let Some(indicator) = indicator {
                 indicator.send(DictationIndicatorEvent::JobCompleted {
                     job_id: job_id.value(),
@@ -1813,12 +1834,13 @@ fn handle_dictation_event(
         WorkerEvent::Pasted {
             kind,
             result: Ok(text),
+            remote,
         } => {
             let phase = match kind {
                 PasteKind::LastTranscript => DictationPhase::Repasted,
                 PasteKind::MeetingDelta => DictationPhase::MeetingPasted,
             };
-            events.dictation(phase, text)?;
+            events.dictation(phase, if remote { String::new() } else { text })?;
         }
         WorkerEvent::Pasted {
             result: Err(error), ..

@@ -44,6 +44,24 @@ line_icon!(
     ]
 );
 line_icon!(
+    MOUSE,
+    "hex-row-mouse",
+    [
+        "M12 2a6 6 0 0 0-6 6v8a6 6 0 0 0 12 0V8a6 6 0 0 0-6-6z",
+        "M12 6v4",
+    ]
+);
+line_icon!(
+    MODEL,
+    "hex-row-model",
+    ["M12 2 3 7l9 5 9-5-9-5Z", "m3 12 9 5 9-5", "m3 17 9 5 9-5",]
+);
+line_icon!(
+    CLOUD,
+    "hex-row-cloud",
+    ["M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"]
+);
+line_icon!(
     LANGUAGES,
     "hex-row-languages",
     [
@@ -238,14 +256,6 @@ line_icon!(
     CLOCK,
     "hex-row-clock",
     ["M2 12a10 10 0 1 0 20 0a10 10 0 1 0-20 0", "M12 6v6l4 2"]
-);
-line_icon!(
-    MOUSE,
-    "hex-row-mouse",
-    [
-        "M12 2a6 6 0 0 1 6 6v8a6 6 0 0 1-12 0V8a6 6 0 0 1 6-6z",
-        "M12 6v4"
-    ]
 );
 line_icon!(
     CIRCLE_X,

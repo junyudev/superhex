@@ -1,4 +1,4 @@
-//! The `hex settings` registry: one key per persisted setting, named by its
+//! The `superhex settings` registry: one key per persisted setting, named by its
 //! dotted path in `settings.json`, with the same rules and side effects the
 //! window applies when you change it there.
 
@@ -11,7 +11,7 @@ use crate::app_settings::{
     ModifierSide,
 };
 
-/// One setting as `hex settings get` reports it.
+/// One setting as `superhex settings get` reports it.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SettingValue {
     pub key: String,
@@ -22,7 +22,7 @@ pub struct SettingValue {
     pub choices: Vec<String>,
     pub writable: bool,
     pub about: String,
-    /// False where this OS's Hex lacks what the setting needs ([`needs`]):
+    /// False where this OS's Superhex lacks what the setting needs ([`needs`]):
     /// it is kept, but does nothing here and `set` refuses it.
     #[serde(default = "available")]
     pub available: bool,
@@ -107,7 +107,7 @@ const fn read_only(key: &'static str, kind: Kind, about: &'static str, why: &'st
 }
 
 const UNIT: Kind = Kind::Number { min: 0.0, max: 1.0 };
-const MODEL_CHANGE: &str = "change the transcription model with `hex model use`";
+const MODEL_CHANGE: &str = "change the transcription model with `superhex model use`";
 
 /// Choice keys whose values are numbers in settings.json.
 const NUMERIC_CHOICES: [&str; 2] = ["meetings.calendar.lead_minutes", "labs.unload_idle_minutes"];
@@ -149,7 +149,7 @@ const KEYS: &[Key] = &[
             "analog",
             "thock",
         ]),
-        "Which sounds play; classic, Hex's original tones, is the default",
+        "Which sounds play; classic, Superhex's original tones, is the default",
     ),
     optional(
         "microphone",
@@ -192,6 +192,31 @@ const KEYS: &[Key] = &[
         "Hold the shortcut while speaking, or press once to start and again to finish",
     ),
     key(
+        "dictation_backend",
+        Kind::Choice(&["voice_buddy", "local"]),
+        "Who turns dictation into text: the VoiceBuddy speech service, or the local model",
+    ),
+    key(
+        "voice_buddy.polish",
+        Kind::Bool,
+        "VoiceBuddy polishes the final text",
+    ),
+    key(
+        "voice_buddy.traditional",
+        Kind::Bool,
+        "VoiceBuddy returns Traditional Chinese",
+    ),
+    key(
+        "voice_buddy.paragraph",
+        Kind::Bool,
+        "VoiceBuddy breaks long text into paragraphs",
+    ),
+    key(
+        "voice_buddy.reduce_redundancy",
+        Kind::Bool,
+        "VoiceBuddy removes repetition",
+    ),
+    key(
         "dictation_hotkey",
         Kind::Shortcut(HotkeySlot::Dictation),
         "The dictation shortcut",
@@ -205,7 +230,7 @@ const KEYS: &[Key] = &[
         "cancel_hotkey",
         Kind::Shortcut(HotkeySlot::Cancel),
         "Toggle mode's cancel shortcut, Escape by default: discards the recording, \
-         nothing pasted or saved. Hex takes the key only while a toggled recording runs",
+         nothing pasted or saved. Superhex takes the key only while a toggled recording runs",
     ),
     optional(
         "raw_dictation_hotkey",
@@ -223,7 +248,7 @@ const KEYS: &[Key] = &[
     key(
         "show_dock_icon",
         Kind::Bool,
-        "Keep Hex in the Dock when Settings is closed (macOS)",
+        "Keep Superhex in the Dock when Settings is closed (macOS)",
     ),
     read_only(
         "transcription.model",
@@ -241,7 +266,7 @@ const KEYS: &[Key] = &[
         "transcription_recents",
         Kind::Json,
         "Recently used models, each with its language",
-        "Hex records these as you switch models",
+        "Superhex records these as you switch models",
     ),
     key(
         "vocabulary_boost",
@@ -282,11 +307,6 @@ const KEYS: &[Key] = &[
         "labs.vocabulary_biasing",
         Kind::Bool,
         "Labs: bias Parakeet transcription toward the vocabulary",
-    ),
-    key(
-        "labs.mouse_shortcuts",
-        Kind::Bool,
-        "Labs: record mouse buttons as shortcuts (macOS)",
     ),
     key(
         "labs.unload_idle",
@@ -396,7 +416,7 @@ const KEYS: &[Key] = &[
     key(
         "labs.hide_menu_bar_icon",
         Kind::Bool,
-        "Labs: hide Hex's menu bar icon while nothing records; shortcuts keep working, and opening Hex again from Finder or Spotlight shows Settings (macOS)",
+        "Labs: hide Superhex's menu bar icon while nothing records; shortcuts keep working, and opening Superhex again from Finder or Spotlight shows Settings (macOS)",
     ),
     key(
         "labs.notch_indicator",
@@ -411,7 +431,7 @@ const KEYS: &[Key] = &[
     key(
         "labs.stop_when_call_ends",
         Kind::Bool,
-        "Labs: a meeting recording Hex started on its own stops 30 s after its call app leaves the microphone and goes quiet, unless you keep recording (macOS)",
+        "Labs: a meeting recording Superhex started on its own stops 30 s after its call app leaves the microphone and goes quiet, unless you keep recording (macOS)",
     ),
     key(
         "labs.movable_meeting_capsules",
@@ -466,7 +486,7 @@ const KEYS: &[Key] = &[
     optional(
         "meetings.output_folder",
         Kind::Path,
-        "Folder for meeting Markdown; none uses ~/Documents/Hex Meetings",
+        "Folder for meeting Markdown; none uses ~/Documents/Superhex Meetings",
     ),
     key(
         "meetings.summarize_with_apple_intelligence",
@@ -481,7 +501,7 @@ const KEYS: &[Key] = &[
     optional(
         "meetings.opencode_model",
         Kind::Text,
-        "The OpenCode provider/model meeting notes use, with labs.meeting_summary_model; none tries Hex's ranked fast models",
+        "The OpenCode provider/model meeting notes use, with labs.meeting_summary_model; none tries Superhex's ranked fast models",
     ),
     key(
         "meetings.show_recording_indicator",
@@ -527,7 +547,7 @@ const KEYS: &[Key] = &[
     key(
         "experimental.hex_microphone",
         Kind::Bool,
-        "Labs: the Voice Filter and its Hex Microphone virtual input",
+        "Labs: the Voice Filter and its Superhex Microphone virtual input",
     ),
     key(
         "experimental.hex_microphone_mode",
@@ -542,22 +562,22 @@ const KEYS: &[Key] = &[
             "underwater",
             "far",
         ]),
-        "What Hex Microphone does to your voice while you dictate",
+        "What Superhex Microphone does to your voice while you dictate",
     ),
     key(
         "experimental.hex_microphone_comfort_noise",
         Kind::Bool,
-        "Hex Microphone fills silence with soft noise",
+        "Superhex Microphone fills silence with soft noise",
     ),
     key(
         "experimental.hex_microphone_strength",
         UNIT,
-        "How strongly Hex Microphone applies its filter, from 0 to 1",
+        "How strongly Superhex Microphone applies its filter, from 0 to 1",
     ),
     key(
         "enable_on_launch",
         Kind::Bool,
-        "Start listening when Hex opens (Windows and Linux)",
+        "Start listening when Superhex opens (Windows and Linux)",
     ),
     key(
         "paste_with_shift",
@@ -567,7 +587,7 @@ const KEYS: &[Key] = &[
     key(
         "gnome_keyboard_shortcuts",
         Kind::Bool,
-        "Hex's own GNOME custom keyboard shortcuts, for GNOME without a shortcuts portal (Linux)",
+        "Superhex's own GNOME custom keyboard shortcuts, for GNOME without a shortcuts portal (Linux)",
     ),
     key(
         "share_dictation_shortcut",
@@ -614,7 +634,7 @@ const CAPTURE_KEYS: &[Key] = &[
     key(
         "capture.transcriber",
         Kind::Choice(&["parakeet", "apple"]),
-        "What transcribes a capture's narration: Hex's loaded model or Apple's",
+        "What transcribes a capture's narration: Superhex's loaded model or Apple's",
     ),
     optional(
         "capture.folder",
@@ -645,7 +665,7 @@ const CAPTURE_KEYS: &[Key] = &[
     key(
         "capture.show_overlays_in_recordings",
         Kind::Bool,
-        "Let screen recordings, captures included, show Hex's capsules, ink, and HUD (for demos)",
+        "Let screen recordings, captures included, show Superhex's capsules, ink, and HUD (for demos)",
     ),
 ];
 #[cfg(hex_capture)]
@@ -653,10 +673,12 @@ const RETENTION_DAYS: Kind = Kind::Integer { min: 1, max: 3650 };
 #[cfg(not(hex_capture))]
 const CAPTURE_KEYS: &[Key] = &[];
 
-/// Settings that act only where Hex has a capability (by its
+/// Settings that act only where Superhex has a capability (by its
 /// `rune_ui::capabilities` name), the same one that shows their row in the
 /// window. The first matching prefix decides.
 const NEEDS: &[(&str, &str)] = &[
+    ("dictation_backend", "voice_buddy"),
+    ("voice_buddy.", "voice_buddy"),
     ("meetings.calendar.", "calendar"),
     ("meetings.", "meetings"),
     ("labs.live_chapters", "meetings"),
@@ -682,7 +704,7 @@ fn needs(key: &str) -> Option<&'static str> {
         .map(|(_, capability)| *capability)
 }
 
-/// Why `hex settings set` refuses `name` on this OS, if it does.
+/// Why `superhex settings set` refuses `name` on this OS, if it does.
 pub fn unavailable(name: &str) -> Option<ControlError> {
     unavailable_under(name, crate::policy::Policy::current())
 }
@@ -713,7 +735,7 @@ fn unavailable_under(name: &str, policy: crate::policy::Policy) -> Option<Contro
     Some(ControlError::new(
         "unsupported",
         format!(
-            "`{name}` does nothing on this OS: it needs {capability}, which Hex has only elsewhere"
+            "`{name}` does nothing on this OS: it needs {capability}, which Superhex has only elsewhere"
         ),
     ))
 }
@@ -730,11 +752,11 @@ fn keys() -> impl Iterator<Item = &'static Key> {
     KEYS.iter().chain(CAPTURE_KEYS)
 }
 
-/// Settings `hex settings` never shows: Hex's own bookkeeping.
+/// Settings `superhex settings` never shows: Superhex's own bookkeeping.
 #[cfg(test)]
-const INTERNAL: &[&str] = &["migrations", "mouse_shortcut_notice"];
+const INTERNAL: &[&str] = &["migrations"];
 
-/// Settings another `hex` command edits instead (`hex vocabulary`).
+/// Settings another `hex` command edits instead (`superhex vocabulary`).
 #[cfg(test)]
 const OWN_COMMAND: &[&str] = &["vocabulary"];
 
@@ -787,7 +809,7 @@ fn recognition_hints(settings: &AppSettings) -> SettingValue {
         kind: Kind::Text.name().into(),
         choices: Vec::new(),
         writable: true,
-        about: "Deprecated: the vocabulary's terms; setting it adds names to the vocabulary                 (use `hex vocabulary`)"
+        about: "Deprecated: the vocabulary's terms; setting it adds names to the vocabulary                 (use `superhex vocabulary`)"
             .into(),
         available: true,
     }
@@ -828,7 +850,7 @@ fn unknown(name: &str) -> ControlError {
         .unwrap_or_default();
     ControlError::new(
         "unknown-setting",
-        format!("unknown setting `{name}`.{near} Run `hex settings list` for every key."),
+        format!("unknown setting `{name}`.{near} Run `superhex settings list` for every key."),
     )
 }
 
@@ -881,7 +903,7 @@ pub fn apply(
             settings: candidate,
             effects: Vec::new(),
             message: "Added the names to the vocabulary (transcription.recognition_hints is \
-                      deprecated; use `hex vocabulary`)"
+                      deprecated; use `superhex vocabulary`)"
                 .into(),
         });
     }
@@ -950,15 +972,6 @@ pub fn apply(
                 HotkeySlot::Capture => Some(&candidate.capture.hotkey),
             };
             if let Some(binding) = binding {
-                if cfg!(target_os = "macos")
-                    && !candidate.labs.mouse_shortcuts
-                    && binding.key.as_ref().is_some_and(HotkeyKey::is_mouse)
-                {
-                    return Err(invalid(
-                        name,
-                        "mouse buttons need Labs › Mouse shortcuts: hex labs on mouse-shortcuts",
-                    ));
-                }
                 if let Some(why) = special_key_refusal(&candidate, binding) {
                     return Err(invalid(name, &why));
                 }
@@ -967,7 +980,7 @@ pub fn apply(
                     return Err(ControlError::new(
                         "shortcut-in-use",
                         format!(
-                            "{} is already in use by another Hex shortcut",
+                            "{} is already in use by another Superhex shortcut",
                             format_hotkey(binding)
                         ),
                     ));
@@ -1027,10 +1040,10 @@ pub fn apply(
 }
 
 /// Validates every `key: value` in `values` against `settings` and returns
-/// the settings to save, all or none (`hex settings apply`, the Home Manager
+/// the settings to save, all or none (`superhex settings apply`, the Home Manager
 /// module). Values are JSON: booleans, numbers, `null` for `none`, objects
 /// and arrays for json settings, text for the rest. `transcription.model`
-/// and `transcription.language` select a model, as `hex model use` would,
+/// and `transcription.language` select a model, as `superhex model use` would,
 /// without needing it installed. Keys that depend on each other (a
 /// double-tap-only start and its shortcut) apply in any order.
 pub fn apply_all(
@@ -1051,6 +1064,10 @@ pub fn apply_all(
             .unwrap_or_else(|| candidate.transcription.model.as_str().to_owned());
         let language = text("transcription.language", language)?;
         candidate.transcription = super::model_selection(&candidate, &model, language.as_deref())?;
+        #[cfg(target_os = "macos")]
+        if !values.contains_key("dictation_backend") {
+            candidate.dictation_backend = crate::dictation::backend::DictationBackend::Local;
+        }
     }
     let mut pending = Vec::new();
     for (name, value) in values {
@@ -1252,7 +1269,12 @@ pub fn parse_hotkey(
                 if key.is_some() {
                     return Err("a shortcut has at most one key".into());
                 }
-                key = Some(key_named(part)?);
+                key = Some(if part.contains('@') {
+                    crate::app_settings::NativeMouseButton::parse(part)
+                        .ok_or("invalid native mouse button")?
+                } else {
+                    key_named(part)?
+                });
             }
         }
     }
@@ -1349,7 +1371,11 @@ pub fn format_hotkey(binding: &HotkeyBinding) -> String {
     .flatten()
     .collect();
     if let Some(key) = &binding.key {
-        parts.push(key.label.to_lowercase().replace(' ', ""));
+        let mut name = key.label.to_lowercase().replace(' ', "");
+        if let Some(native) = key.native_mouse {
+            name.push_str(&format!("@{}:{}", native.vendor, native.product));
+        }
+        parts.push(name);
     }
     parts.join("+")
 }
@@ -1399,22 +1425,27 @@ mod tests {
         ShortcutRules {
             key_named: |name| match name.to_ascii_lowercase().as_str() {
                 "space" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 49,
                     label: "Space".into(),
                 }),
                 "f5" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 96,
                     label: "F5".into(),
                 }),
                 "left" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 123,
                     label: "Left".into(),
                 }),
                 "menu" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 0,
                     label: "Menu".into(),
                 }),
                 name if name.chars().count() == 1 => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: u16::from(name.as_bytes()[0]),
                     label: name.to_uppercase(),
                 }),
@@ -1440,8 +1471,8 @@ mod tests {
         }
     }
 
-    /// Fails when a persisted setting has no `hex settings` key: add one to
-    /// `KEYS` (or to `INTERNAL` if it is Hex's own bookkeeping, or to
+    /// Fails when a persisted setting has no `superhex settings` key: add one to
+    /// `KEYS` (or to `INTERNAL` if it is Superhex's own bookkeeping, or to
     /// `OWN_COMMAND` if another `hex` command edits it).
     #[test]
     fn every_persisted_setting_has_a_cli_key() {
@@ -1470,7 +1501,7 @@ mod tests {
                 .any(|key| path == key || path.starts_with(&format!("{key}.")));
             assert!(
                 covered,
-                "settings.json has `{path}`, which `hex settings` can't name"
+                "settings.json has `{path}`, which `superhex settings` can't name"
             );
         }
         for key in keys() {
@@ -1886,6 +1917,27 @@ mod tests {
         assert!(parse_hotkey("option+mouse1", named).is_ok());
         assert!(parse_hotkey("mouse2", named).is_ok());
         assert!(parse_hotkey("mouse4", named).is_ok());
+    }
+
+    #[test]
+    fn graduated_mouse_shortcuts_are_cli_settings_without_a_labs_switch() {
+        let named: fn(&str) -> Result<HotkeyKey, String> = |name| Ok(HotkeyKey::named(name));
+        let rules = ShortcutRules {
+            key_named: named,
+            ..rules()
+        };
+        let settings = AppSettings::default();
+        assert!(get(&settings, "labs.mouse_shortcuts").is_err());
+        for text in ["mouse4", "option+mouse5@6421:44572"] {
+            let updated = apply(&settings, "dictation_hotkey", text, &rules)
+                .unwrap()
+                .settings;
+            assert_eq!(format_hotkey(&updated.dictation_hotkey), text);
+            assert_eq!(parse_hotkey(text, named).unwrap(), updated.dictation_hotkey);
+        }
+        for text in ["mouse2@6421:44572", "mouse5@65536:1", "mouse5@1:bad"] {
+            assert!(parse_hotkey(text, named).is_err());
+        }
     }
 
     #[test]

@@ -7,13 +7,13 @@ version=$(hex_version "$root")
 arch=$(uname -m)
 artifact=${HEX_SERVICE_ARTIFACT:-$root/dist/service/HEX-Service-$version-$arch.zip}
 digest="$artifact.sha256"
-install_root="$HOME/Library/Application Support/HEX Service Proof"
+install_root="$HOME/Library/Application Support/Superhex Service Proof"
 version_dir="$install_root/versions/$version"
-installed="$version_dir/HEX Service.app"
+installed="$version_dir/Superhex Service.app"
 runtime="$install_root/runtime"
 staging="$install_root/.staging-$version-$$"
 expected_team=${HEX_TEAM_ID:?Set HEX_TEAM_ID to the Apple Developer signing team}
-expected_identifier=anomaly.hex.service
+expected_identifier=io.github.junyudev.superhex.service
 pid=
 
 cleanup() {
@@ -49,7 +49,7 @@ fi
 rm -rf "$staging"
 mkdir -p "$staging" "$install_root/versions" "$runtime"
 /usr/bin/ditto -x -k "$artifact" "$staging"
-bundle="$staging/HEX Service.app"
+bundle="$staging/Superhex Service.app"
 codesign --verify --deep --strict --verbose=2 "$bundle"
 xcrun stapler validate "$bundle"
 spctl --assess --type execute --verbose=2 "$bundle"

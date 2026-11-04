@@ -17,7 +17,7 @@ use crate::durable::{sync_directory, sync_file};
 
 const SAMPLE_RATE: u32 = 16_000;
 const TRANSCRIPT_TURN_GAP_MS: u64 = 3_000;
-/// Beside the manifest of a meeting Hex quit while recording: its audio is
+/// Beside the manifest of a meeting Superhex quit while recording: its audio is
 /// saved and its final transcript runs at the next launch.
 const FINAL_PENDING_FILE: &str = "final.pending";
 
@@ -85,7 +85,7 @@ pub struct MeetingStart {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TitleSource {
-    /// The app-and-time title Hex made up.
+    /// The app-and-time title Superhex made up.
     #[default]
     Default,
     /// The detected call's own name, such as a browser tab's.
@@ -188,7 +188,7 @@ pub struct MeetingManifest {
     /// kept [`MeetingRetention::DEFAULT`]. Older meetings stay until then.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub retention_applies: bool,
-    /// SHA-256 of the exported Markdown as Hex last wrote it. Expiry moves
+    /// SHA-256 of the exported Markdown as Superhex last wrote it. Expiry moves
     /// that file to the Trash only while it still matches, so a copy the
     /// user edited stays.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -537,7 +537,7 @@ pub fn record(
             write_manifest(&meeting_dir, &manifest)?;
             tracing::info!(
                 meeting = manifest.id,
-                "Hex quit while recording; the transcript finishes at the next launch"
+                "Superhex quit while recording; the transcript finishes at the next launch"
             );
             return Ok(manifest);
         }
@@ -881,7 +881,7 @@ fn transcribe(
     Ok(())
 }
 
-/// Meetings Hex quit while recording, oldest first.
+/// Meetings Superhex quit while recording, oldest first.
 pub fn pending_final_transcripts() -> Vec<String> {
     let Ok(entries) = root().and_then(|root| Ok(fs::read_dir(root)?)) else {
         return Vec::new();
@@ -895,7 +895,7 @@ pub fn pending_final_transcripts() -> Vec<String> {
     ids
 }
 
-/// Transcribes and publishes a meeting Hex quit while recording, as Stop
+/// Transcribes and publishes a meeting Superhex quit while recording, as Stop
 /// would have. `None` when it is no longer pending or another process holds
 /// it. Quitting again, or a missing model, leaves it pending for the next
 /// launch; any other failure keeps it Interrupted with its draft.
@@ -916,7 +916,7 @@ pub fn finish_pending(id: &str) -> Result<Option<MeetingManifest>> {
     let mut manifest = read_manifest(&directory)?;
     tracing::info!(
         meeting = id,
-        "finishing the transcript of a meeting Hex quit while recording"
+        "finishing the transcript of a meeting Superhex quit while recording"
     );
     match transcribe(&directory, &mut manifest, &selection, None) {
         Ok(()) => {
@@ -1138,7 +1138,7 @@ pub fn expired(
 }
 
 /// Moves every expired meeting to the Trash: its folder, and its exported
-/// Markdown while that is still the copy Hex wrote. One that is recording,
+/// Markdown while that is still the copy Superhex wrote. One that is recording,
 /// transcribing, writing notes, or waiting for its final transcript stays
 /// for a later pass. Returns how many moved.
 pub fn expire(chosen: Option<MeetingRetention>) -> Result<usize> {
@@ -1194,7 +1194,7 @@ fn trash_expired(
         } else {
             tracing::info!(
                 meeting = manifest.id,
-                "kept the meeting's Markdown, which changed since Hex wrote it"
+                "kept the meeting's Markdown, which changed since Superhex wrote it"
             );
         }
     }

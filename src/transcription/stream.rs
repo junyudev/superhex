@@ -1,6 +1,6 @@
 //! Live transcription of another app's audio (`/streams` in the local API;
 //! contract in `docs/streams.md`). The app records and pushes 16 kHz mono
-//! audio; Hex transcribes it on the dictation engine's loaded model and
+//! audio; Superhex transcribes it on the dictation engine's loaded model and
 //! reports partial text, one final segment per window, and the final text.
 //!
 //! Dictation always comes first. Audio is cut into windows at pauses (at most
@@ -182,6 +182,20 @@ pub(crate) type EngineSource =
 /// The running app's shared dictation engine and its loaded GGUF model.
 pub(crate) fn shared_engine() -> Result<(Box<dyn Engine>, TranscriptionSelection), &'static str> {
     let engine = TranscriptionEngine::shared().ok_or("engine-unavailable")?;
+    #[cfg(target_os = "macos")]
+    if engine.held_selection().is_none() {
+        let selection = crate::app_settings::transcription_selection().1;
+        let ready = engine
+            .background(move |model| {
+                model
+                    .activate(&selection)
+                    .map(|_| ())
+                    .map_err(|_| "model-not-loaded")
+            })
+            .map_err(|_| "engine-unavailable")?
+            .ok_or("dictation-busy")?;
+        ready?;
+    }
     let selection = engine.held_selection().ok_or("model-not-loaded")?;
     Ok((
         Box::new(SharedEngine::new(&engine, selection.clone())),
@@ -259,7 +273,7 @@ impl Engine for SharedEngine {
     fn quitting(&self) -> bool {
         #[cfg(target_os = "macos")]
         return crate::desktop::process_exit::quitting();
-        // Elsewhere the engine itself goes when Hex quits.
+        // Elsewhere the engine itself goes when Superhex quits.
         #[cfg(not(target_os = "macos"))]
         false
     }
@@ -670,7 +684,7 @@ impl<E: Engine> Worker<E> {
                     return End::Cancelled;
                 }
                 if self.engine.quitting() {
-                    return failed("hex-quitting", "Hex is quitting");
+                    return failed("hex-quitting", "Superhex is quitting");
                 }
                 if !state.finishing && Instant::now() >= state.lease_deadline {
                     return failed("lease-expired", "no audio or heartbeat within the lease");
@@ -830,7 +844,7 @@ impl<E: Engine> Worker<E> {
         if !self.engine.holds_model() {
             return Err(failed(
                 MODEL_CHANGED,
-                "Hex's dictation model changed during the stream",
+                "Superhex's dictation model changed during the stream",
             ));
         }
         let text = match self.stream_window(&mut window) {
@@ -845,7 +859,7 @@ impl<E: Engine> Worker<E> {
                     Err(message) if message == MODEL_CHANGED => {
                         return Err(failed(
                             MODEL_CHANGED,
-                            "Hex's dictation model changed during the stream",
+                            "Superhex's dictation model changed during the stream",
                         ));
                     }
                     Err(message) => return Err(failed("transcription-failed", &message)),

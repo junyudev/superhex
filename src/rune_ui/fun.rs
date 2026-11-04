@@ -1,11 +1,11 @@
-//! The Voice Filter pane (macOS and Linux, in Labs, or while the Hex
+//! The Voice Filter pane (macOS and Linux, in Labs, or while the Superhex
 //! Microphone driver is installed): the virtual microphone (macOS's driver,
 //! or Linux's PipeWire source), the filter mode and its key sliders, comfort
 //! noise, and "Try it": record five seconds or use the example clip, then
 //! compare your voice with what the call hears on two waveforms drawn with
 //! Rune shapes. The driver, the live filter, and the demo audio stay with the
 //! host (`PlatformState::{hex_microphone, tuning, demo}`, `PlatformRequest::
-//! {SetTuning, HexMicrophoneDemo}`).
+//! {SetTuning, SuperhexMicrophoneDemo}`).
 
 use rune::{El, LineCap, Shape, canvas, col, row, text};
 
@@ -17,7 +17,7 @@ use super::controls::{
 use super::lists::{Tone, slider, small_button, tone_tag};
 use super::platform::{DemoRequest, PlatformRequest};
 use crate::audio::hex_microphone::{
-    DemoPlaybackTrack, DemoSnapshot, DemoSourceKind, DriverActionState, HexMicrophoneStatus,
+    DemoPlaybackTrack, DemoSnapshot, DemoSourceKind, DriverActionState, SuperhexMicrophoneStatus,
     TunedFilterConfig,
 };
 use crate::audio::voice_filter::{DictationSpan, VoiceFilterMode};
@@ -185,7 +185,7 @@ pub(super) fn set_tuning(ui: &mut Ui, change: impl FnOnce(&mut TunedFilterConfig
 }
 
 fn ask_demo(ui: &mut Ui, request: DemoRequest) {
-    ui.ask(PlatformRequest::HexMicrophoneDemo(request));
+    ui.ask(PlatformRequest::SuperhexMicrophoneDemo(request));
 }
 
 /// The driver's state in the card header.
@@ -222,9 +222,9 @@ fn header_status(ui: &Ui, p: Paint) -> El {
     tone_tag(p, "driver-status", &label, tone)
 }
 
-/// Hex Microphone's state where Hex creates it rather than a driver
+/// Superhex Microphone's state where Superhex creates it rather than a driver
 /// (`Capabilities::hex_microphone` off): starting, available, or failed.
-fn source_state(status: &HexMicrophoneStatus) -> (&'static str, Tone) {
+fn source_state(status: &SuperhexMicrophoneStatus) -> (&'static str, Tone) {
     match &status.action_state {
         DriverActionState::Failed(_) => (tr("Unavailable"), Tone::Danger),
         _ if status.driver_loaded => (tr("Available"), Tone::Success),
@@ -232,7 +232,7 @@ fn source_state(status: &HexMicrophoneStatus) -> (&'static str, Tone) {
     }
 }
 
-/// Hex Microphone as a virtual input Hex creates (Linux): what to do with
+/// Superhex Microphone as a virtual input Superhex creates (Linux): what to do with
 /// it, or why it could not start. The header shows its state.
 fn source_row(ui: &Ui, p: Paint) -> El {
     let title = tr("Virtual microphone");
@@ -246,11 +246,13 @@ fn source_row(ui: &Ui, p: Paint) -> El {
         );
     };
     let description = match &status.action_state {
-        DriverActionState::Failed(reason) => tr_fill("Could not start Hex Microphone: {}", reason),
-        _ if status.driver_loaded => {
-            tr("Choose Hex Microphone as your input in Slack, Zoom, or Discord").to_string()
+        DriverActionState::Failed(reason) => {
+            tr_fill("Could not start Superhex Microphone: {}", reason)
         }
-        _ => tr("Starting Hex Microphone…").to_string(),
+        _ if status.driver_loaded => {
+            tr("Choose Superhex Microphone as your input in Slack, Zoom, or Discord").to_string()
+        }
+        _ => tr("Starting Superhex Microphone…").to_string(),
     };
     setting_row(
         p,
@@ -287,7 +289,7 @@ pub(super) fn running(ui: &Ui) -> bool {
     ui.settings.experimental.hex_microphone || driver_installed(ui)
 }
 
-/// The Hex Microphone driver is installed: apps may use it, so the Voice
+/// The Superhex Microphone driver is installed: apps may use it, so the Voice
 /// Filter stays on until it is uninstalled.
 pub(super) fn driver_installed(ui: &Ui) -> bool {
     ui.platform
@@ -434,7 +436,7 @@ pub(super) fn pane(ui: &Ui, p: Paint) -> El {
                 .gap(8.0)
                 .center_y()
                 .justify_between()
-                .child(p.section_label(tr("Hex Microphone")))
+                .child(p.section_label(tr("Superhex Microphone")))
                 .child(header_status(ui, p)),
         )
         .child(card(p, "card", rows));

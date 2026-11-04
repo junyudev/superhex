@@ -1,7 +1,14 @@
 #[cfg(target_os = "macos")]
 pub(crate) mod audio;
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[allow(
+    dead_code,
+    reason = "Shared contract for the window, integrated separately"
+)]
+pub(crate) mod backend;
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) mod browser_page;
+mod capture_stream;
 #[cfg(target_os = "macos")]
 pub(crate) mod config;
 #[cfg_attr(any(target_os = "linux", target_os = "windows"), allow(dead_code))]
@@ -21,6 +28,12 @@ pub(crate) mod spoken_symbols;
 pub(crate) mod text_replacements;
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) mod vocabulary;
+#[cfg(target_os = "macos")]
+#[allow(
+    dead_code,
+    reason = "Window API, integrated separately from this plumbing"
+)]
+pub(crate) mod voice_buddy;
 
 use std::collections::VecDeque;
 use std::time::Duration;
@@ -317,6 +330,10 @@ pub struct DictationClip {
     source: Option<Box<ClipSource>>,
     /// The live stream fed with this clip's audio during capture, if any.
     stream: Option<LiveStream>,
+    #[cfg(target_os = "macos")]
+    voice_buddy: Option<Box<voice_buddy::Capture>>,
+    #[cfg(target_os = "macos")]
+    stream_backend: Option<backend::DictationBackend>,
     /// Keeps background work deferring until the clip is submitted.
     #[cfg(target_os = "macos")]
     capture: Option<crate::audio::recording_environment::CaptureMarker>,
@@ -359,6 +376,10 @@ impl DictationClip {
             timeline: ClipTimeline::default(),
             source: None,
             stream: None,
+            #[cfg(target_os = "macos")]
+            voice_buddy: None,
+            #[cfg(target_os = "macos")]
+            stream_backend: None,
             #[cfg(target_os = "macos")]
             capture: None,
         }
@@ -617,6 +638,10 @@ struct Recording {
     input_buffer: Vec<f32>,
     resampler: Option<Fft<f32>>,
     stream: Option<LiveStream>,
+    #[cfg(target_os = "macos")]
+    voice_buddy: Option<Box<voice_buddy::Capture>>,
+    #[cfg(target_os = "macos")]
+    stream_backend: Option<backend::DictationBackend>,
     voice: VoiceTrack,
     /// This recording's hold on the HUDs' live text, from its first text;
     /// dropping the recording clears it.
@@ -625,7 +650,7 @@ struct Recording {
     environment: RecordingEnvironmentState,
     #[cfg(target_os = "macos")]
     capture: Option<crate::audio::recording_environment::CaptureMarker>,
-    /// Filters Hex Microphone from the hold threshold until the recording
+    /// Filters Superhex Microphone from the hold threshold until the recording
     /// ends (macOS follows its recording environment instead).
     #[cfg(target_os = "linux")]
     voice_filter: Option<crate::audio::hex_microphone::Dictation>,
@@ -689,6 +714,10 @@ impl Recording {
             input_buffer: Vec::with_capacity(Self::CHUNK_SIZE),
             resampler,
             stream: None,
+            #[cfg(target_os = "macos")]
+            voice_buddy: None,
+            #[cfg(target_os = "macos")]
+            stream_backend: None,
             voice: VoiceTrack::default(),
             live_text: None,
             #[cfg(target_os = "macos")]
@@ -754,20 +783,6 @@ impl Recording {
             (frame * VoiceTrack::FRAME) as f64 / f64::from(PARAKEET_SAMPLE_RATE),
         );
         offset.saturating_sub(self.pre_press + ended_at.duration_since(self.started_at))
-    }
-
-    /// Hands the stream every complete block of audio it has not seen, in
-    /// final-clip coordinates (after the resampler delay).
-    fn feed_stream(&mut self) {
-        let delay = self.resampler.as_ref().map_or(0, Fft::output_delay);
-        let Some(stream) = &mut self.stream else {
-            return;
-        };
-        let recorded = &self.samples[delay.min(self.samples.len())..];
-        let fresh = &recorded[stream.fed().min(recorded.len())..];
-        if fresh.len() >= STREAM_FEED_SAMPLES {
-            stream.feed(fresh);
-        }
     }
 
     fn finish(mut self, ended_at: Option<CaptureInstant>) -> Vec<f32> {
@@ -1067,54 +1082,6 @@ impl DictationCapture {
             .is_some_and(|recording| recording.stream.is_some())
     }
 
-    /// The active recording's text so far when its live stream published a
-    /// change since the last call: only with live text on, and only for
-    /// display. The finished clip's transcript replaces it.
-    pub fn take_partial(&mut self) -> Option<Partial> {
-        self.recording.as_mut()?.stream.as_mut()?.take_partial()
-    }
-
-    /// Shows the live text on the HUDs when it changed, and logs at debug
-    /// how far it has got: word counts against the audio fed, never the
-    /// words (the engine logs each stream's count of changes). Every OS's
-    /// capture loop calls it after ingesting audio; it does nothing without
-    /// live text.
-    pub fn report_live_text(&mut self) {
-        let Some(partial) = self.take_partial() else {
-            return;
-        };
-        let Some(recording) = &mut self.recording else {
-            return;
-        };
-        tracing::debug!(
-            fed_ms = recording
-                .stream
-                .as_ref()
-                .map_or(0, |stream| stream.fed() / 16),
-            stable_words = partial.stable.split_whitespace().count(),
-            tentative_words = partial.tentative.split_whitespace().count(),
-            "live text"
-        );
-        recording
-            .live_text
-            .get_or_insert_with(crate::dictation::live_text::Publisher::new)
-            .show(&partial);
-    }
-
-    /// Opens a live stream for the active recording when the engine's model
-    /// can stream. The stream receives the recording's 16 kHz audio from its
-    /// first sample (pre-roll included) as it arrives, travels with the
-    /// finished clip, and is cancelled with the recording.
-    pub fn begin_stream(&mut self, engine: &TranscriptionEngine) {
-        let Some(recording) = &mut self.recording else {
-            return;
-        };
-        if recording.stream.is_none() {
-            recording.stream = engine.begin();
-            recording.feed_stream();
-        }
-    }
-
     #[cfg(test)]
     pub fn finish(&mut self, now: CaptureInstant) -> Finish {
         self.finish_with_tail(now, Duration::ZERO)
@@ -1195,6 +1162,10 @@ impl DictationCapture {
         };
 
         let stream = recording.stream.take();
+        #[cfg(target_os = "macos")]
+        let voice_buddy = recording.voice_buddy.take();
+        #[cfg(target_os = "macos")]
+        let stream_backend = recording.stream_backend;
         let kept_tail = recording
             .recorded_through
             .and_then(|through| through.checked_duration_since(ended_at))
@@ -1218,6 +1189,10 @@ impl DictationCapture {
             source: None,
             samples,
             stream,
+            #[cfg(target_os = "macos")]
+            voice_buddy,
+            #[cfg(target_os = "macos")]
+            stream_backend,
             #[cfg(target_os = "macos")]
             capture,
         })

@@ -4,12 +4,12 @@
 # golden: the macOS and Windows scenes are the same window drawn from
 # fixtures, so they render here too.
 #
-#   1. Renders every onboarding scene (Setting up Hex with nothing found, a
+#   1. Renders every onboarding scene (Setting up Superhex with nothing found, a
 #      stopped download, Settings after Continue without a model, the model step with found models, with the
 #      recommended model already present, ours downloading, Back to it, the
 #      demo, permissions, Windows' microphone switch, the paste permission on
 #      GNOME and KDE Wayland, Almost ready, the
-#      practice game, Hex is ready) in both
+#      practice game, Superhex is ready) in both
 #      appearances and compares each with its approved golden in
 #      tests/golden/. Any difference fails and names the changed scenes; an
 #      intentional change refreshes the goldens in the same PR
@@ -18,14 +18,14 @@
 #      passes by skipping.
 #   2. Checks Skip: it shows only on the optional pages (the demo and the
 #      practice) and lands on the next step setup still needs (permissions,
-#      then Almost ready while the model downloads, else Hex is ready),
+#      then Almost ready while the model downloads, else Superhex is ready),
 #      never closing onboarding. Then Continue without a model: it shows only
 #      on the download step once the download failed or stalled, finishes
 #      onboarding, and Settings says no model is installed.
 #   3. Walks a first run through the real onboarding in a clean temporary
 #      data folder (fresh settings, no models, an empty Hugging Face cache, an
 #      English locale): it downloads and verifies the model onboarding picks,
-#      plays the practice game, and reaches Hex is ready.
+#      plays the practice game, and reaches Superhex is ready.
 #
 #   scripts/check-onboarding.sh [<out-dir>]   (default target/onboarding-check)
 #

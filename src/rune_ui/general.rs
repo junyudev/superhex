@@ -113,6 +113,9 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         }
         rows.extend(configure_shortcuts_row(ui, p).map(CardRow::from));
     }
+    if ui.platform.caps.voice_buddy {
+        rows.push(super::voice_buddy::backend_row(ui, p).into());
+    }
     let picker_button = value_button(
         p,
         "transcription-control",
@@ -121,7 +124,7 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         super::picker::open,
     );
     let (description, control) = match missing_model(ui) {
-        // Hex can't listen without the selected model: say so, with the
+        // Superhex can't listen without the selected model: say so, with the
         // download's progress, or Download and Add model file… when none
         // runs, as after Continue without a model (#894).
         Some(progress) => {
@@ -130,7 +133,7 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
                 super::model_import::download_failure(ui),
             ) {
                 (Some(_), _) => (
-                    tr("Hex can't listen until the speech model has downloaded").to_string(),
+                    tr("Superhex can't listen until the speech model has downloaded").to_string(),
                     p.muted(),
                 ),
                 (None, Some(error)) => {
@@ -170,18 +173,24 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         }
         None => (s::transcription_status(ui, p), picker_button),
     };
-    rows.push(
-        icon_described_row(
-            p,
-            "transcription",
-            &WAVE,
-            tr("Speech model"),
-            description,
-            control,
-        )
-        .into(),
-    );
-    rows.extend(language_row(ui, p, layer).map(CardRow::from));
+    if super::voice_buddy::chosen(ui) {
+        rows.push(super::voice_buddy::status_row(ui, p));
+    } else {
+        // With the choice above leading the card, the model is its detail.
+        let glyph = [&WAVE, &MODEL][usize::from(ui.platform.caps.voice_buddy)];
+        rows.push(
+            icon_described_row(
+                p,
+                "transcription",
+                glyph,
+                tr("Speech model"),
+                description,
+                control,
+            )
+            .into(),
+        );
+        rows.extend(language_row(ui, p, layer).map(CardRow::from));
+    }
     let vocabulary_note = super::vocabulary::unused_note(ui);
     rows.push(
         icon_row(
@@ -207,13 +216,13 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
 }
 
 /// The selected speech model's download, while it is not installed, so
-/// Hex can't listen yet. Fixtures that name no installed models say nothing,
+/// Superhex can't listen yet. Fixtures that name no installed models say nothing,
 /// so their rows never depend on this machine's models.
 pub(super) fn missing_model(ui: &Ui) -> Option<crate::desktop::onboarding::ModelProgress> {
     if !ui.live() && ui.picker.installed.is_none() {
         return None;
     }
-    // A saved import that is missing or changed: Hex listens with a
+    // A saved import that is missing or changed: Superhex listens with a
     // downloaded model in its place, and the row's notice says how to fix it.
     if ui.settings.transcription.model.is_labs_gated()
         && super::model_import::selection_notice(ui).is_some()
@@ -316,12 +325,13 @@ pub(super) fn shortcut_rows(
     ];
     rows.extend(s::refused_note(ui, p, target).map(CardRow::from));
     rows.extend(s::gnome_clash_note(ui, p, target).map(CardRow::from));
+    rows.extend(s::mouse_access_row(ui, p, target).map(CardRow::from));
     rows
 }
 
 /// Toggle's cancel shortcut. A shortcuts portal would hold its key from
-/// every app for as long as Hex runs, so on Wayland it says to bind
-/// `hex dictation cancel` in the desktop instead.
+/// every app for as long as Superhex runs, so on Wayland it says to bind
+/// `superhex dictation cancel` in the desktop instead.
 fn cancel_rows(ui: &Ui, p: Paint) -> Vec<CardRow> {
     if matches!(
         ui.shortcuts(),
@@ -364,7 +374,7 @@ fn configure_shortcuts_row(ui: &Ui, p: Paint) -> Option<El> {
                 "configure-shortcuts",
                 &KEYBOARD,
                 tr("Desktop shortcuts"),
-                Some(tr("Change the keys your desktop gave Hex")),
+                Some(tr("Change the keys your desktop gave Superhex")),
                 button(
                     p,
                     "configure-shortcuts-control",
@@ -401,7 +411,7 @@ fn microphone_release_row(ui: &Ui, p: Paint) -> CardRow {
 }
 
 /// Labs › Also pause the browser's permission, under Pause media on macOS:
-/// Hex hears the browser through System Audio Recording, asked for here,
+/// Superhex hears the browser through System Audio Recording, asked for here,
 /// never while you dictate.
 fn pause_browser_rows(ui: &Ui, p: Paint) -> Vec<El> {
     let on = ui.settings.pause_browser_media;
@@ -419,7 +429,7 @@ fn pause_browser_rows(ui: &Ui, p: Paint) -> Vec<El> {
             "pause-browser-audio",
             &SPEAKER,
             tr("Screen & System Audio Recording"),
-            Some(tr("Lets Hex hear whether a tab is playing")),
+            Some(tr("Lets Superhex hear whether a tab is playing")),
             permission_control(
                 p,
                 "pause-browser-allow",
@@ -513,7 +523,7 @@ fn microphone_rows(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> Vec<CardRow> {
     let mac = ui.platform.caps.os == super::platform::Os::Macos;
     let lid_note = |built_in: &str| match default_name {
         Some(name) => tr_named(
-            "{built_in} is off while the lid is closed, so Hex listens to {input}",
+            "{built_in} is off while the lid is closed, so Superhex listens to {input}",
             &[("built_in", built_in), ("input", name)],
         ),
         None => tr_fill("{} is off while the lid is closed", built_in),
@@ -529,7 +539,7 @@ fn microphone_rows(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> Vec<CardRow> {
         }),
         None if devices.default_is_hex_microphone => default_name.map(|name| {
             tr_fill(
-                "Hex Microphone is the system default, so Hex listens to {}",
+                "Superhex Microphone is the system default, so Superhex listens to {}",
                 name,
             )
         }),
@@ -540,7 +550,7 @@ fn microphone_rows(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> Vec<CardRow> {
             .zip(default_name)
             .map(|(bluetooth, input)| {
                 tr_named(
-                    "{bluetooth} is Bluetooth, so Hex listens to {input}",
+                    "{bluetooth} is Bluetooth, so Superhex listens to {input}",
                     &[("bluetooth", bluetooth), ("input", input)],
                 )
             }),
@@ -636,7 +646,7 @@ fn shown_level(level: f32) -> f32 {
     f32::from(level_step(level)) / LEVEL_STEPS
 }
 const MIC_LEVEL: f32 = 14.0;
-/// Three short bars, as tall as Hex hears it.
+/// Three short bars, as tall as Superhex hears it.
 fn mic_bars(p: Paint, level: f32, tint: Color) -> El {
     const WEIGHTS: [f32; 3] = [0.6, 1.0, 0.75];
     let mut bars = row()
@@ -659,7 +669,7 @@ fn mic_bars(p: Paint, level: f32, tint: Color) -> El {
 
 const LEVEL_FRAME: Duration = Duration::from_millis(33);
 
-/// What the microphone row's level shows: the audio Hex receives from the
+/// What the microphone row's level shows: the audio Superhex receives from the
 /// microphone in use, or nothing while none arrives (released while idle,
 /// failed, or not allowed), as flat, dimmed bars.
 pub(super) struct MicLevel {
@@ -1013,7 +1023,7 @@ fn output(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> Vec<CardRow> {
         rows.push(
             note(
                 "clipboard-restore-note",
-                tr("This desktop doesn't let Hex put your clipboard back after a paste. Turn on Labs › Restore clipboard on GNOME to try it."),
+                tr("This desktop doesn't let Superhex put your clipboard back after a paste. Turn on Labs › Restore clipboard on GNOME to try it."),
                 p.muted(),
             )
             .into(),
@@ -1289,7 +1299,7 @@ fn speech_engine_row(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> CardRow {
     #[cfg(target_os = "linux")]
     let vulkan_missing = false;
     let vulkan_note = (ui.live() && vulkan_missing).then(|| {
-        tr("Hex uses the CPU because the graphics driver's Vulkan is missing or too old. Update the GPU driver to use the GPU.")
+        tr("Superhex uses the CPU because the graphics driver's Vulkan is missing or too old. Update the GPU driver to use the GPU.")
             .to_owned()
     });
     let note = vulkan_note.or_else(|| failed.map(|failure| {

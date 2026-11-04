@@ -5,8 +5,8 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 team_id=${HEX_TEAM_ID:?Set HEX_TEAM_ID to the Apple Developer signing team}
 . "$root/scripts/macos-signing.sh"
 identity=$(hex_codesign_identity "$team_id")
-bundle="$root/target/HEX Service.app"
-executable="$bundle/Contents/MacOS/hex-service"
+bundle="$root/target/Superhex Service.app"
+executable="$bundle/Contents/MacOS/superhex-service"
 version=$(hex_version "$root")
 build_number=$(hex_build_number "$version")
 

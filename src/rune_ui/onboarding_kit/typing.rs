@@ -1,4 +1,4 @@
-//! Typing under pressure in `"Without Hex"`: Jay asks whether we're ready to
+//! Typing under pressure in `"Without Superhex"`: Jay asks whether we're ready to
 //! ship with the investors in the room. Typing by hand fumbles `"Yse, we're dead"`
 //! and accidentally hits Return, freezes in horror, then fires off a panicked
 //! `"oh god *reayd"` follow-up that has a typo too (~7.2 s total vs 1.5 s by voice).

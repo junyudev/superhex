@@ -1,7 +1,7 @@
 //! The Linux tray icon, a Rune tray (StatusNotifierItem). A click shows the
 //! window; the menu is the one `tray_menu` builds for Linux and Windows. A
 //! desktop without a tray host (GNOME without an extension, i3bar) shows
-//! nothing, and Hex runs on as before.
+//! nothing, and Superhex runs on as before.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,7 +13,7 @@ use crate::linux::app::{HostHandle, HostRequest, HostSnapshot};
 use crate::linux::input::ShortcutCommand;
 use crate::linux::service::{Activation, Control, Published};
 
-/// The white Hex mark the Windows tray uses, raw 32×32 RGBA.
+/// The white Superhex mark the Windows tray uses, raw 32×32 RGBA.
 const ICON_RGBA: &[u8] = include_bytes!("../../resources/windows/tray-32.rgba");
 const ICON_SIZE: u32 = 32;
 
@@ -26,7 +26,7 @@ pub(crate) fn start(
 ) -> Option<rune::Tray> {
     let view = TrayView::default();
     let icon = rune::TrayIcon::rgba(ICON_SIZE, ICON_SIZE, ICON_RGBA.to_vec());
-    let spec = rune::TraySpec::new("hex", "Hex", icon)
+    let spec = rune::TraySpec::new("superhex", "Superhex", icon)
         .tooltip(view.tooltip())
         .menu(view.menu());
     let show = move |token| {
@@ -40,14 +40,14 @@ pub(crate) fn start(
         rune::TrayEvent::Activate { token } => show(token),
         rune::TrayEvent::Menu(id) => match TrayCommand::from_id(&id) {
             Some(TrayCommand::Show) => show(None),
-            // As the window's Quit Hex: drains accepted work, then exits.
+            // As the window's Quit Superhex: drains accepted work, then exits.
             Some(TrayCommand::Quit) => shutdown.store(true, Ordering::Release),
             Some(command) => perform(&host, &published, command),
             None => {}
         },
         _ => {}
     });
-    tray.inspect_err(|error| tracing::warn!(%error, "Hex has no tray icon"))
+    tray.inspect_err(|error| tracing::warn!(%error, "Superhex has no tray icon"))
         .ok()
 }
 

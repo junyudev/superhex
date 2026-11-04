@@ -1,8 +1,8 @@
-//! GPUs that hung or failed while Hex transcribed on them (#856), remembered
+//! GPUs that hung or failed while Superhex transcribed on them (#856), remembered
 //! per device and driver in `gpu-failures.json` in Application Support, so
 //! Auto keeps that GPU off and transcribes on the CPU (or another GPU) until
 //! the driver changes. A GPU context reset or device loss comes back from
-//! ggml as an error, never as something Hex could retry safely on the same
+//! ggml as an error, never as something Superhex could retry safely on the same
 //! device: ggml keeps the lost Vulkan device for the process, and asking a
 //! hung driver again can hang the whole desktop's GPU again.
 
@@ -210,7 +210,7 @@ pub(crate) fn device_error(error: &color_eyre::eyre::Report) -> bool {
 
 /// Whether `error` says the GPU ran out of memory. That is not a driver
 /// fault: another copy of a model (a model switch loading beside the running
-/// one, or a CLI check while Hex holds the model) can fill a small GPU, so
+/// one, or a CLI check while Superhex holds the model) can fill a small GPU, so
 /// the GPU is not remembered as failed for it (#1165).
 pub(crate) fn out_of_memory(error: &color_eyre::eyre::Report) -> bool {
     error.chain().any(|cause| {
@@ -231,7 +231,7 @@ pub(crate) fn out_of_memory(error: &color_eyre::eyre::Report) -> bool {
 /// What a GPU's driver is now, so an update tries it again. Linux: the
 /// kernel (i915, xe, amdgpu, nouveau live there) and every installed Vulkan
 /// driver's library, by size and modification time (a Mesa or vendor
-/// update replaces them). Windows: this build of Hex.
+/// update replaces them). Windows: this build of Superhex.
 pub(crate) fn driver() -> String {
     static DRIVER: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     DRIVER.get_or_init(driver_now).clone()

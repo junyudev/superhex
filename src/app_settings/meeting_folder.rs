@@ -7,8 +7,8 @@ pub fn default_meeting_output_folder() -> PathBuf {
         .or_else(|| crate::app_paths::home_dir().map(|home| home.join("Documents")))
         .unwrap_or_else(|| PathBuf::from("."))
         .join(if crate::app_paths::is_macos_test_build() {
-            "Hex Test Meetings"
+            "Superhex Test Meetings"
         } else {
-            "Hex Meetings"
+            "Superhex Meetings"
         })
 }

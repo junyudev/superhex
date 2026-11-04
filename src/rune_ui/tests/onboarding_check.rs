@@ -12,9 +12,11 @@ use crate::desktop::onboarding::Step;
 /// Windows. An intentional change refreshes these goldens in the same PR
 /// (`HEX_UPDATE_GOLDENS=1`).
 pub(super) const SCENES: &[&str] = &[
-    // A fresh install: setting up Hex, the recommended model downloading.
+    // A fresh install: setting up Superhex, the recommended model downloading.
     "onboarding",
     "mac-onboarding",
+    "mac-onboarding-voice-buddy",
+    "mac-onboarding-voice-buddy-found",
     // The download stopped; Continue without a model, then Settings.
     "onboarding-download-failed",
     "onboarding-no-model",
@@ -41,7 +43,7 @@ pub(super) const SCENES: &[&str] = &[
     "onboarding-try",
     "mac-onboarding-try",
     "mac-onboarding-reopen",
-    // Hex is ready.
+    // Superhex is ready.
     "onboarding-ready",
     "mac-onboarding-ready",
 ];
@@ -57,7 +59,7 @@ const OPTIONAL: &[&str] = &[
 
 /// Skip shows only on the optional pages, the demo and the practice, and
 /// passes over them to the next step setup still needs: permissions, then
-/// the model, else Hex is ready. It never closes onboarding.
+/// the model, else Superhex is ready. It never closes onboarding.
 #[test]
 fn onboarding_skip() {
     for scene in SCENES {
@@ -92,7 +94,7 @@ fn onboarding_skip() {
     let mut rt = runtime("onboarding-demo", true, PANE_SIZE);
     skip(&mut rt, "onboarding-demo", Page::Waiting);
 
-    // Nothing left to set up: the demo and the practice skip to Hex is ready.
+    // Nothing left to set up: the demo and the practice skip to Superhex is ready.
     let mut rt = runtime("onboarding-demo", true, PANE_SIZE);
     rt.update(|ui, tx| {
         ui.picker.installed = Some(vec![ui.settings.transcription.model]);
@@ -139,7 +141,7 @@ fn onboarding_continue_without_model() {
         "Add model file…"
     );
     assert!(
-        texts(&rt).contains(&"Hex can't dictate until a speech model is installed".to_owned()),
+        texts(&rt).contains(&"Superhex can't dictate until a speech model is installed".to_owned()),
         "the status says so too"
     );
 
@@ -172,7 +174,7 @@ fn onboarding_goldens() {
 /// `HEX_APPLICATION_SUPPORT_DIR` names (no settings, no models, an empty
 /// Hugging Face cache): the real settings load, the real decision to open
 /// onboarding, the real download and verification of the model it picks,
-/// and every page to Hex is ready. Downloads the recommended model, so only
+/// and every page to Superhex is ready. Downloads the recommended model, so only
 /// scripts/check-onboarding.sh runs it. The window here is a fixture, not
 /// connected to a service: the test does the service's download itself,
 /// plays the story on its own clock, and nothing writes the completion
@@ -219,13 +221,16 @@ fn onboarding_walkthrough() {
     let mut rt = runtime_for(ui, true, PANE_SIZE);
     let step = |rt: &Runtime<Ui>| rt.state.tour.as_ref().map(|tour| tour.flow.step());
     let shown = texts(&rt);
-    assert!(shown.contains(&"Setting up Hex".to_owned()), "{shown:?}");
+    assert!(
+        shown.contains(&"Setting up Superhex".to_owned()),
+        "{shown:?}"
+    );
     assert!(
         !shown.contains(&"Choose a speech model".to_owned()),
         "nothing found, so no model step"
     );
 
-    // Setting up Hex asks the service for the recommended model at once.
+    // Setting up Superhex asks the service for the recommended model at once.
     assert_eq!(step(&rt), Some(Step::Setup));
     let (model, language) = match sent(&rt) {
         [Request::ChooseModel { model, language }] => (*model, language.clone()),
@@ -257,7 +262,7 @@ fn onboarding_walkthrough() {
     rt.state.picker.installed = Some(vec![model]);
 
     // The story plays on: the demo, then the practice game once the model
-    // is ready, then Hex is ready.
+    // is ready, then Superhex is ready.
     settle(&mut rt);
     rt.update(|ui, _| super::super::onboarding_kit::live::fixture_resume(ui, Page::Try));
     settle(&mut rt);
@@ -265,12 +270,15 @@ fn onboarding_walkthrough() {
     assert!(texts(&rt).contains(&"Clear your messages".to_owned()));
     assert!(rt.find("skip").is_some(), "Skip shows on the practice too");
     tap(&mut rt, "done");
-    assert!(texts(&rt).contains(&"Hex is ready".to_owned()));
+    assert!(texts(&rt).contains(&"Superhex is ready".to_owned()));
     tap(&mut rt, "start-using-hex");
-    assert!(rt.state.tour.is_none(), "Start using Hex closes onboarding");
+    assert!(
+        rt.state.tour.is_none(),
+        "Start using Superhex closes onboarding"
+    );
     assert!(rt.state.first_run.is_none());
     println!(
-        "onboarding walkthrough: Setting up Hex -> {} downloaded ({} bytes) -> Your turn -> Hex is ready",
+        "onboarding walkthrough: Setting up Superhex -> {} downloaded ({} bytes) -> Your turn -> Superhex is ready",
         definition.name,
         downloaded.load(std::sync::atomic::Ordering::Relaxed)
     );

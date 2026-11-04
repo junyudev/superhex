@@ -326,6 +326,8 @@ pub(super) fn side_keycap(side: ModifierSide, symbol: &'static str) -> &'static 
 pub struct HotkeyKey {
     pub code: u16,
     pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_mouse: Option<NativeMouseButton>,
 }
 
 /// Reserved input codes for the 32 mouse buttons CoreGraphics can report.
@@ -340,6 +342,7 @@ impl HotkeyKey {
         Self::mouse_code(button).map(|code| Self {
             code,
             label: format!("Mouse {}", button + 1),
+            native_mouse: None,
         })
     }
 
@@ -367,6 +370,7 @@ impl HotkeyKey {
         Self {
             code: 0,
             label: key_label(name),
+            native_mouse: None,
         }
     }
 
@@ -417,7 +421,7 @@ pub(super) fn key_label(name: &str) -> String {
     if shortcut_repair::is_scroll_lock(name) {
         return "Scroll Lock".into();
     }
-    // `section`, as `hex settings` may name the § key.
+    // `section`, as `superhex settings` may name the § key.
     if name.eq_ignore_ascii_case("section") {
         return "§".into();
     }
@@ -543,6 +547,7 @@ impl HotkeyBinding {
         for key in keys {
             match key {
                 ChordKey::Key(key) => {
+                    key.validate_native_mouse()?;
                     if binding.key.is_some() {
                         return Err("a shortcut holds at most one key besides modifiers".into());
                     }
@@ -609,6 +614,9 @@ impl<'de> Deserialize<'de> for HotkeyBinding {
             return Self::from_chord_keys(chord.keys).map_err(D::Error::custom);
         }
         let legacy: LegacyBinding = serde_json::from_value(value).map_err(D::Error::custom)?;
+        if let Some(key) = &legacy.key {
+            key.validate_native_mouse().map_err(D::Error::custom)?;
+        }
         Ok(Self {
             modifiers: legacy.modifiers,
             key: legacy.key,
@@ -664,6 +672,7 @@ impl HotkeyBinding {
                 ..Default::default()
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: paste_key_code(),
                 label: "V".into(),
             }),
@@ -675,7 +684,7 @@ impl HotkeyBinding {
 
     /// Option-Shift-S, Scrawl's capture shortcut; F9 on Linux. Annotate's
     /// one key is held to draw while the other hand moves the mouse, so on
-    /// Linux it's a single key one hand holds easily: F9 is free in Hex's
+    /// Linux it's a single key one hand holds easily: F9 is free in Superhex's
     /// defaults (Alt+Space, Ctrl+Alt+V) and in the common desktops', where
     /// F10 opens GTK's menu bar, F11 is full screen and F12 is often a
     /// dropdown terminal.
@@ -689,6 +698,7 @@ impl HotkeyBinding {
                 ..Default::default()
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: layout_key_code('s').unwrap_or(1),
                 label: "S".into(),
             }),
@@ -705,6 +715,7 @@ impl HotkeyBinding {
             modifiers: HotkeyModifiers::default(),
             // Escape's virtual key code, the same on every layout.
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: 53,
                 label: "Esc".into(),
             }),
@@ -722,6 +733,7 @@ impl HotkeyBinding {
                 ..Default::default()
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: paste_key_code(),
                 label: "V".into(),
             }),
@@ -760,6 +772,7 @@ pub(super) fn scrawl_shortcut(bytes: &[u8]) -> Option<HotkeyBinding> {
     (!modifiers.is_empty() && !label.is_empty()).then_some(HotkeyBinding {
         modifiers,
         key: Some(HotkeyKey {
+            native_mouse: None,
             code: shortcut.key_code,
             label,
         }),
@@ -1018,12 +1031,12 @@ pub struct RuntimeHotkeys {
     /// Labs › Second dictation shortcut (macOS), while it is on and bound.
     pub second_dictation: Option<RuntimeHotkey>,
     /// Toggle mode's cancel shortcut. Not among [`RuntimeHotkeys::all`]:
-    /// Hex takes it only while a toggled recording runs.
+    /// Superhex takes it only while a toggled recording runs.
     pub cancel: Option<RuntimeHotkey>,
 }
 
 impl RuntimeHotkeys {
-    /// Every shortcut Hex matches, for suppression and chord evidence.
+    /// Every shortcut Superhex matches, for suppression and chord evidence.
     pub fn all(self) -> [Option<RuntimeHotkey>; 6] {
         [
             Some(self.dictation),

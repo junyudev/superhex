@@ -468,7 +468,7 @@ fn numbers_only(transcript: &str) -> bool {
     any_number
 }
 
-/// One generation's text and the model that wrote it, when Hex named one
+/// One generation's text and the model that wrote it, when Superhex named one
 /// (`None` when OpenCode's own default model answered).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Generated {

@@ -207,11 +207,11 @@ export async function create(options: CreateOptions | TranscriberOptions = {}): 
 const defaultSupportDirectory = (): string => {
   switch (process.platform) {
     case "darwin":
-      return join(homedir(), "Library", "Application Support", "hex")
+      return join(homedir(), "Library", "Application Support", "superhex")
     case "win32":
-      return join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "hex")
+      return join(process.env.APPDATA ?? join(homedir(), "AppData", "Roaming"), "superhex")
     default:
-      return join(process.env.XDG_DATA_HOME || join(homedir(), ".local", "share"), "hex")
+      return join(process.env.XDG_DATA_HOME || join(homedir(), ".local", "share"), "superhex")
   }
 }
 

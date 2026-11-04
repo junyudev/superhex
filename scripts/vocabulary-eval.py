@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge benchmark manifests or score Hex/decoder-spike JSONL without audio I/O."""
+"""Merge benchmark manifests or score Superhex/decoder-spike JSONL without audio I/O."""
 
 import argparse
 import collections

@@ -33,8 +33,8 @@ test "$(head -c 4 "$executable" | od -An -tx1 | tr -d ' ')" = 7f454c46
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT HUP INT TERM
 install -m755 "$executable" "$temporary/hex"
-sed 's#@HEX_BIN@#/usr/bin/hex#g' "$root/packaging/anomaly.hex.desktop" > "$temporary/anomaly.hex.desktop"
-cp "$root/packaging/hex.service" "$root/LICENSE" "$root/packaging/linux/refresh-desktop.sh" "$temporary/"
+sed 's#@HEX_BIN@#/usr/bin/superhex#g' "$root/packaging/io.github.junyudev.superhex.desktop" > "$temporary/io.github.junyudev.superhex.desktop"
+cp "$root/packaging/superhex.service" "$root/LICENSE" "$root/packaging/linux/refresh-desktop.sh" "$temporary/"
 cp -R "$root/packaging/linux/icons" "$temporary/icons"
 
 # Debian and RPM order a tilde before a release, and neither allows a hyphen
@@ -47,7 +47,7 @@ for format in deb rpm; do
     cd "$temporary"
     HEX_PACKAGE_ARCH=$arch HEX_PACKAGE_VERSION=$package_version \
       "$nfpm" package --config "$root/packaging/linux/nfpm.yaml" --packager "$format" \
-      --target "$dist/hex-$version-linux-$label.$format" >&2
+      --target "$dist/superhex-$version-linux-$label.$format" >&2
   )
-  echo "$dist/hex-$version-linux-$label.$format"
+  echo "$dist/superhex-$version-linux-$label.$format"
 done

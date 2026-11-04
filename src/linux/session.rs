@@ -32,7 +32,7 @@ impl LinuxSession {
     }
 }
 
-/// Desktops whose window managers float every window, so Hex's window
+/// Desktops whose window managers float every window, so Superhex's window
 /// opens at its own resizable size there.
 const FLOATING_DESKTOPS: &[&str] = &[
     "KDE",

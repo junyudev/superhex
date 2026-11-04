@@ -37,7 +37,8 @@ impl Tour {
 
     /// The tour from Welcome, as on a new install: Run setup again.
     pub(super) fn replay(settings: &AppSettings, platform: &PlatformState) -> Tour {
-        let installed = super::picker::Picker::default().selected_installed(settings);
+        let installed = super::picker::Picker::default().selected_installed(settings)
+            || super::voice_buddy::saved_in_effect(settings);
         Tour::new(
             Flow::new(
                 Step::Welcome,
@@ -51,7 +52,8 @@ impl Tour {
 
     /// The tour when this run still needs it.
     pub(super) fn start(settings: &AppSettings, platform: &PlatformState) -> Option<Tour> {
-        let installed = super::picker::Picker::default().selected_installed(settings);
+        let installed = super::picker::Picker::default().selected_installed(settings)
+            || super::voice_buddy::saved_in_effect(settings);
         let status = platform.setup_status(installed);
         let completed = crate::desktop::onboarding::completion_recorded();
         let resume = crate::desktop::onboarding::take_resume();
@@ -73,7 +75,8 @@ impl Tour {
 }
 
 pub(super) fn progress(ui: &Ui) -> (bool, ModelProgress) {
-    let installed = ui.picker.selected_installed(&ui.settings);
+    // VoiceBuddy in effect needs no local model, so the speech step is ready.
+    let installed = ui.picker.selected_installed(&ui.settings) || super::voice_buddy::in_effect(ui);
     let selected = crate::transcription::models::validate(&ui.settings.transcription).ok();
     let transcription = ui.view.as_ref().map(|view| &view.transcription);
     let downloading = selected.and_then(|model| {
@@ -103,11 +106,12 @@ pub(super) fn poll(ui: &mut Ui) -> bool {
     if ui.tour.is_some() {
         super::found::scan_for_setup(ui);
         // Only until setup: past it, the recommended model downloads.
-        let held = (ui.found.scanning() || !ui.found.models.is_empty())
-            && ui
-                .tour
-                .as_ref()
-                .is_some_and(|tour| matches!(tour.flow.step(), Step::Welcome | Step::Setup));
+        let held = super::found_choice::holds_download(ui)
+            || (ui.found.scanning() || !ui.found.models.is_empty())
+                && ui
+                    .tour
+                    .as_ref()
+                    .is_some_and(|tour| matches!(tour.flow.step(), Step::Welcome | Step::Setup));
         let choosing = super::found_choice::offered(
             ui,
             ui.tour
@@ -172,7 +176,7 @@ pub(super) fn input(ui: &mut Ui, input: Input) {
 }
 
 /// Saves a new step so a run quit part-way resumes there. The story sounds
-/// the success chime itself, on Hex is ready.
+/// the success chime itself, on Superhex is ready.
 fn remember_step(ui: &Ui, before: Step) {
     if let Some(tour) = &ui.tour
         && tour.flow.step() != before

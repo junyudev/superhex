@@ -1,4 +1,4 @@
-//! Hex's in-app updater on every OS, a client of the Anomaly release service
+//! Superhex's in-app updater on every OS, a client of the Anomaly release service
 //! (`docs/plans/release-service.md`). One worker polls the channel's manifest
 //! 10 seconds after launch, then hourly or on "Check for updates", decides with the
 //! protocol's client rules, and for a direct install downloads the target,
@@ -7,7 +7,7 @@
 //! release replaces it, and Restart to update checks once more before it
 //! switches over. Versions are display text and never compared: whenever the
 //! channel's current release is not the running build (its target SHA-256,
-//! else its exact version), Hex takes it, and switching channels does so
+//! else its exact version), Superhex takes it, and switching channels does so
 //! after the user confirms. Package-managed installs only learn the command to run;
 //! source builds, test builds, and installs whose administrator set
 //! `DisableUpdates` never check. Manifests are not signed: HTTPS, the
@@ -59,14 +59,14 @@ const RESTART_MANIFEST_TIMEOUT: Duration = Duration::from_secs(15);
 /// How this install receives updates, which decides what the updater does.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Method {
-    /// Our installer's receipt (or, on macOS, a writable `Hex.app`): Hex
+    /// Our installer's receipt (or, on macOS, a writable `Superhex.app`): Superhex
     /// downloads and stages updates itself on this channel.
     Direct { channel: String },
-    /// A direct install Hex cannot replace (macOS: a read-only or translocated
+    /// A direct install Superhex cannot replace (macOS: a read-only or translocated
     /// location); updates link to the download.
     DownloadOnly,
     /// A package manager (`aur`, `deb-x64`, `rpm-arm64`, `nix`, `brew`, …) updates
-    /// it; Hex shows its command once it serves a newer version.
+    /// it; Superhex shows its command once it serves a newer version.
     #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
     Package(&'static str),
     /// Built from a checkout, which updates it.
@@ -182,7 +182,7 @@ enum State {
 
 struct Shared {
     state: Mutex<State>,
-    /// A package manager installed Hex, so "up to date" is its to say.
+    /// A package manager installed Superhex, so "up to date" is its to say.
     packaged: bool,
     /// Set by "Check for updates" and `stop`; the worker waits on it between checks.
     wake: Mutex<Wake>,
@@ -345,7 +345,7 @@ impl Updater {
     pub fn status(&self) -> DesktopUpdateStatus {
         match &*lock(&self.shared.state) {
             State::Disabled(status) => status.clone(),
-            // A package manager updates Hex: its own checks only look for
+            // A package manager updates Superhex: its own checks only look for
             // the manager's command, so they show nothing of their own.
             State::Checking | State::Current | State::Failed if self.shared.packaged => {
                 DesktopUpdateStatus::PackageManager
@@ -370,7 +370,7 @@ impl Updater {
 
     /// Carries out an update control: check now, open the download, or
     /// restart into the staged update. A restart finishes on the worker;
-    /// [`Self::take_restart`] says when Hex must quit.
+    /// [`Self::take_restart`] says when Superhex must quit.
     pub fn act(&self, action: &DesktopAction) -> Result<()> {
         match action {
             DesktopAction::CheckForUpdates => self.check_now(),
@@ -405,7 +405,7 @@ impl Updater {
     }
 
     /// The outcome of Restart to update, once: `Ok` when the update starts
-    /// as soon as Hex quits, which the caller must now do.
+    /// as soon as Superhex quits, which the caller must now do.
     pub fn take_restart(&self) -> Option<Result<()>> {
         let mut restart = lock(&self.shared.restart);
         if !matches!(*restart, Restart::Done(_)) {
@@ -444,7 +444,7 @@ impl Updater {
             return;
         };
         if let Err(error) = crate::desktop::opencode_catalog::open_url(&url) {
-            tracing::warn!(%error, "could not open the Hex download");
+            tracing::warn!(%error, "could not open the Superhex download");
         }
     }
 
@@ -464,7 +464,7 @@ impl Updater {
 }
 
 /// `HEX_DISABLE_UPDATES=1` turns this launch's updater off, as a test build
-/// has it: no checks, no network, nothing offered. For copies of Hex that
+/// has it: no checks, no network, nothing offered. For copies of Superhex that
 /// must stay quiet, such as benchmarks (docs/perf.md).
 fn updates_off_by_env() -> bool {
     std::env::var_os("HEX_DISABLE_UPDATES").is_some_and(|value| value == "1")
@@ -568,7 +568,7 @@ fn run(shared: &Shared, method: &Method) {
 }
 
 /// Switches to the newest staged update once Restart to update's final
-/// check has run, whatever its result. True when Hex now quits.
+/// check has run, whatever its result. True when Superhex now quits.
 fn finish_restart(shared: &Shared, next: State) -> bool {
     let mut state = lock(&shared.state);
     let staged = lock(&shared.staged).clone();
@@ -601,7 +601,7 @@ fn check(
     restarting: bool,
 ) -> Result<State> {
     let updates = updates_dir()?;
-    // Read each check, so a change from the window or `hex settings` applies
+    // Read each check, so a change from the window or `superhex settings` applies
     // at the next one.
     let setting = AppSettings::saved_update_channel();
     let home = home_channel(method, BUILD_CHANNEL, crate::VERSION);
@@ -694,7 +694,7 @@ fn check(
             verify_linux_signature(&manifest, &manifest_url, &user_agent, &target, &updates)?;
             let file = transport::download(&url, &user_agent, &target, &updates)?;
             let staged = platform::stage(&file, &version)
-                .wrap_err_with(|| format!("could not stage Hex {version}"))?;
+                .wrap_err_with(|| format!("could not stage Superhex {version}"))?;
             *lock(&shared.staged) = Some(StagedUpdate {
                 staged,
                 sha256: target.sha256,

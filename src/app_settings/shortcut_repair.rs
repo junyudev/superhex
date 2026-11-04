@@ -100,21 +100,6 @@ impl AppSettings {
         }
     }
 
-    /// With Labs › Mouse shortcuts off, a mouse-button shortcut (issue 209)
-    /// goes back to its default and the window notes it once.
-    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-    pub(super) fn repair_mouse_shortcuts(&mut self) {
-        if self.labs.mouse_shortcuts {
-            return;
-        }
-        if self.reset_shortcuts(|binding| binding.key.as_ref().is_some_and(HotkeyKey::is_mouse)) {
-            self.mouse_shortcut_notice = true;
-        }
-        if self.mouse_shortcut_notice {
-            tracing::info!("reset mouse-button shortcuts: Labs › Mouse shortcuts is off");
-        }
-    }
-
     /// With Labs › Special keys alone off, a Linux shortcut on Menu, Pause,
     /// or Scroll Lock goes back to its default (an optional one is unbound),
     /// so the listener never registers one. Other OSes keep theirs.

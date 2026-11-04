@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Display-free single-instance regression. Never uses personal settings or a microphone.
 
-One Hex process owns a data root. A second launch forwards to it and exits;
+One Superhex process owns a data root. A second launch forwards to it and exits;
 `hex` commands forward over the same socket and fail fast without it.
 """
 import json
@@ -25,7 +25,7 @@ def wait_for(check, timeout=8):
         if result:
             return result
         time.sleep(0.025)
-    raise AssertionError("timed out waiting for Hex")
+    raise AssertionError("timed out waiting for Superhex")
 
 
 with tempfile.TemporaryDirectory(prefix="hex-instance-", dir=os.environ.get("TMPDIR")) as directory:
@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix="hex-instance-", dir=os.environ.get("TMP
     fake.chmod(0o755)
     env = os.environ | {
         "HEX_APPLICATION_SUPPORT_DIR": str(support),
-        # Hex tidies its launcher and autostart entries at startup.
+        # Superhex tidies its launcher and autostart entries at startup.
         "XDG_DATA_HOME": str(root / "xdg-data"),
         "XDG_CONFIG_HOME": str(root / "xdg-config"),
         "XDG_RUNTIME_DIR": str(runtime),
@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix="hex-instance-", dir=os.environ.get("TMP
         "ALSA_CONFIG_PATH": str(alsa),
         "PATH": f'{fakebin}:{os.environ["PATH"]}',
     }
-    # No display: a window request fails the window, never Hex.
+    # No display: a window request fails the window, never Superhex.
     for key in ("DISPLAY", "WAYLAND_DISPLAY", "HEX_SYSTEMD_UNIT", "NOTIFY_SOCKET"):
         env.pop(key, None)
     path = support / "service.sock"
@@ -86,7 +86,7 @@ with tempfile.TemporaryDirectory(prefix="hex-instance-", dir=os.environ.get("TMP
         data = b""
         while len(data) < size:
             chunk = client.recv(size - len(data))
-            assert chunk, "Hex disconnected"
+            assert chunk, "Superhex disconnected"
             data += chunk
         return data
 
@@ -110,7 +110,7 @@ with tempfile.TemporaryDirectory(prefix="hex-instance-", dir=os.environ.get("TMP
             missing = run(*command)
             assert missing.returncode != 0 and "not running" in missing.stderr, missing.stderr
             assert time.monotonic() - started < 2
-        assert run("quit").returncode == 3, "quitting nothing says Hex isn't running"
+        assert run("quit").returncode == 3, "quitting nothing says Superhex isn't running"
 
         # `hex app --hidden` with no unit becomes the instance in this process.
         instance = spawn("app", "--hidden")
@@ -154,7 +154,7 @@ with tempfile.TemporaryDirectory(prefix="hex-instance-", dir=os.environ.get("TMP
         refused = run("window", "story", "HUD")
         assert refused.returncode == 1 and "macOS-only" in refused.stderr, refused.stderr
 
-        # Keybinding commands need a listening Hex; they fail fast without one,
+        # Keybinding commands need a listening Superhex; they fail fast without one,
         # with one line rather than an error report.
         refused = run("dictation", "toggle")
         assert refused.returncode != 0 and "not listening" in refused.stderr, refused.stderr

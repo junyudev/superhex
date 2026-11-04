@@ -1,4 +1,4 @@
-//! The Windows listener host, which outlives the window while Hex hides in
+//! The Windows listener host, which outlives the window while Superhex hides in
 //! the tray, and the single-instance claim for the login session. The tray
 //! and the window are `windows_rune`.
 
@@ -88,8 +88,8 @@ pub(crate) struct WindowsDesktopHost {
     foreground: ForeignWindow,
 }
 
-/// Names the event that marks the running Hex app in this login session.
-const APP_INSTANCE_EVENT: &str = r"Local\anomaly.hex.app";
+/// Names the event that marks the running Superhex app in this login session.
+const APP_INSTANCE_EVENT: &str = r"Local\io.github.junyudev.superhex.app";
 
 /// The data root `HEX_APPLICATION_SUPPORT_DIR` names, unless it is the
 /// default one, which keeps the default event.
@@ -102,8 +102,8 @@ fn custom_root() -> Option<std::path::PathBuf> {
 
 /// The instance event for a data root: [`APP_INSTANCE_EVENT`] for the
 /// default one, and its own event for another root that
-/// `HEX_APPLICATION_SUPPORT_DIR` names, so a copy of Hex with its own data,
-/// such as a benchmark, neither signals nor yields to the person's Hex.
+/// `HEX_APPLICATION_SUPPORT_DIR` names, so a copy of Superhex with its own data,
+/// such as a benchmark, neither signals nor yields to the person's Superhex.
 fn instance_event_name(custom_root: Option<&std::path::Path>) -> String {
     use sha2::{Digest, Sha256};
     match custom_root {
@@ -121,7 +121,7 @@ fn instance_event_name(custom_root: Option<&std::path::Path>) -> String {
     }
 }
 
-/// Ownership of the one Hex app in this login session (per data root).
+/// Ownership of the one Superhex app in this login session (per data root).
 ///
 /// Windows does not bring a running app forward when it is launched again, so
 /// a Start menu launch while the login item runs in the tray would start a
@@ -131,7 +131,7 @@ fn instance_event_name(custom_root: Option<&std::path::Path>) -> String {
 pub(crate) struct AppInstance(HANDLE);
 
 impl AppInstance {
-    /// Returns `None` when a Hex app already runs in this session, after
+    /// Returns `None` when a Superhex app already runs in this session, after
     /// asking it to show its window unless this launch is a hidden (login)
     /// launch, which must never pop up an app that is already running.
     pub(crate) fn claim(start_hidden: bool) -> Result<Option<Self>> {
@@ -141,7 +141,7 @@ impl AppInstance {
         let event = unsafe { CreateEventW(std::ptr::null(), 0, 0, name.as_ptr()) };
         if event.is_null() {
             return Err(eyre!(
-                "could not create the Hex instance event: {}",
+                "could not create the Superhex instance event: {}",
                 std::io::Error::last_os_error()
             ));
         }
@@ -150,7 +150,7 @@ impl AppInstance {
             return Ok(Some(Self(event)));
         }
         if !start_hidden {
-            tracing::info!("Hex is already running; showing its window");
+            tracing::info!("Superhex is already running; showing its window");
             // SAFETY: `event` is a valid handle owned by this function. A
             // launched app may take the foreground; pass that right on so
             // the running app can activate its window.
@@ -166,7 +166,7 @@ impl AppInstance {
 
     /// Calls `on_launch` whenever a later launch signals the event, until it
     /// returns false. The handle stays open until the process exits, keeping
-    /// this process the session's Hex app.
+    /// this process the session's Superhex app.
     pub(crate) fn forward_launches(self, on_launch: impl Fn() -> bool + Send + 'static) {
         let event = self.0 as usize;
         let spawned = std::thread::Builder::new()
@@ -180,7 +180,7 @@ impl AppInstance {
                 }
             });
         if let Err(error) = spawned {
-            tracing::warn!(%error, "relaunching Hex will not show the running window");
+            tracing::warn!(%error, "relaunching Superhex will not show the running window");
         }
     }
 }
@@ -251,7 +251,7 @@ impl WindowsDesktopHost {
         host
     }
 
-    /// Handles one window or tray request; returns `true` when Hex should quit.
+    /// Handles one window or tray request; returns `true` when Superhex should quit.
     pub(crate) fn handle(&mut self, request: Request) -> bool {
         match request {
             Request::Desktop(action) => return self.dispatch(action),
@@ -309,7 +309,10 @@ impl WindowsDesktopHost {
             | DesktopAction::ConfirmUpdateSwitch
             | DesktopAction::WindowFocused => {
                 if let Err(error) = self.updater.act(&action) {
-                    self.error = Some(tr_fill("Could not restart Hex: {}", &format!("{error:#}")));
+                    self.error = Some(tr_fill(
+                        "Could not restart Superhex: {}",
+                        &format!("{error:#}"),
+                    ));
                 }
             }
             // Windows saves shortcuts from the window.
@@ -458,8 +461,8 @@ impl WindowsDesktopHost {
         }
     }
 
-    /// Enable and Disable also decide whether Hex listens at its next launch,
-    /// so a disabled Hex stays disabled after a restart (#575).
+    /// Enable and Disable also decide whether Superhex listens at its next launch,
+    /// so a disabled Superhex stays disabled after a restart (#575).
     fn remember_listening(&mut self, enabled: bool) {
         if self.settings.enable_on_launch == enabled {
             return;
@@ -578,7 +581,7 @@ impl WindowsDesktopHost {
     }
 
     /// True once Restart to update has handed off to the new version, after
-    /// the updater's final check; Hex then quits so it can take the named
+    /// the updater's final check; Superhex then quits so it can take the named
     /// event.
     pub(crate) fn update_restarted(&mut self) -> bool {
         match self.updater.take_restart() {
@@ -587,7 +590,10 @@ impl WindowsDesktopHost {
                 true
             }
             Some(Err(error)) => {
-                self.error = Some(tr_fill("Could not restart Hex: {}", &format!("{error:#}")));
+                self.error = Some(tr_fill(
+                    "Could not restart Superhex: {}",
+                    &format!("{error:#}"),
+                ));
                 false
             }
             None => false,
@@ -835,7 +841,7 @@ mod tests {
     fn an_isolated_data_root_has_its_own_instance_event() {
         assert_eq!(instance_event_name(None), APP_INSTANCE_EVENT);
         let isolated = instance_event_name(Some(std::path::Path::new(r"C:\bench\home\hex")));
-        assert!(isolated.starts_with(r"Local\anomaly.hex.app."));
+        assert!(isolated.starts_with(r"Local\io.github.junyudev.superhex.app."));
         assert_eq!(isolated.len(), APP_INSTANCE_EVENT.len() + 17);
         assert_eq!(
             isolated,

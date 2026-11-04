@@ -1,18 +1,18 @@
-//! Hex Microphone on Linux: a PipeWire virtual source that `pw-cat`
+//! Superhex Microphone on Linux: a PipeWire virtual source that `pw-cat`
 //! (shipped with PipeWire) plays the filtered microphone into. Apps list it
 //! as an input like any microphone. Nothing is installed and no root is
-//! needed: it exists while the Voice Filter is on and Hex runs, since `pw-cat`
-//! ends when Hex closes its input.
+//! needed: it exists while the Voice Filter is on and Superhex runs, since `pw-cat`
+//! ends when Superhex closes its input.
 
 use super::*;
 use std::io::{ErrorKind, Read, Write};
 use std::os::fd::AsRawFd;
 use std::process::{Child, ChildStdin, Command, Stdio};
 
-/// A low session priority keeps WirePlumber from choosing Hex
-/// Microphone as the default input, which Hex itself would record.
+/// A low session priority keeps WirePlumber from choosing Superhex
+/// Microphone as the default input, which Superhex itself would record.
 const PROPERTIES: &str = "{ media.class = Audio/Source node.name = hex_microphone \
-    node.description = \"Hex Microphone\" application.name = Hex \
+    node.description = \"Superhex Microphone\" application.name = Superhex \
     priority.session = 1 priority.driver = 1 }";
 /// Frames per write (11 ms): half the pipe, so one block waits in the
 /// pipe while the next gathers, and large enough that the ring's
@@ -53,7 +53,7 @@ fn spawn() -> std::io::Result<Child> {
 }
 
 /// Plays the ring through the filter until `pw-cat` goes away. Writes
-/// block while no app records Hex Microphone; the ring then drops the
+/// block while no app records Superhex Microphone; the ring then drops the
 /// oldest audio, and its latency cap skips ahead when an app starts.
 fn feed(mut input: ChildStdin) {
     let mut engine = current_tuned_config().build_engine();
@@ -95,11 +95,11 @@ pub(super) fn run_supervisor() {
             Ok(child) => child,
             Err(error) => {
                 let reason = if error.kind() == ErrorKind::NotFound {
-                    "pw-cat was not found; Hex Microphone needs PipeWire".to_string()
+                    "pw-cat was not found; Superhex Microphone needs PipeWire".to_string()
                 } else {
                     error.to_string()
                 };
-                tracing::warn!(%reason, "could not start the Hex Microphone source");
+                tracing::warn!(%reason, "could not start the Superhex Microphone source");
                 set_driver_action_state(DriverActionState::Failed(reason));
                 thread::sleep(RETRY);
                 continue;
@@ -123,7 +123,7 @@ pub(super) fn run_supervisor() {
         let writer = thread::Builder::new()
             .name("hex-mic-feed".into())
             .spawn(move || feed(input));
-        tracing::info!("Hex Microphone virtual source started");
+        tracing::info!("Superhex Microphone virtual source started");
         let started = Instant::now();
         let mut confirmed = false;
         let exited = loop {
@@ -154,11 +154,11 @@ pub(super) fn run_supervisor() {
         match exited {
             Some(status) => {
                 let reason = reason(&stderr, status);
-                tracing::warn!(%reason, "Hex Microphone virtual source stopped; restarting");
+                tracing::warn!(%reason, "Superhex Microphone virtual source stopped; restarting");
                 set_driver_action_state(DriverActionState::Failed(reason));
                 thread::sleep(RETRY);
             }
-            None => tracing::info!("Hex Microphone virtual source stopped"),
+            None => tracing::info!("Superhex Microphone virtual source stopped"),
         }
     }
 }

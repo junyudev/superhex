@@ -86,7 +86,7 @@ pub struct MeetingNotes {
     #[serde(default)]
     pub transcript_chars: usize,
     /// The writer, and for OpenCode its `provider/model`. Notes written
-    /// before Hex recorded it have none.
+    /// before Superhex recorded it have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub written_by: Option<NotesWriter>,
 }
@@ -638,7 +638,7 @@ pub(super) fn provisional_title(
     Ok(title)
 }
 
-/// Rewrites only Hex's parts of the Markdown: the heading when it still
+/// Rewrites only Superhex's parts of the Markdown: the heading when it still
 /// reads `previous_title`, and the notes block between its markers (inserted
 /// above `## Transcript` the first time). Everything else is preserved.
 pub(super) fn apply_notes(
@@ -732,9 +732,9 @@ fn update_markdown_file(
 }
 
 /// The file is replaced atomically, and only if nothing changed it meanwhile.
-/// `written` is the SHA-256 of the copy Hex last wrote; it follows the
+/// `written` is the SHA-256 of the copy Superhex last wrote; it follows the
 /// rewrite only while the file was still that copy, so a file the user
-/// edited never becomes Hex's to expire.
+/// edited never becomes Superhex's to expire.
 fn rewrite_markdown_file(
     path: &Path,
     written: &mut Option<String>,
@@ -967,7 +967,7 @@ pub(super) fn entries_from_markdown(markdown: &str) -> Vec<TranscriptEntry> {
 
 /// Runs the real model on a transcript file without recording anything:
 /// first the provisional title at the point a recording would ask for it,
-/// then the final title and summary. Debug CLI: `hex meeting summarize <path>`.
+/// then the final title and summary. Debug CLI: `superhex meeting summarize <path>`.
 #[cfg(debug_assertions)]
 pub fn summarize_file(path: &Path, excerpt_chars: Option<usize>) -> Result<String> {
     generator::available().map_err(|reason| eyre!("{reason}"))?;
@@ -1179,7 +1179,7 @@ mod tests {
             "Names and terms that may appear: Kubernetes, Ana Ruiz\n\nCalendar event: Q4 launch sync\nAttendees: Ana Ruiz\n\nMeeting transcript:\n\n[00:00] You: Turn 0"
         ));
 
-        // No terms: the prompt is the one Hex sent before.
+        // No terms: the prompt is the one Superhex sent before.
         let mut without = Vec::new();
         summarize_with_calendar(
             &conversation(2),

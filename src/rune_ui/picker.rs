@@ -179,8 +179,8 @@ fn is_downloaded(ui: &Ui, model: &ModelDefinition, language: &str) -> bool {
     ui.picker.installed(model, model.language_for(language))
 }
 
-/// The bytes the downloaded `models` take in Hex's own models folder: files
-/// another app downloaded, or added where they are, aren't Hex's.
+/// The bytes the downloaded `models` take in Superhex's own models folder: files
+/// another app downloaded, or added where they are, aren't Superhex's.
 fn downloaded_total(
     models: &[PickerModel],
     downloaded: impl Fn(&ModelDefinition) -> bool,
@@ -193,7 +193,7 @@ fn downloaded_total(
         .sum()
 }
 
-/// Whether Hex keeps `model`'s file in its own models folder.
+/// Whether Superhex keeps `model`'s file in its own models folder.
 fn owned_by_hex(model: &ModelDefinition) -> bool {
     if model.id.is_custom() {
         return !crate::transcription::custom_models::imported()

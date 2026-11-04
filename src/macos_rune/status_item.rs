@@ -22,6 +22,7 @@ pub enum StatusItemAction {
     OpenSettings,
     OpenModels,
     SelectModel(TranscriptionModelId),
+    SelectVoiceBuddy,
     CancelModelPreparation,
     PasteLast,
     /// Copy History entry `id` (Labs › Copy recent dictations).
@@ -69,6 +70,11 @@ objc2::define_class!(
             if let Some(model) = model_from_tag(sender.tag()) {
                 let _ = self.ivars().actions.try_send(StatusItemAction::SelectModel(model));
             }
+        }
+
+        #[unsafe(method(selectVoiceBuddy:))]
+        fn select_voice_buddy(&self, _sender: &AnyObject) {
+            let _ = self.ivars().actions.try_send(StatusItemAction::SelectVoiceBuddy);
         }
 
         #[unsafe(method(cancelModelPreparation:))]
@@ -183,6 +189,7 @@ struct StatusItemController {
     overlays_in_recordings: Retained<NSMenuItem>,
     _menu: Retained<NSMenu>,
     target: Retained<StatusItemTarget>,
+    voice_buddy: Retained<NSMenuItem>,
     model_items: Vec<(TranscriptionModelId, Retained<NSMenuItem>)>,
     model_empty: Retained<NSMenuItem>,
     model_preparing: Retained<NSMenuItem>,
@@ -199,7 +206,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
         MainThreadMarker::new().ok_or_else(|| eyre!("status item requires the main thread"))?;
     let (actions, receiver) = sync_channel(8);
     let target = StatusItemTarget::new(actions, mtm);
-    let menu = NSMenu::initWithTitle(NSMenu::alloc(mtm), &NSString::from_str("Hex"));
+    let menu = NSMenu::initWithTitle(NSMenu::alloc(mtm), &NSString::from_str("Superhex"));
     let meeting_status = add_item(
         &menu,
         &target,
@@ -257,7 +264,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
         let item = add_item(
             &menu,
             &target,
-            "Show Hex in Screen Recordings",
+            "Show Superhex in Screen Recordings",
             sel!(toggleOverlaysInRecordings:),
             mtm,
         );
@@ -272,6 +279,8 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
     let heading = plain_item("Transcription Model", mtm);
     heading.setSubmenu(Some(&models));
     menu.addItem(&heading);
+    let voice_buddy = add_item(&models, &target, "VoiceBuddy", sel!(selectVoiceBuddy:), mtm);
+    models.addItem(&NSMenuItem::separatorItem(mtm));
     let model_items = MODELS
         .iter()
         .enumerate()
@@ -339,8 +348,8 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
     let button = item
         .button(mtm)
         .ok_or_else(|| eyre!("status item button is unavailable"))?;
-    let symbol = status_bar_icon(IDLE_ICON_PNG, "Hex")?;
-    let recording_symbol = status_bar_icon(RECORDING_ICON_PNG, "Hex is recording a meeting")?;
+    let symbol = status_bar_icon(IDLE_ICON_PNG, "Superhex")?;
+    let recording_symbol = status_bar_icon(RECORDING_ICON_PNG, "Superhex is recording a meeting")?;
     button.setImage(Some(&symbol));
     // SAFETY: the target answers `menuNeedsUpdate:` and outlives the menu's
     // weak delegate reference (both live in STATUS_ITEM for the app's life).
@@ -374,6 +383,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
             overlays_in_recordings,
             _menu: menu,
             target,
+            voice_buddy,
             model_items,
             model_empty,
             model_preparing,
@@ -387,7 +397,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
 fn status_bar_icon(png: &[u8], accessibility_description: &str) -> Result<Retained<NSImage>> {
     let data = NSData::with_bytes(png);
     let image = NSImage::initWithData(NSImage::alloc(), &data)
-        .ok_or_else(|| eyre!("could not decode Hex status item icon"))?;
+        .ok_or_else(|| eyre!("could not decode Superhex status item icon"))?;
     image.setSize(NSSize::new(STATUS_ICON_POINTS, STATUS_ICON_POINTS));
     image.setTemplate(true);
     image.setAccessibilityDescription(Some(&NSString::from_str(accessibility_description)));
@@ -442,6 +452,10 @@ pub fn update_transcription(settings: &AppSettings, status: &PreparationStatus) 
         let Some(controller) = controller.as_ref() else {
             return;
         };
+        let selected = crate::dictation::voice_buddy::effective_backend(settings)
+            == crate::dictation::backend::DictationBackend::VoiceBuddy;
+        controller.voice_buddy.setState(isize::from(selected));
+        controller.voice_buddy.setEnabled(!selected);
         let entries = model_menu_entries(
             settings,
             status.model.is_some(),
@@ -615,7 +629,7 @@ fn update_title(status: &crate::desktop::host::DesktopUpdateStatus) -> String {
     }
 }
 
-/// Checks or unchecks Show Hex in Screen Recordings.
+/// Checks or unchecks Show Superhex in Screen Recordings.
 #[cfg(hex_capture)]
 pub fn update_overlays_in_recordings(shown: bool) {
     STATUS_ITEM.with(|controller| {
@@ -806,8 +820,8 @@ mod tests {
     #[test]
     fn status_bar_icons_load_as_18pt_retina_templates() {
         for (png, description) in [
-            (IDLE_ICON_PNG, "Hex"),
-            (RECORDING_ICON_PNG, "Hex is recording a meeting"),
+            (IDLE_ICON_PNG, "Superhex"),
+            (RECORDING_ICON_PNG, "Superhex is recording a meeting"),
         ] {
             let icon = status_bar_icon(png, description).unwrap();
             assert!(icon.isTemplate());

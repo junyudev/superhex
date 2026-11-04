@@ -1,11 +1,12 @@
-//! The `hex` control client: parses a command, sends it to the running Hex,
+//! The `hex` control client: parses a command, sends it to the running Superhex,
 //! and prints the answer for a person or, with `--json`, the versioned reply.
 //!
 //! Exit codes: 0 when the command ran (or there was nothing to change), 1
-//! when Hex refused or failed it, 2 for usage errors (clap), 3 when Hex
-//! isn't running, and 4 when `dictation stop --print` heard no speech. Nothing here launches Hex except `start` and `restart`.
+//! when Superhex refused or failed it, 2 for usage errors (clap), 3 when Superhex
+//! isn't running, and 4 when `dictation stop --print` heard no speech. Nothing here launches Superhex except `start` and `restart`.
 
 use std::io::Write;
+mod dictation;
 mod human;
 
 use clap::{Args, Subcommand};
@@ -29,7 +30,7 @@ pub struct Output {
 /// The control commands at the top of `hex`.
 #[derive(Subcommand, Debug)]
 pub enum ControlCli {
-    /// Show what the running Hex is doing.
+    /// Show what the running Superhex is doing.
     ///
     /// Recording, meeting, model, features, permissions, window, version,
     /// pid, and memory footprint.
@@ -37,12 +38,12 @@ pub enum ControlCli {
         #[command(flatten)]
         output: Output,
     },
-    /// Open Hex if it isn't running, and wait until it answers.
+    /// Open Superhex if it isn't running, and wait until it answers.
     Start {
         #[command(flatten)]
         output: Output,
     },
-    /// Quit Hex.
+    /// Quit Superhex.
     ///
     /// Refused while a meeting or dictation is in progress unless --force.
     Quit {
@@ -52,7 +53,7 @@ pub enum ControlCli {
         #[command(flatten)]
         output: Output,
     },
-    /// Quit and reopen Hex (or open it if it isn't running).
+    /// Quit and reopen Superhex (or open it if it isn't running).
     Restart {
         /// Restart even while recording; the recording is lost.
         #[arg(long)]
@@ -66,7 +67,7 @@ pub enum ControlCli {
     /// `cancel` discards it. Repeating a command changes nothing.
     Dictation {
         #[arg(value_enum)]
-        action: CaptureAction,
+        action: dictation::Action,
         /// With `stop`: wait for the transcript and print it instead of
         /// pasting it. Exits 4, printing nothing, when no speech was heard.
         #[arg(long)]
@@ -95,7 +96,7 @@ pub enum ControlCli {
         #[command(subcommand)]
         command: ModelCommand,
     },
-    /// Open the Hex window at a pane, or close it.
+    /// Open the Superhex window at a pane, or close it.
     Window {
         #[command(subcommand)]
         command: WindowCommand,
@@ -105,7 +106,7 @@ pub enum ControlCli {
         #[command(subcommand)]
         command: OnboardingCommand,
     },
-    /// Check for a Hex update now; Hex shows what it finds.
+    /// Check for a Superhex update now; Superhex shows what it finds.
     CheckForUpdates {
         #[command(flatten)]
         output: Output,
@@ -123,11 +124,11 @@ pub enum ControlCli {
         command: VocabularyCommand,
     },
     /// Read retained dictation history without starting the app, or clear
-    /// it in the running Hex (`hex history clear --yes`).
+    /// it in the running Superhex (`superhex history clear --yes`).
     #[command(args_conflicts_with_subcommands = true)]
     History(crate::control::transcript_cli::HistoryArgs),
     /// Read and search recorded meetings without starting the app; record
-    /// and stop them in the running Hex.
+    /// and stop them in the running Superhex.
     Meetings {
         #[command(subcommand)]
         command: crate::control::transcript_cli::MeetingsCommand,
@@ -149,21 +150,21 @@ pub enum ControlCli {
         #[command(subcommand)]
         command: Option<crate::labs::LabsCommand>,
     },
-    /// Replaced by `hex labs`.
+    /// Replaced by `superhex labs`.
     #[command(hide = true)]
     Experiments {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
     /// Annotate: record your screen with drawing and narration in the
-    /// running Hex, then list and send what you recorded (`hex capture`
+    /// running Superhex, then list and send what you recorded (`superhex capture`
     /// still works).
     #[command(name = "annotate", alias = "capture")]
     Annotate {
         #[command(subcommand)]
         command: CaptureCommand,
     },
-    /// Print Hex's recent log lines; works without Hex running.
+    /// Print Superhex's recent log lines; works without Superhex running.
     Logs {
         /// Read process.log (Rust and native diagnostics) instead of the
         /// live.ndjson event log.
@@ -182,7 +183,7 @@ pub enum ControlCli {
 pub enum CommandsCommand {
     /// Create ~/.config/hex with a starter config, or refresh its typings.
     Init,
-    /// Load ~/.config/hex's config as Hex would and report what it registers
+    /// Load ~/.config/hex's config as Superhex would and report what it registers
     /// or why it fails.
     Check,
 }
@@ -215,7 +216,7 @@ pub enum SettingsCommand {
     ///
     /// Values are JSON (`true`, `0.4`, `"option+space"`, `null` for none);
     /// `transcription.model` and `transcription.language` select a model
-    /// without downloading it. With Hex stopped, writes settings.json
+    /// without downloading it. With Superhex stopped, writes settings.json
     /// directly.
     Apply {
         /// A JSON file, or `-` for standard input.
@@ -234,7 +235,7 @@ pub enum ModelCommand {
     },
     /// Switch to an installed model. Never downloads.
     Use {
-        /// A model id from `hex model list`.
+        /// A model id from `superhex model list`.
         model: String,
         /// A language the model supports (default: its best match for the
         /// current language).
@@ -244,7 +245,7 @@ pub enum ModelCommand {
         output: Output,
     },
     /// Download a model, then switch to it. Without a model, the selected
-    /// one. On Linux and Windows it downloads here when Hex isn't running.
+    /// one. On Linux and Windows it downloads here when Superhex isn't running.
     Install {
         model: Option<String>,
         #[arg(long)]
@@ -264,7 +265,7 @@ pub enum ModelCommand {
         #[arg(long)]
         language: Option<String>,
     },
-    /// The transcribe.cpp compute devices Hex can use. Linux and Windows.
+    /// The transcribe.cpp compute devices Superhex can use. Linux and Windows.
     Devices,
     /// Load and prewarm an installed model here. Linux and Windows.
     Check {
@@ -280,7 +281,7 @@ pub enum ModelCommand {
         #[arg(long)]
         language: Option<String>,
     },
-    /// Copy a GGUF speech model into Hex after checking its header,
+    /// Copy a GGUF speech model into Superhex after checking its header,
     /// and print its id. The original is left as it is.
     Import {
         path: std::path::PathBuf,
@@ -290,10 +291,10 @@ pub enum ModelCommand {
     },
     /// Rename an imported or found model.
     Rename { model: String, name: String },
-    /// Check Hex's copy of an import (or a found file) again; a copy whose contents
+    /// Check Superhex's copy of an import (or a found file) again; a copy whose contents
     /// still match is ready again.
     Repair { model: String },
-    /// Remove Hex's copy of an imported model, or forget a found one (its file stays).
+    /// Remove Superhex's copy of an imported model, or forget a found one (its file stays).
     Remove { model: String },
 }
 
@@ -319,7 +320,7 @@ pub enum WindowCommand {
         #[command(flatten)]
         output: Output,
     },
-    /// Close the window. Hex keeps running in the menu bar.
+    /// Close the window. Superhex keeps running in the menu bar.
     Hide {
         #[command(flatten)]
         output: Output,
@@ -410,13 +411,7 @@ pub fn run(command: ControlCli) -> u8 {
             print,
             raw,
             output,
-        } => {
-            if let Err(error) = super::check_flags(action, print, raw) {
-                eprintln!("hex: {}", error.message);
-                return 2;
-            }
-            send(ControlCommand::Dictation { action, print, raw }, output)
-        }
+        } => dictation::run(action, print, raw, output),
         ControlCli::PasteLast { output } => send(ControlCommand::PasteLast, output),
         ControlCli::Settings { command } => settings(command),
         ControlCli::Model { command } => match command {
@@ -452,7 +447,7 @@ pub fn run(command: ControlCli) -> u8 {
                     == crate::transcription::models::TranscriptionModelId::Custom(id)
                 {
                     color_eyre::eyre::bail!(
-                        "{} is the selected model; choose another with `hex model use` first",
+                        "{} is the selected model; choose another with `superhex model use` first",
                         id.as_str()
                     );
                 }
@@ -533,7 +528,7 @@ pub fn run(command: ControlCli) -> u8 {
     }
 }
 
-/// `hex model install`: the running Hex downloads in the background;
+/// `superhex model install`: the running Superhex downloads in the background;
 /// without one, Linux and Windows download here.
 fn install_model(model: Option<String>, language: Option<String>, output: Output) -> u8 {
     let model = match model {
@@ -555,8 +550,8 @@ fn install_model(model: Option<String>, language: Option<String>, output: Output
     send(ControlCommand::ModelInstall { model, language }, output)
 }
 
-/// `hex model import`: checks, copies, and records the file here, in this
-/// process; a running Hex lists it at once.
+/// `superhex model import`: checks, copies, and records the file here, in this
+/// process; a running Superhex lists it at once.
 fn import_model(path: &std::path::Path, name: Option<&str>) -> color_eyre::Result<()> {
     use crate::transcription::custom_models;
     let id = custom_models::import(path, name, &std::sync::atomic::AtomicBool::new(false))?;
@@ -571,7 +566,7 @@ fn imported(model: &str) -> color_eyre::Result<crate::transcription::models::Cus
     crate::transcription::models::CustomModelId::parse(model)
         .filter(|id| custom_models::is_registered(*id))
         .ok_or_else(|| {
-            color_eyre::eyre::eyre!("no imported model is {model}; run `hex model list`")
+            color_eyre::eyre::eyre!("no imported model is {model}; run `superhex model list`")
         })
 }
 
@@ -588,7 +583,7 @@ fn selection(
         .map_err(|error| color_eyre::eyre::eyre!(error.message))
 }
 
-/// `hex model status|devices|check|transcribe`, run in this process.
+/// `superhex model status|devices|check|transcribe`, run in this process.
 #[cfg(not(target_os = "macos"))]
 fn offline_model(command: ModelCommand) -> u8 {
     use crate::transcription::models::{definition, is_installed, is_verified, model_path};
@@ -637,7 +632,7 @@ fn offline_model(command: ModelCommand) -> u8 {
             );
             Ok(())
         }
-        _ => unreachable!("Hex carries out the other model commands"),
+        _ => unreachable!("Superhex carries out the other model commands"),
     })())
 }
 
@@ -647,13 +642,13 @@ fn offline_model(_: ModelCommand) -> u8 {
     print(
         ControlReply::error(
             "unsupported",
-            "this `hex model` command is for Linux and Windows; use `hex model list`",
+            "this `superhex model` command is for Linux and Windows; use `superhex model list`",
         ),
         Output::default(),
     )
 }
 
-/// The exit code of a command that runs here rather than in Hex.
+/// The exit code of a command that runs here rather than in Superhex.
 fn report(result: color_eyre::Result<()>) -> u8 {
     match result {
         Ok(()) => 0,
@@ -661,7 +656,7 @@ fn report(result: color_eyre::Result<()>) -> u8 {
     }
 }
 
-/// `hex meetings`: record, stop, and copy in the running Hex; the rest
+/// `superhex meetings`: record, stop, and copy in the running Superhex; the rest
 /// read the meetings folder here.
 fn meetings(command: crate::control::transcript_cli::MeetingsCommand) -> u8 {
     use crate::control::transcript_cli::MeetingsCommand;
@@ -675,7 +670,7 @@ fn meetings(command: crate::control::transcript_cli::MeetingsCommand) -> u8 {
     }
 }
 
-/// `hex mcp`: logs to stderr only (stdout carries MCP messages) and touches
+/// `superhex mcp`: logs to stderr only (stdout carries MCP messages) and touches
 /// no app state.
 fn mcp(meetings_dir: Option<std::path::PathBuf>) -> color_eyre::Result<()> {
     tracing_subscriber::fmt()
@@ -693,7 +688,7 @@ fn mcp(meetings_dir: Option<std::path::PathBuf>) -> color_eyre::Result<()> {
     crate::meeting::mcp::run(root)
 }
 
-/// `hex annotate` (alias `hex capture`).
+/// `superhex annotate` (alias `superhex capture`).
 #[derive(Subcommand, Debug)]
 pub enum CaptureCommand {
     /// Start recording a capture.
@@ -787,10 +782,10 @@ pub enum CaptureCommand {
     },
 }
 
-/// Runs `hex capture`: on macOS through the running Hex; on Linux the
+/// Runs `superhex capture`: on macOS through the running Superhex; on Linux the
 /// folder reads (`list`, `show`, `route`, `send`) run here, and the
-/// recording commands go to the running Hex's listener; on Windows every
-/// command goes to the running Hex. A build without the capture engine
+/// recording commands go to the running Superhex's listener; on Windows every
+/// command goes to the running Superhex. A build without the capture engine
 /// answers `unsupported`.
 pub fn capture(command: CaptureCommand) -> u8 {
     use crate::control::{ControlCommand as C, ScrawlCaptureAction as A};
@@ -858,7 +853,7 @@ pub fn capture(command: CaptureCommand) -> u8 {
         let reply = match command {
             C::ScrawlCaptureList { limit } => crate::capture_host::list_captures(limit),
             C::ScrawlCaptureShow { capture } => crate::capture_host::show_capture(&capture),
-            // The running Hex's router sends, so its Undo can take it back.
+            // The running Superhex's router sends, so its Undo can take it back.
             C::ScrawlCaptureSend {
                 capture,
                 to,
@@ -888,8 +883,8 @@ pub fn settings(command: SettingsCommand) -> u8 {
     }
 }
 
-/// `hex settings apply`: the running Hex saves and adopts the settings, so
-/// it never overwrites them from memory; with no Hex running they are
+/// `superhex settings apply`: the running Superhex saves and adopts the settings, so
+/// it never overwrites them from memory; with no Superhex running they are
 /// written to settings.json here.
 fn apply_settings(file: &std::path::Path, output: Output) -> u8 {
     use std::io::Read;
@@ -912,7 +907,7 @@ fn apply_settings(file: &std::path::Path, output: Output) -> u8 {
         if running() {
             return send(ControlCommand::SettingsApply { values }, output);
         }
-        // A Hex that holds the service lock may have read settings.json
+        // A Superhex that holds the service lock may have read settings.json
         // already; wait for it to answer instead of writing behind it.
         #[cfg(target_os = "linux")]
         let lock = crate::desktop::instance::acquire("service");
@@ -929,7 +924,7 @@ fn apply_settings(file: &std::path::Path, output: Output) -> u8 {
                 return print(
                     ControlReply::error(
                         "busy",
-                        "Hex is starting but didn't answer; run `hex settings apply` again",
+                        "Superhex is starting but didn't answer; run `superhex settings apply` again",
                     ),
                     output,
                 );
@@ -960,7 +955,7 @@ fn apply_offline(values: &serde_json::Map<String, serde_json::Value>) -> Control
     result.unwrap_or_else(ControlReply::from)
 }
 
-/// `hex history clear`; the confirmation is asked here, before Hex is.
+/// `superhex history clear`; the confirmation is asked here, before Superhex is.
 pub fn clear_history(confirm: bool, output: Output) -> u8 {
     if !confirm {
         return print(
@@ -981,14 +976,14 @@ pub fn send(command: ControlCommand, output: Output) -> u8 {
     }
 }
 
-/// Every OS reaches the running Hex through its local API's owner-only
+/// Every OS reaches the running Superhex through its local API's owner-only
 /// discovery file and bearer-authenticated `POST /control`.
 fn running() -> bool {
     crate::local_api::running_pid().is_some()
 }
 
-/// `hex settings set key value` in the running Hex, which saves and applies
-/// it; `None` when no Hex runs.
+/// `superhex settings set key value` in the running Superhex, which saves and applies
+/// it; `None` when no Superhex runs.
 pub(crate) fn set_in_running_hex(key: &str, value: &str) -> Option<ControlReply> {
     running().then(|| {
         call(ControlRequest::new(ControlCommand::SettingsSet {
@@ -1008,10 +1003,13 @@ fn call(request: ControlRequest) -> Result<ControlResponse, ControlReply> {
 }
 
 pub(crate) fn not_running() -> ControlReply {
-    ControlReply::error("not-running", "Hex is not running; run `hex start`")
+    ControlReply::error(
+        "not-running",
+        "Superhex is not running; run `superhex start`",
+    )
 }
 
-/// Why no Hex answered `/control`: on Linux an older Hex an update left
+/// Why no Superhex answered `/control`: on Linux an older Superhex an update left
 /// running answers only on its socket (#915).
 fn absent() -> ControlReply {
     #[cfg(target_os = "linux")]
@@ -1021,17 +1019,17 @@ fn absent() -> ControlReply {
     not_running()
 }
 
-/// An older Hex that predates `hex` commands over the local API.
+/// An older Superhex that predates `hex` commands over the local API.
 #[cfg(target_os = "linux")]
 fn older_hex() -> ControlReply {
     ControlReply::error(
         "outdated",
-        "an older Hex is still running (Hex was updated) and doesn't take `hex` commands; run `hex restart`",
+        "an older Superhex is still running (Superhex was updated) and doesn't take `hex` commands; run `superhex restart`",
     )
 }
 
-/// `hex restart` with an older Hex running: restarts its systemd unit into
-/// the installed build, then waits until the new Hex answers.
+/// `superhex restart` with an older Superhex running: restarts its systemd unit into
+/// the installed build, then waits until the new Superhex answers.
 #[cfg(target_os = "linux")]
 fn restart_older_hex() -> ControlReply {
     use std::time::{Duration, Instant};
@@ -1039,7 +1037,7 @@ fn restart_older_hex() -> ControlReply {
     if !crate::linux::service::supervised() {
         return ControlReply::error(
             "failed",
-            "an older Hex is running outside its systemd unit; quit it from its window or tray, then run `hex start`",
+            "an older Superhex is running outside its systemd unit; quit it from its window or tray, then run `superhex start`",
         );
     }
     if let Err(error) = crate::linux::service::restart() {
@@ -1048,11 +1046,11 @@ fn restart_older_hex() -> ControlReply {
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(20) {
         if running() {
-            return ControlReply::done("Restarted Hex");
+            return ControlReply::done("Restarted Superhex");
         }
         std::thread::sleep(Duration::from_millis(200));
     }
-    ControlReply::done("Restarted Hex; it isn't answering yet (it may be loading its model)")
+    ControlReply::done("Restarted Superhex; it isn't answering yet (it may be loading its model)")
 }
 
 #[cfg(target_os = "macos")]
@@ -1061,7 +1059,7 @@ fn start(output: Output) -> u8 {
 
     if let Some(pid) = crate::local_api::running_pid() {
         return print(
-            ControlReply::unchanged(format!("Hex is already running (pid {pid})")),
+            ControlReply::unchanged(format!("Superhex is already running (pid {pid})")),
             output,
         );
     }
@@ -1077,7 +1075,7 @@ fn start(output: Output) -> u8 {
         Ok(status) if status.success() => {}
         Ok(_) | Err(_) => {
             return print(
-                ControlReply::error("failed", "couldn't open Hex.app; is it installed?"),
+                ControlReply::error("failed", "couldn't open Superhex.app; is it installed?"),
                 output,
             );
         }
@@ -1086,20 +1084,20 @@ fn start(output: Output) -> u8 {
     while started.elapsed() < Duration::from_secs(20) {
         if let Some(pid) = crate::local_api::running_pid() {
             return print(
-                ControlReply::done(format!("Started Hex (pid {pid})")),
+                ControlReply::done(format!("Started Superhex (pid {pid})")),
                 output,
             );
         }
         std::thread::sleep(Duration::from_millis(200));
     }
     print(
-        ControlReply::done("Opened Hex; it isn't answering yet (setup may be waiting)"),
+        ControlReply::done("Opened Superhex; it isn't answering yet (setup may be waiting)"),
         output,
     )
 }
 
-/// `hex start` on Linux and Windows: a detached `hex app --hidden`, which
-/// forwards to the running Hex, starts its systemd unit, or becomes Hex,
+/// `superhex start` on Linux and Windows: a detached `superhex app --hidden`, which
+/// forwards to the running Superhex, starts its systemd unit, or becomes Superhex,
 /// then waits until it answers.
 #[cfg(not(target_os = "macos"))]
 fn start(output: Output) -> u8 {
@@ -1111,7 +1109,7 @@ fn start_reply() -> ControlReply {
     use std::time::{Duration, Instant};
 
     if running() {
-        return ControlReply::unchanged("Hex is already running");
+        return ControlReply::unchanged("Superhex is already running");
     }
     #[cfg(target_os = "linux")]
     if crate::linux::service::instance_answers() {
@@ -1137,19 +1135,19 @@ fn start_reply() -> ControlReply {
         command.creation_flags(0x0000_0008 | 0x0000_0200);
     }
     if let Err(error) = command.spawn() {
-        return ControlReply::error("failed", format!("couldn't start Hex: {error}"));
+        return ControlReply::error("failed", format!("couldn't start Superhex: {error}"));
     }
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(20) {
         if running() {
-            return ControlReply::done("Started Hex");
+            return ControlReply::done("Started Superhex");
         }
         std::thread::sleep(Duration::from_millis(200));
     }
-    ControlReply::done("Started Hex; it isn't answering yet (it may be loading its model)")
+    ControlReply::done("Started Superhex; it isn't answering yet (it may be loading its model)")
 }
 
-/// After a restart's quit on Linux and Windows: waits for the old Hex to
+/// After a restart's quit on Linux and Windows: waits for the old Superhex to
 /// go, then starts the new one. A Linux unit restarts by itself.
 #[cfg(not(target_os = "macos"))]
 fn reopen_after_restart() -> ControlReply {
@@ -1157,14 +1155,14 @@ fn reopen_after_restart() -> ControlReply {
 
     #[cfg(target_os = "linux")]
     if crate::linux::service::supervised() {
-        return ControlReply::done("Restarting Hex");
+        return ControlReply::done("Restarting Superhex");
     }
     let started = Instant::now();
     while running() {
         if started.elapsed() > Duration::from_secs(30) {
             return ControlReply::error(
                 "failed",
-                "Hex is still finishing its work; run `hex start` once it quits",
+                "Superhex is still finishing its work; run `superhex start` once it quits",
             );
         }
         std::thread::sleep(Duration::from_millis(200));
@@ -1172,8 +1170,8 @@ fn reopen_after_restart() -> ControlReply {
     start_reply()
 }
 
-/// `open` arguments for `hex start`: the caller's `HEX_*` environment, then
-/// the Hex.app this `hex` belongs to, or the installed app by bundle id.
+/// `open` arguments for `superhex start`: the caller's `HEX_*` environment, then
+/// the Superhex.app this `hex` belongs to, or the installed app by bundle id.
 #[cfg(target_os = "macos")]
 fn open_arguments(
     bundle: Option<&std::path::Path>,
@@ -1186,9 +1184,9 @@ fn open_arguments(
         None => arguments.extend([
             "-b".into(),
             if test_build {
-                "anomaly.hex.test"
+                "io.github.junyudev.superhex.test"
             } else {
-                "anomaly.hex"
+                "io.github.junyudev.superhex"
             }
             .into(),
         ]),
@@ -1196,7 +1194,7 @@ fn open_arguments(
     arguments
 }
 
-/// The Hex.app this `hex` belongs to, when it runs from (or links into) one.
+/// The Superhex.app this `hex` belongs to, when it runs from (or links into) one.
 #[cfg(target_os = "macos")]
 fn installed_bundle() -> Option<std::path::PathBuf> {
     let executable = std::fs::canonicalize(std::env::current_exe().ok()?).ok()?;
@@ -1290,7 +1288,7 @@ fn logs(process: bool, lines: usize, follow: bool) -> u8 {
 }
 
 fn fail(message: &str) -> u8 {
-    eprintln!("hex: {message}");
+    eprintln!("superhex: {message}");
     EXIT_REFUSED
 }
 
@@ -1352,18 +1350,18 @@ mod tests {
             "--env",
             "HEX_RETAIN_DICTATION_AUDIO=1",
         ];
-        let bundle = std::path::Path::new("/Applications/Hex.app");
+        let bundle = std::path::Path::new("/Applications/Superhex.app");
         assert_eq!(
             strings(open_arguments(Some(bundle), false, vars())),
-            [&env[..], &["/Applications/Hex.app"]].concat()
+            [&env[..], &["/Applications/Superhex.app"]].concat()
         );
         assert_eq!(
             strings(open_arguments(None, false, vars())),
-            [&env[..], &["-b", "anomaly.hex"]].concat()
+            [&env[..], &["-b", "io.github.junyudev.superhex"]].concat()
         );
         assert_eq!(
             strings(open_arguments(None, true, [])),
-            ["-b", "anomaly.hex.test"]
+            ["-b", "io.github.junyudev.superhex.test"]
         );
     }
 
@@ -1422,7 +1420,7 @@ mod tests {
         report.meeting.elapsed_seconds = Some(3723);
         report.features.meetings = true;
         let text = human_status(&report);
-        assert!(text.starts_with("Hex 2.3.1 (pid 42, 412 MB)\n"));
+        assert!(text.starts_with("Superhex 2.3.1 (pid 42, 412 MB)\n"));
         assert!(text.contains("Meeting      recording “Design sync” for 1:02:03\n"));
         assert!(text.ends_with("Labs         none\n"));
         report.labs = vec!["live-text".into(), "meetings".into()];
@@ -1438,7 +1436,12 @@ mod tests {
         let mut json = serde_json::to_value(&report).unwrap();
         assert_eq!(json["labs"], serde_json::json!(["live-text"]));
         json.as_object_mut().unwrap().remove("labs");
+        json.as_object_mut().unwrap().remove("dictation");
         let older: StatusReport = serde_json::from_value(json).unwrap();
         assert!(older.labs.is_empty());
+        assert_eq!(
+            older.dictation.backend,
+            crate::dictation::backend::DictationBackend::Local
+        );
     }
 }

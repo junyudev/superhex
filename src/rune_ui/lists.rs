@@ -339,7 +339,7 @@ pub(super) fn fact(p: Paint, key: &str, label: &str, value: &str) -> El {
         )
 }
 
-/// How a permission's control reads, everywhere Hex asks for one.
+/// How a permission's control reads, everywhere Superhex asks for one.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum PermissionControl {
     Allow,

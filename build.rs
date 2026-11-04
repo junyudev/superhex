@@ -26,7 +26,7 @@ fn main() {
             // transcribe-cpp's Vulkan backend links the vulkan-1 import
             // library by name without its search path. The DLL itself ships
             // with the GPU driver, so it is delay-loaded: a missing or
-            // Vulkan 1.0 loader must not stop Hex at launch (#1240;
+            // Vulkan 1.0 loader must not stop Superhex at launch (#1240;
             // `windows::vulkan` keeps ggml off it then).
             println!("cargo:rerun-if-env-changed=VULKAN_SDK");
             if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64") {
@@ -54,7 +54,7 @@ fn main() {
     println!("cargo:rustc-link-lib=framework=AVFAudio");
     println!("cargo:rustc-link-lib=framework=Speech");
     // FoundationModels exists only on macOS 26 and later. Weak-link it, and
-    // drop the object's strong autolink entry, so Hex still launches on older
+    // drop the object's strong autolink entry, so Superhex still launches on older
     // systems and reports Apple Intelligence as unavailable.
     compile_swift_bridge(
         "apple_intelligence",
@@ -75,7 +75,7 @@ fn main() {
     }
 }
 
-/// The version Hex reports (`HEX_BUILD_VERSION`): the crate version, which
+/// The version Superhex reports (`HEX_BUILD_VERSION`): the crate version, which
 /// the Release workflow stamps (scripts/set-crate-version.sh), else, for any
 /// other build of the unstamped `0.0.0`, `0.0.0-dev-local-<commit>` with
 /// `-dirty` for uncommitted changes (`0.0.0-dev-local` without git, as in Nix).
@@ -197,7 +197,7 @@ fn test_build_commit() {
     }
 }
 
-/// Gives the executable its icon and the "Hex" name Explorer and Task
+/// Gives the executable its icon and the "Superhex" name Explorer and Task
 /// Manager show, whatever the file is called.
 #[cfg(windows)]
 fn embed_windows_resources() {
@@ -227,8 +227,8 @@ BEGIN
   BEGIN
     BLOCK "040904B0"
     BEGIN
-      VALUE "FileDescription", "Hex"
-      VALUE "ProductName", "Hex"
+      VALUE "FileDescription", "Superhex"
+      VALUE "ProductName", "Superhex"
       VALUE "FileVersion", "{version}"
       VALUE "ProductVersion", "{version}"
       VALUE "OriginalFilename", "hex.exe"

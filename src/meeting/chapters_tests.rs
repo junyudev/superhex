@@ -576,8 +576,8 @@ fn the_vocabulary_line_lists_trimmed_terms() {
     assert_eq!(vocabulary_line(&[]), "");
     assert_eq!(vocabulary_line(&[" ".into()]), "");
     assert_eq!(
-        vocabulary_line(&[" Rune ".into(), "Hex\n\tMicrophone".into()]),
-        "Names and terms that may appear: Rune, Hex Microphone\n\n"
+        vocabulary_line(&[" Rune ".into(), "Superhex\n\tMicrophone".into()]),
+        "Names and terms that may appear: Rune, Superhex Microphone\n\n"
     );
 }
 

@@ -234,7 +234,7 @@ mod tests {
             processing.default_mode.replacements =
                 vec![crate::dictation::text_replacements::TextReplacement {
                     matched_phrase: "hex".into(),
-                    output: "Hex".into(),
+                    output: "Superhex".into(),
                 }];
             processing.modes = vec![DictationMode {
                 replacements: vec![crate::dictation::text_replacements::TextReplacement {
@@ -252,7 +252,7 @@ mod tests {
 
         let processed = runtime.process("Use open code in hex.", &context, &transformations);
 
-        assert_eq!(processed.text, "Use OpenCode in Hex.");
+        assert_eq!(processed.text, "Use OpenCode in Superhex.");
         assert!(processed.observation.is_none());
     }
 

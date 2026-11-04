@@ -5,13 +5,13 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>English</string>
     <key>CFBundleExecutable</key>
-    <string>HexMicrophoneDriver</string>
+    <string>SuperhexMicrophoneDriver</string>
     <key>CFBundleIdentifier</key>
-    <string>anomaly.hex.microphone.driver</string>
+    <string>io.github.junyudev.superhex.microphone.driver</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Hex Microphone</string>
+    <string>Superhex Microphone</string>
     <key>CFBundlePackageType</key>
     <string>BNDL</string>
     <key>CFBundleShortVersionString</key>
@@ -26,14 +26,14 @@
     <string>YES</string>
     <key>CFPlugInFactories</key>
     <dict>
-        <key>A85E9410-37A1-4F2A-9B0D-7C8E2F4A19B3</key>
-        <string>HexMicrophoneDriverCreate</string>
+        <key>D1383CF8-EF01-42D2-91DC-C35A20DC996F</key>
+        <string>SuperhexMicrophoneDriverCreate</string>
     </dict>
     <key>CFPlugInTypes</key>
     <dict>
         <key>443ABAB8-E7B3-491A-B985-BEB9187030DB</key>
         <array>
-            <string>A85E9410-37A1-4F2A-9B0D-7C8E2F4A19B3</string>
+            <string>D1383CF8-EF01-42D2-91DC-C35A20DC996F</string>
         </array>
     </dict>
     <key>AudioServerPlugIn_MachServices</key>

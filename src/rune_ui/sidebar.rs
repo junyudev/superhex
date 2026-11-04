@@ -57,7 +57,7 @@ pub(super) enum Pane {
     /// Dictation, output, and application basics.
     #[default]
     General,
-    /// What Hex does to every dictation and in some apps, read-only: the
+    /// What Superhex does to every dictation and in some apps, read-only: the
     /// person's agent edits it.
     Output,
     /// The old per-app editor, kept for its scenes until it is removed.
@@ -65,12 +65,12 @@ pub(super) enum Pane {
     /// Recorded calls and their settings, or the opt-in (macOS beta).
     Meetings,
     History,
-    /// Annotate (Scrawl's captures inside Hex): the switch, shortcuts,
+    /// Annotate (Scrawl's captures inside Superhex): the switch, shortcuts,
     /// permission, transcriber, folder, retention, and Scrawl's own app.
     /// Dev builds, macOS and Linux only.
     #[cfg(hex_capture)]
     Annotate,
-    /// The Hex Microphone's driver, tuning, and try-it demo (macOS, while
+    /// The Superhex Microphone's driver, tuning, and try-it demo (macOS, while
     /// its Labs toggle is on).
     VoiceFilter,
     /// The dictation indicator's tuning scene (Playground only).
@@ -242,7 +242,7 @@ fn footer(ui: &Ui, p: Paint) -> El {
         // (#1120); the hourly check alone never changes its words.
         Some(status @ (DesktopUpdateStatus::Current | DesktopUpdateStatus::Failed)) => {
             let words = match status {
-                DesktopUpdateStatus::Current if ui.update_asked => tr("Hex is up to date"),
+                DesktopUpdateStatus::Current if ui.update_asked => tr("Superhex is up to date"),
                 DesktopUpdateStatus::Failed if ui.update_asked => tr("Couldn't check for updates"),
                 _ => tr("Check for updates"),
             };
@@ -329,7 +329,7 @@ fn version_line(ui: &Ui, p: Paint, version: El) -> El {
         .key("version-row")
         .gap(2.0)
         .center_y()
-        .child(version.key("version"))
+        .child(version.key("version").min_w(0.0).grow(1.0))
         .child(
             row()
                 .key("build-badge")
@@ -381,14 +381,7 @@ fn version_label() -> String {
     // Goldens render a fixed version: a local build's names its commit.
     let version = if cfg!(test) { "0.0.0" } else { crate::VERSION };
     match option_env!("HEX_COMMIT") {
-        Some(commit) => {
-            let kind = if crate::app_paths::is_local_build() {
-                "local"
-            } else {
-                "test"
-            };
-            tr_fill("Version {}", &format!("{version} ({kind} {commit})"))
-        }
+        Some(commit) => format!("{version} · {}", commit.chars().take(7).collect::<String>()),
         None => tr_fill("Version {}", version),
     }
 }
@@ -460,14 +453,14 @@ fn nav_item(p: Paint, pane: Pane, on: bool) -> El {
     lists::source_item(item, on)
 }
 
-/// Linux has no tray: the window's way to stop Hex. Closing the window
-/// keeps Hex dictating.
+/// Linux has no tray: the window's way to stop Superhex. Closing the window
+/// keeps Superhex dictating.
 fn quit_item(p: Paint) -> El {
     let c = &p.k.c;
     row()
         .key("quit")
         .role("button")
-        .label(tr("Quit Hex"))
+        .label(tr("Quit Superhex"))
         .h(NAV_ROW_HEIGHT)
         .px(6.0)
         .mt(NAV_ROW_GAP)
@@ -479,7 +472,7 @@ fn quit_item(p: Paint) -> El {
         .focusable(true)
         .focus_ring(2.0, -2.0, c.border_focus)
         .child(
-            text(tr("Quit Hex"))
+            text(tr("Quit Superhex"))
                 .key("label")
                 .font(p.k.ty.ui)
                 .color(c.text_muted)

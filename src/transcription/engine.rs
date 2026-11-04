@@ -335,6 +335,8 @@ pub struct Transcribed {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Source {
+    #[cfg(target_os = "macos")]
+    VoiceBuddy,
     Stream,
     Offline,
     /// The stream could not be used; the reason is logged with the result.
@@ -344,6 +346,8 @@ pub enum Source {
 impl Source {
     pub fn label(&self) -> &str {
         match self {
+            #[cfg(target_os = "macos")]
+            Self::VoiceBuddy => "voice-buddy",
             Self::Stream => "stream",
             Self::Offline => "offline",
             Self::Fallback(_) => "fallback",
@@ -758,11 +762,22 @@ impl TranscriptionEngine {
     ) -> Result<Option<R>> {
         let (reply, receiver) = mpsc::channel();
         let generation = self.requests.load(Ordering::Acquire);
+        let streams = self.streams.clone();
+        let held = self.held.clone();
         self.commands
             .send(Command::Background {
                 generation,
                 work: Box::new(move |model| {
-                    let _ = reply.send(model.map(work));
+                    let result = model.map(|model| {
+                        let result = work(model);
+                        // Background consumers may activate an initially empty
+                        // model. Publish readiness before acknowledging them.
+                        streams.store(model.stream_options().is_some(), Ordering::Release);
+                        *held.lock().unwrap_or_else(|error| error.into_inner()) =
+                            model.gguf_selection().cloned();
+                        result
+                    });
+                    let _ = reply.send(result);
                 }),
             })
             .map_err(|_| eyre!("transcription engine stopped"))?;
@@ -1064,7 +1079,7 @@ impl Worker {
     }
 
     /// Unloads a loaded GGUF model, freeing its memory, and keeps its
-    /// selection to reload. Apple Speech stays: it holds no model of Hex's.
+    /// selection to reload. Apple Speech stays: it holds no model of Superhex's.
     fn park(&mut self) {
         let Some(selection) = self
             .model
@@ -1300,6 +1315,8 @@ mod tests {
 
     #[test]
     fn source_labels_distinguish_fallbacks() {
+        #[cfg(target_os = "macos")]
+        assert_eq!(Source::VoiceBuddy.label(), "voice-buddy");
         assert_eq!(Source::Stream.label(), "stream");
         assert_eq!(Source::Offline.label(), "offline");
         assert_eq!(Source::Fallback("x".into()).label(), "fallback");
@@ -2012,6 +2029,18 @@ mod tests {
 
         fn offline_text(text: &'static str) -> Offline {
             Box::new(move |_, clip| Ok(format!("  {text} {} ", clip.len())))
+        }
+
+        #[test]
+        fn background_work_publishes_model_readiness_before_its_reply() {
+            let engine = TranscriptionEngine::start(Model::default()).unwrap();
+            // A model changed by background work must replace every cached
+            // capability before /streams can act on the successful reply.
+            engine.streams.store(true, Ordering::Release);
+            *engine.held.lock().unwrap() = Some(Default::default());
+            assert_eq!(engine.background(|_| 42).unwrap(), Some(42));
+            assert!(!engine.streams());
+            assert!(engine.held_selection().is_none());
         }
 
         #[test]

@@ -53,7 +53,7 @@ fi
 # iOS, CI) is not in a dev build.
 app_path='^(src/|crates/|native/|resources/|assets/|app/|packaging/|sdk/commands/|build\.rs$|Cargo\.toml$)'
 test_path='(^tests/|/tests/|_tests\.rs$|/goldens/)'
-# Titles of changes nobody using Hex notices.
+# Titles of changes nobody using Superhex notices.
 internal='^(fix\(ci\)|(ci|chore|test|tests|refactor|docs|build|style)(\([^)]*\))?!?:|release prep|release:|fold |extract |update (feature )?docs|goldens|bump rune|roll in|add code-shape|merge )'
 
 : > "$work/items.jsonl"

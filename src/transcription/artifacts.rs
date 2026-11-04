@@ -140,7 +140,7 @@ pub(super) const PARAKEET_ULTRA_ARTIFACT: GgufArtifact = GgufArtifact {
     variant: "tdt-0.6b-ultra",
 };
 // NVIDIA's Nemotron 3.5 ASR Streaming 0.6B (OpenMDW-1.1), a cache-aware
-// FastConformer with a language-prompted RNN-T. Hex converted
+// FastConformer with a language-prompted RNN-T. Superhex converted
 // nvidia/nemotron-3.5-asr-streaming-0.6b at 24b151a (the .nemo,
 // 210214ed…) with transcribe.cpp 7045d1c's Parakeet converter and quantized
 // it to Q8_0: all 653 tensors match this file byte for byte, and the
@@ -157,7 +157,7 @@ pub(super) const NEMOTRON_3_5_ASR_ARTIFACT: GgufArtifact = GgufArtifact {
     variant: "nemotron-3.5-asr-streaming-0.6b",
 };
 // ai-sage's GigaAM v3 e2e RNN-T (MIT), Russian only, cased and punctuated.
-// Hex converted the `v3_e2e_rnnt` checkpoint that salute-developers/GigaAM
+// Superhex converted the `v3_e2e_rnnt` checkpoint that salute-developers/GigaAM
 // at 6e4b027c downloads and checks (MD5 2730de75…) with transcribe.cpp
 // 7045d1c's GigaAM converter and quantized it to Q8_0: all 560 tensors
 // match this file byte for byte, and the metadata differs only by four
@@ -176,7 +176,7 @@ pub(super) const GIGAAM_V3_E2E_RNNT_ARTIFACT: GgufArtifact = GgufArtifact {
 // The National Library of Norway's NB-Whisper Medium (Apache-2.0), a
 // Whisper medium fine-tune for Norwegian: NbAiLab's own whisper.cpp Q5_0
 // file at nb-whisper-medium 0ed074d5, which transcribe.cpp loads as Whisper.
-// Hex also converted the same revision's weights with transcribe.cpp
+// Superhex also converted the same revision's weights with transcribe.cpp
 // 7045d1c's Whisper converter at Q8_0 (832 MB): it scored 6.75% on FLEURS
 // Norwegian against this file's 6.68%, so the authors' smaller file stays.
 pub(super) const NB_WHISPER_MEDIUM_ARTIFACT: GgufArtifact = GgufArtifact {
@@ -189,9 +189,9 @@ pub(super) const NB_WHISPER_MEDIUM_ARTIFACT: GgufArtifact = GgufArtifact {
     // transcribe.cpp names a legacy Whisper file by its geometry.
     variant: "whisper-medium",
 };
-/// The languages Nemotron 3.5 transcribes that Hex names, as the locales
+/// The languages Nemotron 3.5 transcribes that Superhex names, as the locales
 /// its language prompt takes (`runtime_language`). Its card also lists
-/// Norwegian Bokmål, which Hex doesn't offer it for yet.
+/// Norwegian Bokmål, which Superhex doesn't offer it for yet.
 pub(super) const NEMOTRON_3_5_LOCALES: &[(&str, &str)] = &[
     ("en", "en-US"),
     ("es", "es-ES"),

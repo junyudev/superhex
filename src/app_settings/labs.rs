@@ -12,8 +12,6 @@ pub struct LabsSettings {
     pub playground: bool,
     /// Parakeet transcription biased toward the vocabulary.
     pub vocabulary_biasing: bool,
-    /// Mouse buttons may be recorded as shortcuts (macOS, issue 209).
-    pub mouse_shortcuts: bool,
     /// The engine unloads the speech model after `unload_idle_minutes` (5, 15 default, 30, 60) unused (issue 442).
     pub unload_idle: bool,
     pub unload_idle_minutes: u32,
@@ -27,7 +25,7 @@ pub struct LabsSettings {
     pub spoken_formatting: bool,
     /// Filler words such as "um" and "uh" are removed from dictations (issue 631).
     pub filler_words: bool,
-    /// `hex meetings show --srt|--vtt` exports a transcript as timed subtitles (macOS, issue 633).
+    /// `superhex meetings show --srt|--vtt` exports a transcript as timed subtitles (macOS, issue 633).
     pub subtitle_export: bool,
     /// `second_dictation_hotkey` dictates like the dictation shortcut (macOS, issue 627).
     pub second_dictation_shortcut: bool,
@@ -87,7 +85,6 @@ impl Default for LabsSettings {
             live_chapters: false,
             playground: false,
             vocabulary_biasing: false,
-            mouse_shortcuts: false,
             unload_idle: false,
             unload_idle_minutes: 15,
             restore_shortcut_default: false,
