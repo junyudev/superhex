@@ -182,6 +182,20 @@ pub(crate) type EngineSource =
 /// The running app's shared dictation engine and its loaded GGUF model.
 pub(crate) fn shared_engine() -> Result<(Box<dyn Engine>, TranscriptionSelection), &'static str> {
     let engine = TranscriptionEngine::shared().ok_or("engine-unavailable")?;
+    #[cfg(target_os = "macos")]
+    if engine.held_selection().is_none() {
+        let selection = crate::app_settings::transcription_selection().1;
+        let ready = engine
+            .background(move |model| {
+                model
+                    .activate(&selection)
+                    .map(|_| ())
+                    .map_err(|_| "model-not-loaded")
+            })
+            .map_err(|_| "engine-unavailable")?
+            .ok_or("dictation-busy")?;
+        ready?;
+    }
     let selection = engine.held_selection().ok_or("model-not-loaded")?;
     Ok((
         Box::new(SharedEngine::new(&engine, selection.clone())),

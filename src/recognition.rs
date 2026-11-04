@@ -362,6 +362,7 @@ pub fn listen(
     #[cfg(hex_capture)]
     let mut capture_shortcut = crate::capture_host::CaptureShortcut::default();
     let (mut transcription_revision, _) = crate::app_settings::transcription_selection();
+    let mut backend = crate::dictation::mouse_voice::chosen_backend();
     let mut personal_host_enabled = crate::app_settings::custom_transformations_enabled();
     let mut personal_commands = personal_host_enabled
         .then(|| crate::personal_commands::PersonalCommands::start(transformations.clone()))
@@ -397,6 +398,13 @@ pub fn listen(
     tracing::info!(device = %input.device_name(), "dictation listener started");
 
     while !shutdown.load(Ordering::Relaxed) {
+        if let Some(job_id) = dictation_worker.retry_failed(&context)
+            && let Some(indicator) = &indicator
+        {
+            indicator.send(DictationIndicatorEvent::Queued {
+                job_id: job_id.value(),
+            });
+        }
         #[cfg(hex_capture)]
         crate::capture_host::CaptureHost::reconcile(
             &mut capture_host,
@@ -817,9 +825,17 @@ pub fn listen(
             microphone_revision = next_microphone_revision;
         }
         let (next_revision, selection) = crate::app_settings::transcription_selection();
-        if next_revision != transcription_revision && dictation_worker.reload(selection).is_ok() {
-            transcription_revision = next_revision;
+        let next_backend = crate::dictation::mouse_voice::chosen_backend();
+        let changed_to_local = backend != next_backend
+            && next_backend == crate::dictation::backend::DictationBackend::Local;
+        let local_selection_changed = next_revision != transcription_revision
+            && crate::dictation::mouse_voice::current_backend()
+                == crate::dictation::backend::DictationBackend::Local;
+        if changed_to_local || local_selection_changed {
+            let _ = dictation_worker.reload(selection);
         }
+        transcription_revision = next_revision;
+        backend = next_backend;
         let hotkey_capture_active = crate::app_settings::hotkey_capture_active();
         let hotkey_capture_suspended = hotkey_capture_active || input.is_recovering();
         if hotkey_capture_suspended && hotkeys.suspend_all() {
@@ -1757,6 +1773,7 @@ fn handle_dictation_event(
             target,
             result: Ok(text),
             processing,
+            remote,
         } => {
             let phase = match target {
                 TranscriptionTarget::Paste | TranscriptionTarget::RawPaste => {
@@ -1768,7 +1785,11 @@ fn handle_dictation_event(
                 TranscriptionTarget::Service => return Ok(()),
             };
             feedback::play(Tone::DictationDone);
-            events.processed_dictation(phase, text, processing)?;
+            events.processed_dictation(
+                phase,
+                if remote { String::new() } else { text },
+                processing,
+            )?;
             if let Some(indicator) = indicator {
                 indicator.send(DictationIndicatorEvent::JobCompleted {
                     job_id: job_id.value(),
@@ -1813,12 +1834,13 @@ fn handle_dictation_event(
         WorkerEvent::Pasted {
             kind,
             result: Ok(text),
+            remote,
         } => {
             let phase = match kind {
                 PasteKind::LastTranscript => DictationPhase::Repasted,
                 PasteKind::MeetingDelta => DictationPhase::MeetingPasted,
             };
-            events.dictation(phase, text)?;
+            events.dictation(phase, if remote { String::new() } else { text })?;
         }
         WorkerEvent::Pasted {
             result: Err(error), ..

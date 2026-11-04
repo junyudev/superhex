@@ -6,6 +6,7 @@
 //! isn't running, and 4 when `dictation stop --print` heard no speech. Nothing here launches Hex except `start` and `restart`.
 
 use std::io::Write;
+mod dictation;
 mod human;
 
 use clap::{Args, Subcommand};
@@ -66,7 +67,7 @@ pub enum ControlCli {
     /// `cancel` discards it. Repeating a command changes nothing.
     Dictation {
         #[arg(value_enum)]
-        action: CaptureAction,
+        action: dictation::Action,
         /// With `stop`: wait for the transcript and print it instead of
         /// pasting it. Exits 4, printing nothing, when no speech was heard.
         #[arg(long)]
@@ -410,13 +411,7 @@ pub fn run(command: ControlCli) -> u8 {
             print,
             raw,
             output,
-        } => {
-            if let Err(error) = super::check_flags(action, print, raw) {
-                eprintln!("hex: {}", error.message);
-                return 2;
-            }
-            send(ControlCommand::Dictation { action, print, raw }, output)
-        }
+        } => dictation::run(action, print, raw, output),
         ControlCli::PasteLast { output } => send(ControlCommand::PasteLast, output),
         ControlCli::Settings { command } => settings(command),
         ControlCli::Model { command } => match command {
@@ -1438,7 +1433,12 @@ mod tests {
         let mut json = serde_json::to_value(&report).unwrap();
         assert_eq!(json["labs"], serde_json::json!(["live-text"]));
         json.as_object_mut().unwrap().remove("labs");
+        json.as_object_mut().unwrap().remove("dictation");
         let older: StatusReport = serde_json::from_value(json).unwrap();
         assert!(older.labs.is_empty());
+        assert_eq!(
+            older.dictation.backend,
+            crate::dictation::backend::DictationBackend::Local
+        );
     }
 }

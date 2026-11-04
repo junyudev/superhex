@@ -94,6 +94,8 @@ pub enum ControlCommand {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         raw: bool,
     },
+    /// Retry the newest failed MouseVoice dictation at the current focus (macOS).
+    DictationRetry,
     PasteLast,
     MeetingRecord {
         #[serde(default)]
@@ -524,6 +526,8 @@ pub struct StatusReport {
     pub capture: CaptureReport,
     pub meeting: MeetingReport,
     pub model: ModelReport,
+    #[serde(default)]
+    pub dictation: DictationReport,
     pub features: FeatureReport,
     pub permissions: PermissionReport,
     pub window: WindowReport,
@@ -536,6 +540,43 @@ pub struct StatusReport {
     /// A command for one it can't do answers `unsupported`.
     #[serde(default)]
     pub capabilities: std::collections::BTreeMap<String, bool>,
+}
+
+/// Additive v4 status fields. Older replies read as Local, since those apps
+/// have no speech-service backend.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct DictationReport {
+    pub backend: crate::dictation::backend::DictationBackend,
+    /// missing, ready, broken, or unsupported (off macOS).
+    pub mouse_voice_setup: String,
+}
+
+impl Default for DictationReport {
+    fn default() -> Self {
+        Self {
+            backend: crate::dictation::backend::DictationBackend::Local,
+            mouse_voice_setup: "unsupported".into(),
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn dictation_report(settings: &crate::app_settings::AppSettings) -> DictationReport {
+    use crate::dictation::{backend::Setup, mouse_voice};
+    DictationReport {
+        backend: mouse_voice::effective_backend(settings),
+        mouse_voice_setup: match mouse_voice::setup() {
+            Setup::Missing => "missing",
+            Setup::Ready { .. } => "ready",
+            Setup::Broken { .. } => "broken",
+        }
+        .into(),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn dictation_report(_settings: &crate::app_settings::AppSettings) -> DictationReport {
+    DictationReport::default()
 }
 
 /// `StatusReport::update` for an updater status.

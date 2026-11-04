@@ -856,11 +856,8 @@ impl Owner {
                 }
                 // Short taps and shortcut chords never reach the model; the
                 // stream starts with the backlog once the hold counts.
-                if self.stream_capture
-                    && self.capture.is_intentional()
-                    && let Some(engine) = &self.engine
-                {
-                    self.capture.begin_stream(engine);
+                if self.stream_capture && self.capture.is_intentional() {
+                    self.capture.begin_dictation_stream(self.engine.as_deref());
                 }
                 self.capture.report_live_text();
                 #[cfg(hex_capture)]

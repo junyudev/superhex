@@ -114,6 +114,10 @@ fn command(host: &dyn Host, command: ControlCommand) -> ControlReply {
         |result: Result<ControlReply, ControlError>| result.unwrap_or_else(ControlReply::from);
     match command {
         ControlCommand::Status => reply(status(host)),
+        ControlCommand::DictationRetry => ControlReply::error(
+            "unsupported",
+            "MouseVoice dictation is available only on macOS",
+        ),
         ControlCommand::Quit { force } | ControlCommand::Restart { force } => {
             let restart = matches!(command, ControlCommand::Restart { .. });
             reply(
@@ -562,6 +566,7 @@ fn status(host: &dyn Host) -> Result<ControlReply, ControlError> {
         },
         capture,
         meeting: meeting_report(),
+        dictation: super::dictation_report(&settings),
         model: ModelReport {
             id: selection.model.as_str().into(),
             name: definition.name.into(),

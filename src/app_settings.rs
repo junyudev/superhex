@@ -529,6 +529,10 @@ impl AppSettings {
         crate::transcription::models::validate(&selection)?;
         let mut candidate = self.clone();
         candidate.remember_transcription(selection);
+        #[cfg(target_os = "macos")]
+        {
+            candidate.dictation_backend = crate::dictation::backend::DictationBackend::Local;
+        }
         self.commit_with(candidate, save)
     }
 
@@ -751,6 +755,8 @@ impl AppSettings {
             Ordering::Release,
         );
         crate::labs::apply(&self.labs);
+        #[cfg(target_os = "macos")]
+        crate::dictation::mouse_voice::configure(self);
         #[cfg(hex_capture)]
         {
             *CAPTURE_SETTINGS
@@ -2237,6 +2243,11 @@ mod tests {
             .save_transcription_with(candidate.clone(), |_| Ok(()))
             .unwrap();
         assert_eq!(settings.transcription, candidate);
+        #[cfg(target_os = "macos")]
+        assert_eq!(
+            settings.dictation_backend,
+            crate::dictation::backend::DictationBackend::Local
+        );
         assert_eq!(
             settings.dictation_processing.default_mode.name,
             "Unsaved mode"

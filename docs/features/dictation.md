@@ -1,7 +1,9 @@
 # Dictation
 
-Hold the configured shortcut, speak, and release. Hex transcribes locally and
-inserts the result at the current focus. New captures do not cancel accepted
+Hold the configured shortcut, speak, and release. Hex transcribes through the
+chosen backend and inserts the result at the current focus. On this fork,
+macOS uses MouseVoice after explicit configuration import; otherwise it uses
+the selected local model. New captures do not cancel accepted
 work. Only Toggle mode has a cancel: its cancel shortcut, Escape by default,
 discards the recording (#786, #1022); every other intentional dictation
 finishes and pastes.
@@ -10,7 +12,8 @@ This map covers the macOS release path. Linux shares the basic journey, not
 every timing, input, or recovery guarantee; see the
 [platform map](README.md#other-platforms-and-consumers). This is a map, not a
 verified end-to-end driver. Linked checks are locators; no tests or previews
-were run for this rewrite.
+were run for the original rewrite. MouseVoice verification is recorded beside
+its contract below.
 
 ## How To Get To It
 
@@ -19,8 +22,8 @@ write fails, capture remains active with an error; retry or cancel it explicitly
 The GPUI regression that injected this failure went with GPUI; no Rune test
 injects a failed shortcut save yet.
 
-**Shortcut:** Option by default, after macOS permissions and the selected local
-model are ready. Commands and OpenCode are not required. General > Dictation >
+**Shortcut:** Option by default, after macOS permissions and speech (usable
+MouseVoice or the selected local model) are ready. Commands and OpenCode are not required. General > Dictation >
 Shortcut accepts modifier-only, modifier-plus-key, standalone Fn/Globe, and
 standalone function-key bindings. On macOS, Windows and Linux/X11 it also
 accepts mouse buttons, alone or with modifiers. Mouse 1/2/3 are left/right/middle;
@@ -807,6 +810,66 @@ speaker playing the tone.
 
 ### Streaming Finish
 
+On this fork, macOS defaults to the MouseVoice backend, independently of the
+saved local `transcription` model. It becomes effective only after the person
+imports a usable configuration. No configuration, a refused configuration, or
+choosing Local keeps dictation on the local path below. This is the owner's
+explicit exception to the off-by-default Labs policy.
+
+```ts
+macOS dictation backend                    // dictate.mouse-voice
+├── MouseVoice chosen + usable imported configuration -> speech service
+│   ├── Intentional hold -> one Session; complete 16 kHz timeline, no pause cap
+│   ├── Short tap / chord / cancel / silence -> drop session and live text
+│   ├── Connection fails during capture -> keep recording; line becomes Offline
+│   └── Release -> Publisher travels with clip -> Finishing -> Polishing -> text
+└── Otherwise -> selected local model, with the existing local stream/fallback
+
+Explicit configuration import              // dictate.mouse-voice-setup
+├── Validate bounded regular file, no symlinks -> durable fields only
+│   ├── <support>/mouse-voice.json: 0600; parent: 0700
+│   └── Copy voice options into settings once; leave source alone
+├── Explicit discovery only -> MouseVoice/context.json or Iris/wetype.json
+│   └── Never copy automatically, scan other apps, create an identity, or use Keychain
+└── Service Rejected -> Broken; import another valid configuration to recover
+```
+
+The window calls the unchanged API in
+[mouse_voice.rs](../../src/dictation/mouse_voice.rs), whose store, capture and
+recovery owners live alongside it. The local model stays cold at startup while
+MouseVoice is effective. Meetings and Annotate activate locally; `/transcribe`
+uses the local service's model, and `/streams` activates the local engine on
+first admission when it has no model. Benchmarks and History's Transcribe again
+also stay local. Keyboard-language switching applies only while Local is in
+effect. Selecting a local menu model chooses Local; MouseVoice is the menu's
+first item and opens Settings when it needs configuration.
+
+Checks for `dictate.mouse-voice` and its recovery policy live in
+[store.rs](../../src/dictation/mouse_voice/store.rs),
+[capture.rs](../../src/dictation/mouse_voice/capture.rs),
+[tests.rs](../../src/dictation/mouse_voice/tests.rs),
+[capture_stream.rs](../../src/dictation/capture_stream.rs), and
+[jobs.rs](../../src/dictation/jobs.rs): effective-backend rules, bounded imports
+and private modes, refusal/reimport, hold gating, complete audio and delayed
+release, one retry, failure-list bounds/expiry/targets, cancellation, ordering,
+and Publisher handoff. Caller sessions use `Session::scripted` and invented
+configuration; tests never read a person's imported configuration.
+
+Observed November 4, 2026, macOS ARM64, Rust 1.99.1: 348 focused application
+checks and 27 client checks passed; all-target clippy with `onnx-benchmark`
+and `-D warnings` passed. These are unit and local-fixture/loopback checks.
+No live microphone, real configuration, real speech-service connection, native
+menu selection, paste into another app, cold-model RAM measurement, or complete
+release-gate run was observed. Meetings, Annotate and host-audio checks use
+synthetic adapters; their physical/native paths remain unverified here. Both
+client commits through `f36cf405` are integrated; none of these paths use the
+stub client.
+
+The following stream rules describe the **local** backend. The MouseVoice
+Publisher always publishes, regardless of Labs; an older job cannot overwrite a
+newer capture's line, and a completed job drops its Publisher before processing.
+
+
 ```ts
 Model advertises streaming, GPU device             // dictate.streaming
   // Metal on macOS, Vulkan on Linux and x64 Windows
@@ -1058,6 +1121,29 @@ letters or digits (`spoken_text_end_ms`), and no clip fell back. Check:
 macOS or a microphone.
 
 ### Ongoing Jobs And Output
+
+```ts
+Accepted MouseVoice job                     // dictate.mouse-voice-recovery
+├── Wait off the engine and microphone threads; dictation_busy stays true
+├── Retryable failure -> one whole-clip retry, silently, line stays Finishing
+├── Text -> unchanged ordered processing and output; source=mouse-voice
+└── Final failure -> no paste; one failed HUD event and error tone
+    ├── Paste / Raw Paste -> volatile failed list, oldest first
+    │   ├── At most 8, 10-minute expiry, 128 MiB audio, 64 KiB heard text per clip
+    │   ├── Retry / Retry Local -> new ordered job, current focus and context
+    │   ├── Paste Heard -> raw normal output; no transcription or failed-audio retention
+    │   └── Dismiss / expiry / quit -> release audio; no History or disk copy
+    └── Print / programmatic -> failure to owner, retain nothing
+hex dictation retry -> request retry of newest held failure
+Full pipeline -> leave the recovery request pending; expiry still applies
+Quit -> cancel service tokens before draining; clear held clips
+```
+
+Successful service output records History normally (model label MouseVoice),
+but omits its words from the persisted event log. Failed service clips bypass
+diagnostic WAV retention and History. Local capture, processing, admission and
+submission-order output retain their existing contracts. Toggle cancel still
+cancels only the recording; accepted service jobs continue, just like local jobs.
 
 ```ts
 Completed long recording                  // dictate.model-windows

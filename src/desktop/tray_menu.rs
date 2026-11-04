@@ -26,6 +26,16 @@ pub(crate) fn model_menu_entries(
     preparing: bool,
     installed: impl Fn(&ModelDefinition, &str) -> bool,
 ) -> Vec<ModelMenuEntry> {
+    #[cfg(target_os = "macos")]
+    let local = crate::dictation::mouse_voice::effective_backend(settings)
+        == crate::dictation::backend::DictationBackend::Local;
+    #[cfg(not(target_os = "macos"))]
+    let local = true;
+    #[cfg(target_os = "macos")]
+    let locally_chosen =
+        settings.dictation_backend == crate::dictation::backend::DictationBackend::Local;
+    #[cfg(not(target_os = "macos"))]
+    let locally_chosen = true;
     all_models()
         .into_iter()
         .filter(|model| model.available())
@@ -34,8 +44,9 @@ pub(crate) fn model_menu_entries(
             installed(model, &selection.language).then(|| ModelMenuEntry {
                 model: model.id,
                 title: format!("{} · {}", model.name, language_name(&selection.language)),
-                selected: model.id == settings.transcription.model,
-                enabled: !preparing && model.id != settings.transcription.model,
+                selected: local && model.id == settings.transcription.model,
+                enabled: !preparing
+                    && (!locally_chosen || model.id != settings.transcription.model),
             })
         })
         .collect()
@@ -237,7 +248,10 @@ mod tests {
 
     #[test]
     fn model_menu_only_lists_downloaded_models_with_their_remembered_language() {
-        let mut settings = AppSettings::default();
+        let mut settings = AppSettings {
+            dictation_backend: crate::dictation::backend::DictationBackend::Local,
+            ..AppSettings::default()
+        };
         settings.remember_transcription(TranscriptionSelection {
             model: TranscriptionModelId::WhisperLargeV3Turbo,
             language: "fr".into(),
