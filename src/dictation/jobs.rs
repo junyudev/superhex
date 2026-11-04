@@ -1,6 +1,6 @@
 //! Dictation admission and transcription sources. Local-only callers never enter here.
 use crate::dictation::backend::{DictationBackend, FailedAction, FailureReason};
-use crate::dictation::mouse_voice::{self as remote, Pending, RetryClip};
+use crate::dictation::voice_buddy::{self as remote, Pending, RetryClip};
 use crate::parakeet::*;
 use crate::transcription::engine::{PendingTranscript, Transcribed};
 
@@ -47,7 +47,7 @@ impl Transcript {
             }
             Self::Heard(text) => Ok(Transcribed {
                 text,
-                source: crate::transcription::engine::Source::MouseVoice,
+                source: crate::transcription::engine::Source::VoiceBuddy,
                 finish_ms: 0,
             }),
             Self::Remote { pending, clip } => {
@@ -90,7 +90,7 @@ fn failed_clip(mut clip: RetryClip, reason: FailureReason, heard: String) -> Str
 }
 
 fn needs_setup(engine: Option<&TranscriptionEngine>) -> bool {
-    if remote::chosen_backend() != DictationBackend::MouseVoice
+    if remote::chosen_backend() != DictationBackend::VoiceBuddy
         || remote::current_backend() != DictationBackend::Local
     {
         return false;
@@ -104,7 +104,7 @@ fn needs_setup(engine: Option<&TranscriptionEngine>) -> bool {
 }
 
 impl JobControl {
-    fn set_remote(&self, cancel: mouse_voice::Canceller) {
+    fn set_remote(&self, cancel: voice_buddy::Canceller) {
         let mut token = self.remote.lock().unwrap_or_else(|e| e.into_inner());
         if self.is_cancelled() {
             cancel.cancel();
@@ -132,11 +132,11 @@ impl DictationWorker {
     ) -> Result<DictationJobId, &'static str> {
         let captured_backend = clip.capture_backend();
         let stream = clip.take_stream();
-        let remote_stream = clip.take_mouse_voice();
+        let remote_stream = clip.take_voice_buddy();
         let backend = if let Some(backend) = captured_backend {
             backend
         } else if remote_stream.is_some() {
-            DictationBackend::MouseVoice
+            DictationBackend::VoiceBuddy
         } else if stream.is_some() {
             DictationBackend::Local
         } else {
@@ -179,7 +179,7 @@ impl DictationWorker {
         };
         let control = Arc::new(JobControl {
             print: Mutex::new(print),
-            remote_job: backend == DictationBackend::MouseVoice,
+            remote_job: backend == DictationBackend::VoiceBuddy,
             ..JobControl::default()
         });
         let submitted_at = Instant::now();
@@ -190,7 +190,7 @@ impl DictationWorker {
         };
         let transcript = if let Some(text) = heard {
             Transcript::Heard(text)
-        } else if backend == DictationBackend::MouseVoice {
+        } else if backend == DictationBackend::VoiceBuddy {
             let pending = remote_stream
                 .map(|capture| capture.finish(&samples))
                 .or_else(Pending::whole);
@@ -238,7 +238,7 @@ impl DictationWorker {
                 .map_err(|_| "dictation worker is unavailable")?;
             Transcript::Local {
                 pending,
-                unconfigured: remote::chosen_backend() == DictationBackend::MouseVoice
+                unconfigured: remote::chosen_backend() == DictationBackend::VoiceBuddy
                     && remote::current_backend() == DictationBackend::Local,
             }
         };
@@ -288,7 +288,7 @@ impl DictationWorker {
         let backend = if local {
             DictationBackend::Local
         } else {
-            DictationBackend::MouseVoice
+            DictationBackend::VoiceBuddy
         };
         let job_id = self
             .submit_samples(Submission {
@@ -446,7 +446,7 @@ mod tests {
         assert!(remote::failed().is_empty());
     }
     #[test]
-    fn an_older_slow_mouse_voice_job_pastes_before_a_newer_finished_job() {
+    fn an_older_slow_voice_buddy_job_pastes_before_a_newer_finished_job() {
         use crate::dictation::live_text::{self, Phase};
         use std::time::Duration;
         let config = remote::tests::configuration();
@@ -462,9 +462,9 @@ mod tests {
             }
         });
         let job = |id, text: &str, updates| {
-            let session = mouse_voice::Session::scripted(updates, Ok(text.into()));
+            let session = voice_buddy::Session::scripted(updates, Ok(text.into()));
             let capture =
-                remote::Capture::new(session, config.clone(), mouse_voice::Options::default());
+                remote::Capture::new(session, config.clone(), voice_buddy::Options::default());
             InferenceJob {
                 job_id: DictationJobId(id),
                 control: Arc::new(JobControl {
@@ -496,7 +496,7 @@ mod tests {
         send.send(job(
             0,
             "older final",
-            vec![mouse_voice::Update {
+            vec![voice_buddy::Update {
                 text: "older".into(),
                 polishing: true,
             }],
@@ -556,13 +556,13 @@ mod tests {
             processor_workers: Vec::new(),
             output_worker: None,
         };
-        let session = mouse_voice::Session::scripted(Vec::new(), Ok("final heard text".into()));
+        let session = voice_buddy::Session::scripted(Vec::new(), Ok("final heard text".into()));
         let capture = remote::Capture::new(
             session,
             remote::tests::configuration(),
-            mouse_voice::Options::default(),
+            voice_buddy::Options::default(),
         );
-        let clip = DictationClip::for_test(vec![0.1; 320]).with_mouse_voice_for_test(capture);
+        let clip = DictationClip::for_test(vec![0.1; 320]).with_voice_buddy_for_test(capture);
         let id = worker
             .transcribe(
                 clip,
@@ -603,15 +603,15 @@ mod tests {
         remote::clear_failed();
         let attempts = std::cell::Cell::new(0);
         let result = remote::retry_once(
-            Err(mouse_voice::Failed {
-                failure: mouse_voice::Failure::TimedOut,
+            Err(voice_buddy::Failed {
+                failure: voice_buddy::Failure::TimedOut,
                 heard: "heard before disconnect".into(),
             }),
             || false,
             || {
                 attempts.set(attempts.get() + 1);
-                Err(mouse_voice::Failed {
-                    failure: mouse_voice::Failure::Connection("offline".into()),
+                Err(voice_buddy::Failed {
+                    failure: voice_buddy::Failure::Connection("offline".into()),
                     heard: String::new(),
                 })
             },
@@ -634,8 +634,8 @@ mod tests {
 
     #[test]
     fn job_cancellation_reaches_a_waiting_service_session_and_discards_its_late_final() {
-        let pending = mouse_voice::Session::scripted(
-            vec![mouse_voice::Update {
+        let pending = voice_buddy::Session::scripted(
+            vec![voice_buddy::Update {
                 text: "partial".into(),
                 polishing: false,
             }],
@@ -651,7 +651,7 @@ mod tests {
         assert!(control.is_cancelled());
         assert_eq!(
             result.unwrap_err().failure,
-            mouse_voice::Failure::Internal("cancelled".into())
+            voice_buddy::Failure::Internal("cancelled".into())
         );
     }
     #[test]

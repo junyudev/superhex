@@ -1,16 +1,16 @@
-//! The only durable MouseVoice state. Reading another app is always explicit.
+//! The only durable VoiceBuddy state. Reading another app is always explicit.
 use std::fs::{self, OpenOptions};
 use std::io::Read;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use mouse_voice::Config;
+use voice_buddy::Config;
 
 use super::super::backend::{FoundConfig, Setup};
 
 const MAX_CONFIG_BYTES: u64 = 1024 * 1024;
-const REJECTED: &str = "MouseVoice refused this configuration";
+const REJECTED: &str = "VoiceBuddy refused this configuration";
 
 #[derive(Clone)]
 pub(super) struct Store {
@@ -59,12 +59,12 @@ impl Store {
     }
 
     #[cfg(test)]
-    pub fn import(&mut self, source: &Path) -> Result<mouse_voice::Options, String> {
+    pub fn import(&mut self, source: &Path) -> Result<voice_buddy::Options, String> {
         let (config, _) = read_config(source)?;
         self.import_config(config)
     }
 
-    pub fn import_config(&mut self, config: Config) -> Result<mouse_voice::Options, String> {
+    pub fn import_config(&mut self, config: Config) -> Result<voice_buddy::Options, String> {
         let options = config.options();
         self.save(&config, false)?;
         self.set(config, false);
@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn rejected_imports_leave_the_existing_file_and_state_alone() {
         let dir = directory();
-        let target = dir.join("mouse-voice.json");
+        let target = dir.join("voice-buddy.json");
         fs::write(&target, b"previous invalid file").unwrap();
         let mut store = Store::load(target.clone());
         let previous = store.setup.clone();
@@ -238,7 +238,7 @@ mod tests {
     #[test]
     fn private_writes_replace_broad_permissions_and_leave_no_staging_file() {
         let dir = directory();
-        let target = dir.join("mouse-voice.json");
+        let target = dir.join("voice-buddy.json");
         fs::write(&target, b"old").unwrap();
         fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
         crate::durable::write_private(&target, b"new").unwrap();
@@ -257,7 +257,7 @@ mod tests {
         let source = dir.join("context.json");
         let bytes = config.to_json();
         fs::write(&source, &bytes).unwrap();
-        let target = dir.join("hex/mouse-voice.json");
+        let target = dir.join("hex/voice-buddy.json");
         let mut store = Store::load(target.clone());
         let options = store.import(&source).unwrap();
         assert!(

@@ -81,7 +81,7 @@ hex
 
 `dictation start` locks the recording, as a double tap would: `dictation stop`
 or the next shortcut press finishes it, and `dictation retry` (macOS) requests a new ordered job for the newest failed
-MouseVoice dictation still held in memory, pasting at the current focus. It
+VoiceBuddy dictation still held in memory, pasting at the current focus. It
 accepts neither `--raw` nor `--print`; no held failure answers unchanged. The
 list holds at most eight entries for ten minutes (and 128 MiB total audio),
 never on disk or in History. A retry can fail again; `hex status` reports setup.
@@ -321,7 +321,7 @@ recording", "The window isn't open"). Setting `kind` is one of `bool`,
   "meeting": {"state": "recording", "title": "Design sync", "elapsed_seconds": 723},
   "model": {"id": "parakeet_v3", "name": "…", "language": "en", "installed": true,
             "preparing": null, "downloaded_bytes": 0, "error": null},
-  "dictation": {"backend": "mouse_voice", "mouse_voice_setup": "ready"},
+  "dictation": {"backend": "voice_buddy", "voice_buddy_setup": "ready"},
   "features": {"meetings": true, "release_microphone_while_idle": false,
                "history_retention": "week"},
   "permissions": {"ready": true, "microphone": "ready", "accessibility": "ready",
@@ -344,10 +344,10 @@ window.pane         settings | modes | history | meetings | …
 update              current | checking | available | unavailable
 ```
 
-`dictation.backend` reports the backend in effect (`local` or `mouse_voice`),
-not just the saved choice. `dictation.mouse_voice_setup` is `missing`, `ready`,
+`dictation.backend` reports the backend in effect (`local` or `voice_buddy`),
+not just the saved choice. `dictation.voice_buddy_setup` is `missing`, `ready`,
 `broken`, or `unsupported` off macOS; it exposes no credentials. `model` still
-reports the independent local selection. With usable MouseVoice selected,
+reports the independent local selection. With usable VoiceBuddy selected,
 `permissions.transcription_model` means the speech step is ready even without a
 local model. These fields and `dictation-retry` are additive within control
 version 4: older status replies deserialize with Local/unsupported defaults;
@@ -355,11 +355,11 @@ existing request and response shapes remain compatible. The retry command,
 flag restrictions and older-status defaults have unit checks in
 `control/cli/dictation.rs` and `control/cli.rs`; these passed on macOS ARM64
 with Rust 1.99.1 on November 4, 2026. No native CLI-to-listener/paste run was
-observed for the MouseVoice backend.
+observed for the VoiceBuddy backend.
 
-The settings keys `dictation_backend` (`mouse_voice` or `local`) and
-`mouse_voice.polish`, `.traditional`, `.paragraph`, `.reduce_redundancy` control
-macOS dictation. Choosing MouseVoice never imports configuration or creates an
+The settings keys `dictation_backend` (`voice_buddy` or `local`) and
+`voice_buddy.polish`, `.traditional`, `.paragraph`, `.reduce_redundancy` control
+macOS dictation. Choosing VoiceBuddy never imports configuration or creates an
 identity. The person must import a usable configuration before audio is sent;
 otherwise Hex uses Local. `model use` and choosing a local model select Local.
 Meetings, Annotate, host audio, benchmarks and retranscription remain local.

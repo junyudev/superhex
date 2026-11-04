@@ -1,9 +1,9 @@
 [package]
-name = "mouse-voice"
+name = "voice-buddy"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "Client for the MouseVoice speech service: one streamed recording per session"
+description = "Client for the VoiceBuddy speech service: one streamed recording per session"
 
 [features]
 # `Session::scripted`, for tests of callers that must not reach the network.

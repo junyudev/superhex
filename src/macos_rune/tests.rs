@@ -15,7 +15,7 @@ struct Fixture {
 
 impl Fixture {
     fn new(settings: AppSettings) -> Self {
-        crate::dictation::mouse_voice::configure(&settings);
+        crate::dictation::voice_buddy::configure(&settings);
         let (start, started) = mpsc::channel();
         let (release, releases) = mpsc::channel();
         let releases = Mutex::new(releases);

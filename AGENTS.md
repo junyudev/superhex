@@ -29,7 +29,7 @@ and keep consequential behavior explicit. Deterministic personal transcript
 transformations live in the explicit TypeScript user config (`~/.config/hex/hex.config.ts`). User-facing
 runtime settings persist in Application Support.
 
-This fork's owner explicitly chooses MouseVoice as macOS dictation's default
+This fork's owner explicitly chooses VoiceBuddy as macOS dictation's default
 backend, an exception to the Labs rule below. A usable configuration must
 first be imported by the person: without it, dictation stays local. The local
 `transcription` selection remains independent of this backend choice.
@@ -95,7 +95,7 @@ substitute for source inspection or a second roadmap.
 - `dictation`, `dictation/diagnostics`: warm pre-roll, growable capture, 16 kHz
   local-transcription resampling, and owner-only diagnostic WAV retention when
   `HEX_RETAIN_DICTATION_AUDIO` is set.
-- `dictation/mouse_voice`: macOS dictation's speech-service adapter, explicit
+- `dictation/voice_buddy`: macOS dictation's speech-service adapter, explicit
   private configuration import, session-to-job live-text ownership, one automatic
   whole-clip retry, and bounded volatile failure recovery. `dictation/backend`
   is the window's plain-data contract. `dictation/capture_stream` feeds local
@@ -400,7 +400,7 @@ substitute for source inspection or a second roadmap.
   dictating (mute, lower, or pause other apps' audio) with idle-sleep
   prevention, and the login item.
 - `dictation/live_text`: the provisional-line board and Publisher, including
-  MouseVoice's Offline, Finishing and Polishing phases and the ownership rules
+  VoiceBuddy's Offline, Finishing and Polishing phases and the ownership rules
   below. Local text needs Labs or practice demand; service text always publishes.
   Each OS's host installs `rune_ui::live_text` as a watcher, placed where
   `rune_hud` last showed the HUD (`rune_hud::live_text_place`).
@@ -610,7 +610,7 @@ CoreAudio formats, AppleScript details, or event serialization.
   `meetings.retention` is omitted, not `null`. Do not omit optional fields
   whose absence restores a nonempty default, such as `paste_last_hotkey`.
 - On a new Mac, release dictation starts only after Microphone, Accessibility,
-  and speech are ready: a usable, chosen MouseVoice configuration or the
+  and speech are ready: a usable, chosen VoiceBuddy configuration or the
   selected local model. Hex asks for Input Monitoring only from the explicit
   mouse access action. Ordinary shortcut taps use Accessibility (measured on
   macOS 26 and 27). Raw mouse observation checks `IOHIDCheckAccess` before
@@ -801,21 +801,21 @@ CoreAudio formats, AppleScript details, or event serialization.
   stream holds the model's compute lease. Streams run only on GPU devices
   (Metal, Vulkan); models that cannot stream transcribe the whole clip after
   release. Dictation is never cut at pauses; meetings are.
-- MouseVoice applies only to `DictationWorker::submit` (paste, raw paste,
+- VoiceBuddy applies only to `DictationWorker::submit` (paste, raw paste,
   print, and programmatic dictation). Meetings, Annotate words, `/transcribe`,
   `/streams`, benchmarks, and History's Transcribe again remain local. With
-  MouseVoice in effect, startup leaves the local engine empty; local consumers
+  VoiceBuddy in effect, startup leaves the local engine empty; local consumers
   activate through their existing paths. A local-model menu choice also chooses
   Local. Keyboard-language switching applies only while Local is in effect.
 - Import is consent to send audio. Store only validated durable fields in
-  `<support>/mouse-voice.json` (0600; folder 0700), through `app_paths` and
+  `<support>/voice-buddy.json` (0600; folder 0700), through `app_paths` and
   `durable`; imports are bounded and refuse a file that is itself a symlink.
   Only explicit discovery reads `~/Library/Application Support/MouseVoice/context.json` No automatic import,
   identity creation, keychain access, or other-app scan. Rejected credentials
   mark setup Broken in memory immediately; the finishing job persists that
   refusal. A successful import clears it. Diagnostics omit service words and
   configuration values; successful service output omits words from event logs.
-- A MouseVoice session starts only after an intentional hold. Feed the complete
+- A VoiceBuddy session starts only after an intentional hold. Feed the complete
   normalized timeline, without the local pause cap. A connection failure never
   changes capture; show Offline and keep the clip. Its live-text Publisher
   travels into the job, shows Finishing/Polishing, and drops when text arrives;
@@ -882,7 +882,7 @@ CoreAudio formats, AppleScript details, or event serialization.
   Settings window. Settings and the menu bar share one preparation owner; a newer
   choice supersedes uncommitted work, and preparation/save failures leave the old
   selection intact. Menu-bar selections never silently download or repair a model.
-  On macOS its first item is MouseVoice, checked when in effect; without a
+  On macOS its first item is VoiceBuddy, checked when in effect; without a
   usable configuration, choosing it opens Settings.
 - Cohere's advertised encoder input capacity is not its recommended inference
   window. Both GGUF adapters cap Cohere chunks at the reference processor's
@@ -1488,7 +1488,7 @@ its settings key and description, a row on the Labs page, and a
 `hex settings` key; gate where the feature's work starts (worker, thread,
 capture), not just its UI. Never add a master switch or ship such a feature
 on by default. Remove it from Labs when it graduates or is dropped. The
-owner-authorized MouseVoice backend default on this fork is the explicit
+owner-authorized VoiceBuddy backend default on this fork is the explicit
 exception; import remains necessary before any audio leaves the Mac.
 
 Use `scripts/check [filter]` for the local loop, not raw `cargo test`. It runs

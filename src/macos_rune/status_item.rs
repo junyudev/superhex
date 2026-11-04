@@ -22,7 +22,7 @@ pub enum StatusItemAction {
     OpenSettings,
     OpenModels,
     SelectModel(TranscriptionModelId),
-    SelectMouseVoice,
+    SelectVoiceBuddy,
     CancelModelPreparation,
     PasteLast,
     /// Copy History entry `id` (Labs › Copy recent dictations).
@@ -72,9 +72,9 @@ objc2::define_class!(
             }
         }
 
-        #[unsafe(method(selectMouseVoice:))]
-        fn select_mouse_voice(&self, _sender: &AnyObject) {
-            let _ = self.ivars().actions.try_send(StatusItemAction::SelectMouseVoice);
+        #[unsafe(method(selectVoiceBuddy:))]
+        fn select_voice_buddy(&self, _sender: &AnyObject) {
+            let _ = self.ivars().actions.try_send(StatusItemAction::SelectVoiceBuddy);
         }
 
         #[unsafe(method(cancelModelPreparation:))]
@@ -189,7 +189,7 @@ struct StatusItemController {
     overlays_in_recordings: Retained<NSMenuItem>,
     _menu: Retained<NSMenu>,
     target: Retained<StatusItemTarget>,
-    mouse_voice: Retained<NSMenuItem>,
+    voice_buddy: Retained<NSMenuItem>,
     model_items: Vec<(TranscriptionModelId, Retained<NSMenuItem>)>,
     model_empty: Retained<NSMenuItem>,
     model_preparing: Retained<NSMenuItem>,
@@ -279,7 +279,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
     let heading = plain_item("Transcription Model", mtm);
     heading.setSubmenu(Some(&models));
     menu.addItem(&heading);
-    let mouse_voice = add_item(&models, &target, "MouseVoice", sel!(selectMouseVoice:), mtm);
+    let voice_buddy = add_item(&models, &target, "VoiceBuddy", sel!(selectVoiceBuddy:), mtm);
     models.addItem(&NSMenuItem::separatorItem(mtm));
     let model_items = MODELS
         .iter()
@@ -383,7 +383,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
             overlays_in_recordings,
             _menu: menu,
             target,
-            mouse_voice,
+            voice_buddy,
             model_items,
             model_empty,
             model_preparing,
@@ -452,10 +452,10 @@ pub fn update_transcription(settings: &AppSettings, status: &PreparationStatus) 
         let Some(controller) = controller.as_ref() else {
             return;
         };
-        let selected = crate::dictation::mouse_voice::effective_backend(settings)
-            == crate::dictation::backend::DictationBackend::MouseVoice;
-        controller.mouse_voice.setState(isize::from(selected));
-        controller.mouse_voice.setEnabled(!selected);
+        let selected = crate::dictation::voice_buddy::effective_backend(settings)
+            == crate::dictation::backend::DictationBackend::VoiceBuddy;
+        controller.voice_buddy.setState(isize::from(selected));
+        controller.voice_buddy.setEnabled(!selected);
         let entries = model_menu_entries(
             settings,
             status.model.is_some(),

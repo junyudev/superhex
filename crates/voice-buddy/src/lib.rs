@@ -1,4 +1,4 @@
-//! Client for the MouseVoice speech service, one streamed recording per
+//! Client for the VoiceBuddy speech service, one streamed recording per
 //! [`Session`].
 //!
 //! Every session connects, performs a fresh key exchange, streams the audio

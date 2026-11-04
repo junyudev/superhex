@@ -14,7 +14,7 @@ locators unless an executed result is explicitly recorded, as in the
 
 ```ts
 Hex                                      // macOS release
-├── Get ready                            // install, permissions, MouseVoice or a local model
+├── Get ready                            // install, permissions, VoiceBuddy or a local model
 ├── Dictate                              // hold OR double-tap lock; General › Speech chooses who hears it
 ├── Use the result                       // paste, paste-last, History
 ├── Adjust behavior                      // shortcut, microphone, recording preferences

@@ -336,7 +336,7 @@ pub struct Transcribed {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Source {
     #[cfg(target_os = "macos")]
-    MouseVoice,
+    VoiceBuddy,
     Stream,
     Offline,
     /// The stream could not be used; the reason is logged with the result.
@@ -347,7 +347,7 @@ impl Source {
     pub fn label(&self) -> &str {
         match self {
             #[cfg(target_os = "macos")]
-            Self::MouseVoice => "mouse-voice",
+            Self::VoiceBuddy => "voice-buddy",
             Self::Stream => "stream",
             Self::Offline => "offline",
             Self::Fallback(_) => "fallback",
@@ -1316,7 +1316,7 @@ mod tests {
     #[test]
     fn source_labels_distinguish_fallbacks() {
         #[cfg(target_os = "macos")]
-        assert_eq!(Source::MouseVoice.label(), "mouse-voice");
+        assert_eq!(Source::VoiceBuddy.label(), "voice-buddy");
         assert_eq!(Source::Stream.label(), "stream");
         assert_eq!(Source::Offline.label(), "offline");
         assert_eq!(Source::Fallback("x".into()).label(), "fallback");

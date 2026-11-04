@@ -62,8 +62,8 @@ pub(super) struct Capabilities {
     /// Input-source changes can operate the installed-model picker (macOS,
     /// Windows, and Linux on X11; Wayland has no general layout protocol).
     pub(super) keyboard_model_switching: bool,
-    /// Dictation can go through the MouseVoice speech service (macOS).
-    pub(super) mouse_voice: bool,
+    /// Dictation can go through the VoiceBuddy speech service (macOS).
+    pub(super) voice_buddy: bool,
 }
 
 impl Capabilities {
@@ -82,7 +82,7 @@ impl Capabilities {
         fun: true,
         modifier_sides: false,
         keyboard_model_switching: true,
-        mouse_voice: false,
+        voice_buddy: false,
     };
 
     pub(super) const MACOS: Self = Self {
@@ -100,7 +100,7 @@ impl Capabilities {
         fun: true,
         modifier_sides: true,
         keyboard_model_switching: true,
-        mouse_voice: true,
+        voice_buddy: true,
     };
 
     pub(super) const WINDOWS: Self = Self {
@@ -118,7 +118,7 @@ impl Capabilities {
         fun: false,
         modifier_sides: true,
         keyboard_model_switching: true,
-        mouse_voice: false,
+        voice_buddy: false,
     };
 
     /// This OS's capabilities, with the rows its window host decides.
@@ -837,7 +837,7 @@ impl Difference {
 #[cfg(test)]
 const DIFFERENCES: &[(&str, Difference)] = &[
     (
-        "mouse_voice",
+        "voice_buddy",
         Difference::Pending("the speech client is only wired into macOS's capture loop"),
     ),
     (
@@ -899,7 +899,7 @@ impl Capabilities {
             fun,
             modifier_sides,
             keyboard_model_switching,
-            mouse_voice,
+            voice_buddy,
         } = self;
         [
             ("meetings", meetings),
@@ -915,7 +915,7 @@ impl Capabilities {
             ("fun", fun),
             ("modifier_sides", modifier_sides),
             ("keyboard_model_switching", keyboard_model_switching),
-            ("mouse_voice", mouse_voice),
+            ("voice_buddy", voice_buddy),
         ]
     }
 }

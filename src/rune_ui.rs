@@ -43,7 +43,6 @@ mod model_details;
 mod model_import;
 mod models;
 mod modes;
-mod mouse_voice;
 mod onboarding;
 mod onboarding_kit;
 mod output;
@@ -65,6 +64,7 @@ mod spark;
 #[cfg(target_os = "macos")]
 pub(crate) mod story_link;
 mod vocabulary;
+mod voice_buddy;
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -676,7 +676,7 @@ pub(crate) struct Ui {
     build_preview: Option<BuildKind>,
     capture: Capture,
     vocabulary: vocabulary::VocabularyEditor,
-    mouse_voice: mouse_voice::MouseVoicePane,
+    voice_buddy: voice_buddy::VoiceBuddyPane,
     /// The model the service was last seen preparing, and since when.
     preparing: Option<(TranscriptionModelId, Instant)>,
     /// When a text field last changed without being saved.
@@ -753,7 +753,7 @@ impl Ui {
         ui.platform.developer =
             crate::dev_build::is_dev_build() && crate::DEVELOPER_FEATURES_ENABLED;
         ui.platform.hud.tuning = crate::rune_hud::dot_scope::lab();
-        mouse_voice::load(&mut ui);
+        voice_buddy::load(&mut ui);
         ui.tour = onboarding::Tour::start(&ui.settings, &ui.platform);
         onboarding_kit::live::open(&mut ui);
         ui.platform.set_login_item(host::launch_at_login());
@@ -784,7 +784,7 @@ impl Ui {
             build_preview: None,
             capture: Capture::Idle,
             vocabulary,
-            mouse_voice: Default::default(),
+            voice_buddy: Default::default(),
             preparing: None,
             draft_since: None,
             duck_volume_drag: None,
@@ -1259,7 +1259,7 @@ fn poll(ui: &mut Ui, clock: f64, tx: &mut Tx) -> bool {
     changed |= modes::poll_chooser(ui);
     changed |= model_import::poll(ui);
     changed |= found::poll(ui);
-    changed |= mouse_voice::poll(ui);
+    changed |= voice_buddy::poll(ui);
     let login_unknown = ui.platform.login_item.is_none();
     changed |= settings::poll_microphones(ui);
     // General names the input in use; list again when the OS reports an
@@ -1415,7 +1415,7 @@ fn view(ui: &Ui, cx: &mut Cx<Ui>) -> El {
     if let Some(modal) = vocabulary::modal(ui, p) {
         layer.extend(modal);
     }
-    layer.extend(mouse_voice::modal(ui, p).into_iter().flatten());
+    layer.extend(voice_buddy::modal(ui, p).into_iter().flatten());
     if let Some(drawer) = labs::drawer(ui, p) {
         layer.extend(drawer);
     }

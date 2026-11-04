@@ -2,7 +2,7 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use mouse_voice::{Canceller, Config, Failed, Options, Session, Update};
+use voice_buddy::{Canceller, Config, Failed, Options, Session, Update};
 
 use super::super::live_text::{Line, Phase, Publisher};
 use crate::transcription::engine::{Partial, Source, Transcribed};
@@ -114,7 +114,7 @@ impl Capture {
         };
         let cancel = session
             .as_ref()
-            .map_or_else(Canceller::new, mouse_voice::Pending::canceller);
+            .map_or_else(Canceller::new, voice_buddy::Pending::canceller);
         Pending {
             session,
             cancel,
@@ -126,7 +126,7 @@ impl Capture {
 }
 
 pub(crate) struct Pending {
-    session: Option<mouse_voice::Pending>,
+    session: Option<voice_buddy::Pending>,
     cancel: Canceller,
     config: Arc<Config>,
     options: Options,
@@ -163,7 +163,7 @@ impl Pending {
         let started = Instant::now();
         let result = match self.session.take() {
             Some(pending) => pending.wait(|update| self.display.update(update, true)),
-            None => mouse_voice::transcribe(
+            None => voice_buddy::transcribe(
                 self.config.clone(),
                 self.options,
                 samples,
@@ -173,7 +173,7 @@ impl Pending {
         };
         let result = retry_once(result, cancelled, || {
             self.display.show(Phase::Finishing);
-            mouse_voice::transcribe(
+            voice_buddy::transcribe(
                 self.config.clone(),
                 self.options,
                 samples,
@@ -190,7 +190,7 @@ impl Pending {
         }
         result.map(|text| Transcribed {
             text,
-            source: Source::MouseVoice,
+            source: Source::VoiceBuddy,
             finish_ms: started.elapsed().as_millis() as u64,
         })
     }
@@ -218,7 +218,7 @@ pub(crate) fn retry_once(
 mod tests {
     use super::*;
     use std::cell::Cell;
-    fn failed(failure: mouse_voice::Failure) -> Failed {
+    fn failed(failure: voice_buddy::Failure) -> Failed {
         Failed {
             failure,
             heard: "heard".into(),
@@ -232,29 +232,29 @@ mod tests {
             Ok("final".into())
         };
         assert_eq!(
-            retry_once(Err(failed(mouse_voice::Failure::TimedOut)), || false, run).unwrap(),
+            retry_once(Err(failed(voice_buddy::Failure::TimedOut)), || false, run).unwrap(),
             "final"
         );
         assert_eq!(calls.get(), 1);
         let result = retry_once(
-            Err(failed(mouse_voice::Failure::TimedOut)),
+            Err(failed(voice_buddy::Failure::TimedOut)),
             || false,
             || {
                 Err(Failed {
-                    failure: mouse_voice::Failure::Service(503),
+                    failure: voice_buddy::Failure::Service(503),
                     heard: String::new(),
                 })
             },
         )
         .unwrap_err();
         assert_eq!(result.heard, "heard");
-        assert_eq!(result.failure, mouse_voice::Failure::Service(503));
+        assert_eq!(result.failure, voice_buddy::Failure::Service(503));
     }
     #[test]
     fn rejected_and_cancelled_work_never_retries() {
         for (failure, cancelled) in [
-            (mouse_voice::Failure::Rejected(401), false),
-            (mouse_voice::Failure::TimedOut, true),
+            (voice_buddy::Failure::Rejected(401), false),
+            (voice_buddy::Failure::TimedOut, true),
         ] {
             let original = failed(failure);
             assert_eq!(
@@ -330,7 +330,7 @@ mod session_tests {
         let session = Session::scripted(
             Vec::new(),
             Err(Failed {
-                failure: mouse_voice::Failure::TimedOut,
+                failure: voice_buddy::Failure::TimedOut,
                 heard: "heard".into(),
             }),
         );

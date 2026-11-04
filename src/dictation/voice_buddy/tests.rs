@@ -16,32 +16,32 @@ fn only_a_chosen_usable_configuration_can_send_audio() {
         );
     }
     assert_eq!(
-        effective(DictationBackend::MouseVoice, &ready),
-        DictationBackend::MouseVoice
+        effective(DictationBackend::VoiceBuddy, &ready),
+        DictationBackend::VoiceBuddy
     );
     assert_eq!(
-        effective(DictationBackend::MouseVoice, &missing),
+        effective(DictationBackend::VoiceBuddy, &missing),
         DictationBackend::Local
     );
     assert_eq!(
-        effective(DictationBackend::MouseVoice, &broken),
+        effective(DictationBackend::VoiceBuddy, &broken),
         DictationBackend::Local
     );
-    assert_eq!(DictationBackend::default(), DictationBackend::MouseVoice);
+    assert_eq!(DictationBackend::default(), DictationBackend::VoiceBuddy);
 }
 
 #[test]
 fn failures_have_safe_codes_and_rejected_never_retries() {
     let cases = [
         (
-            mouse_voice::Failure::Connection("private transport detail".into()),
+            voice_buddy::Failure::Connection("private transport detail".into()),
             FailureReason::Connection,
         ),
-        (mouse_voice::Failure::TimedOut, FailureReason::TimedOut),
-        (mouse_voice::Failure::Rejected(401), FailureReason::Rejected),
-        (mouse_voice::Failure::Service(503), FailureReason::Service),
+        (voice_buddy::Failure::TimedOut, FailureReason::TimedOut),
+        (voice_buddy::Failure::Rejected(401), FailureReason::Rejected),
+        (voice_buddy::Failure::Service(503), FailureReason::Service),
         (
-            mouse_voice::Failure::Internal("private implementation detail".into()),
+            voice_buddy::Failure::Internal("private implementation detail".into()),
             FailureReason::Service,
         ),
     ];
@@ -70,30 +70,30 @@ fn a_rejected_session_marks_saved_setup_broken_without_retrying_and_import_clear
         .canonicalize()
         .unwrap()
         .join(format!("hex-rejected-session-{}", std::process::id()));
-    let target = dir.join("mouse-voice.json");
+    let target = dir.join("voice-buddy.json");
     let mut saved = store::Store::load(target.clone());
     saved.import_config((*configuration()).clone()).unwrap();
     let config = saved.usable().unwrap();
     let previous = std::mem::replace(&mut *lock(store()), saved);
     let status = crate::control::dictation_report(&AppSettings::default());
-    assert_eq!(status.backend, DictationBackend::MouseVoice);
-    assert_eq!(status.mouse_voice_setup, "ready");
-    let session = mouse_voice::Session::scripted(
+    assert_eq!(status.backend, DictationBackend::VoiceBuddy);
+    assert_eq!(status.voice_buddy_setup, "ready");
+    let session = voice_buddy::Session::scripted(
         Vec::new(),
-        Err(mouse_voice::Failed {
-            failure: mouse_voice::Failure::Rejected(401),
+        Err(voice_buddy::Failed {
+            failure: voice_buddy::Failure::Rejected(401),
             heard: "heard".into(),
         }),
     );
-    let capture = Capture::new(session, config, mouse_voice::Options::default());
+    let capture = Capture::new(session, config, voice_buddy::Options::default());
     let pending = capture.finish(&[]);
     let cancel = pending.canceller();
     let failed = pending.wait(&[], &cancel, || false).unwrap_err();
-    assert_eq!(failed.failure, mouse_voice::Failure::Rejected(401));
+    assert_eq!(failed.failure, voice_buddy::Failure::Rejected(401));
     assert!(matches!(setup(), Setup::Broken { .. }));
     assert_eq!(current_backend(), DictationBackend::Local);
     assert_eq!(
-        crate::control::dictation_report(&AppSettings::default()).mouse_voice_setup,
+        crate::control::dictation_report(&AppSettings::default()).voice_buddy_setup,
         "broken"
     );
     assert!(matches!(

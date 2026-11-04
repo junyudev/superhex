@@ -209,7 +209,7 @@ pub(in crate::rune_ui) fn open(ui: &mut Ui) {
         choice.clone()
     };
     set_other_label(transcription_models::language_name(&other.language));
-    let had_model = installed(ui, &choice) || super::super::mouse_voice::in_effect(ui);
+    let had_model = installed(ui, &choice) || super::super::voice_buddy::in_effect(ui);
     let status = ui.platform.setup_status(had_model);
     let granted = granted(status, ui.platform.paste);
 
@@ -385,7 +385,7 @@ pub(in crate::rune_ui) fn poll(ui: &mut Ui, tx: &mut Tx) -> bool {
     let started = found_choice::started(ui, tour_model);
     let scanning = ui.found.scanning();
     // A cancelled file dialog or a refused file asks again.
-    let stalled = found_choice::mouse_voice_pick_stalled(ui);
+    let stalled = found_choice::voice_buddy_pick_stalled(ui);
     if stalled {
         ui.found.picked = None;
     }
@@ -602,7 +602,7 @@ pub(in crate::rune_ui) fn continue_without_model(ui: &mut Ui) {
 /// "Start using Hex": closes the first run and the tour under it.
 pub(super) fn finish(ui: &mut Ui) {
     let installed =
-        ui.picker.selected_installed(&ui.settings) || super::super::mouse_voice::in_effect(ui);
+        ui.picker.selected_installed(&ui.settings) || super::super::voice_buddy::in_effect(ui);
     if ui.live()
         && ui.platform.setup_status(installed).ready()
         && !crate::desktop::onboarding::completion_recorded()

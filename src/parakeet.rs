@@ -183,7 +183,7 @@ struct JobControl {
     /// dictation was cancelled or failed.
     print: Mutex<Option<crate::control::PrintReply>>,
     remote_job: bool,
-    remote: Mutex<Option<mouse_voice::Canceller>>,
+    remote: Mutex<Option<voice_buddy::Canceller>>,
 }
 
 impl JobControl {
@@ -286,7 +286,7 @@ impl DictationWorker {
         let engine = match TranscriptionEngine::start(WarmTranscriber::default()) {
             Ok(engine) => {
                 let events = event_sender.clone();
-                if crate::dictation::mouse_voice::current_backend()
+                if crate::dictation::voice_buddy::current_backend()
                     == crate::dictation::backend::DictationBackend::Local
                 {
                     let _ = engine.run(move |model| {
@@ -463,7 +463,7 @@ impl DictationWorker {
         {
             control.cancel_remote();
         }
-        crate::dictation::mouse_voice::clear_failed();
+        crate::dictation::voice_buddy::clear_failed();
         self.inference_jobs.take();
         join_worker(self.inference_worker.take(), "dictation inference");
         for worker in self.processor_workers.drain(..) {
@@ -945,7 +945,7 @@ fn record_history(
         total_ms: completed.timings.total_started.elapsed().as_millis() as u64,
         recording: completed.recording.take(),
         model: if remote {
-            Some("MouseVoice".into())
+            Some("VoiceBuddy".into())
         } else {
             crate::history::dictation_model()
         },

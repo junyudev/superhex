@@ -435,7 +435,7 @@ async fn resolve(
 ) -> Result<Vec<SocketAddr>, Failure> {
     let (reply, result) = oneshot::channel();
     std::thread::Builder::new()
-        .name("mouse-voice-dns".into())
+        .name("voice-buddy-dns".into())
         .spawn(move || {
             let _ = reply.send(lookup());
         })

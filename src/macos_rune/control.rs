@@ -67,7 +67,7 @@ impl Pump {
         };
         match command {
             ControlCommand::DictationRetry => {
-                Some(if crate::dictation::mouse_voice::retry_newest() {
+                Some(if crate::dictation::voice_buddy::retry_newest() {
                     ControlReply::done("Retrying the newest failed dictation")
                 } else {
                     ControlReply::unchanged("No failed dictation is held")

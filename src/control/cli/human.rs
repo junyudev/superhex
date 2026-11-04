@@ -308,10 +308,10 @@ pub(super) fn human_status(report: &StatusReport) -> String {
         _ => "off".into(),
     };
     let backend = match report.dictation.backend {
-        crate::dictation::backend::DictationBackend::MouseVoice => "MouseVoice",
+        crate::dictation::backend::DictationBackend::VoiceBuddy => "VoiceBuddy",
         crate::dictation::backend::DictationBackend::Local => "Local",
     };
-    let mouse_voice_setup = &report.dictation.mouse_voice_setup;
+    let voice_buddy_setup = &report.dictation.voice_buddy_setup;
     let model = &report.model;
     let mut model_line = format!(
         "{} ({}){}",
@@ -358,7 +358,7 @@ pub(super) fn human_status(report: &StatusReport) -> String {
          Listener     {}\n\
          Capture      {capture}{pending}\n\
          Meeting      {meeting}\n\
-         Dictation    {backend} (MouseVoice: {mouse_voice_setup})\n\
+         Dictation    {backend} (VoiceBuddy: {voice_buddy_setup})\n\
          Model        {model_line}\n\
          Features     meetings {}, release mic while idle {}, history {}\n\
          Permissions  {permission_line}\n\

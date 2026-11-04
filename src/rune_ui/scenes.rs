@@ -271,31 +271,31 @@ pub(super) const SCENES: &[Scene] = &[
     }),
     // macOS and Windows surfaces, from preview data (see `platform`).
     ("mac-settings", |ui| *ui = mac_fixture()),
-    // MouseVoice's Speech rows: set up from what another app saved, from a
+    // VoiceBuddy's Speech rows: set up from what another app saved, from a
     // file, refused, and ready, with its options; and the local model chosen.
-    ("mac-mouse-voice-found", |ui| {
+    ("mac-voice-buddy-found", |ui| {
         *ui = mac_fixture();
-        mouse_voice::fixture(ui, Setup::Missing, true);
+        voice_buddy::fixture(ui, Setup::Missing, true);
     }),
-    ("mac-mouse-voice-missing", |ui| {
+    ("mac-voice-buddy-missing", |ui| {
         *ui = mac_fixture();
-        mouse_voice::fixture(ui, Setup::Missing, false);
+        voice_buddy::fixture(ui, Setup::Missing, false);
     }),
-    ("mac-mouse-voice-broken", |ui| {
+    ("mac-voice-buddy-broken", |ui| {
         *ui = mac_fixture();
-        mouse_voice::fixture(
+        voice_buddy::fixture(
             ui,
             Setup::Broken {
-                reason: "MouseVoice refused this configuration".into(),
+                reason: "VoiceBuddy refused this configuration".into(),
             },
             false,
         );
     }),
-    ("mac-mouse-voice-options", |ui| {
+    ("mac-voice-buddy-options", |ui| {
         *ui = mac_fixture();
-        mouse_voice::options_fixture(ui, true);
+        voice_buddy::options_fixture(ui, true);
     }),
-    ("mac-mouse-voice-local", |ui| {
+    ("mac-voice-buddy-local", |ui| {
         *ui = mac_fixture();
         ui.settings.dictation_backend = crate::dictation::backend::DictationBackend::Local;
     }),
@@ -700,10 +700,10 @@ pub(super) const SCENES: &[Scene] = &[
     ("mac-onboarding", |ui| {
         mac_first_run(ui, onboarding::MacStep::Setup, Page::Download)
     }),
-    // The speech step with MouseVoice's configuration found on this Mac.
-    ("mac-onboarding-mouse-voice-found", |ui| {
+    // The speech step with VoiceBuddy's configuration found on this Mac.
+    ("mac-onboarding-voice-buddy-found", |ui| {
         *ui = mac_fixture();
-        mouse_voice::fixture(ui, Setup::Missing, true);
+        voice_buddy::fixture(ui, Setup::Missing, true);
         onboarding::mac_fixture(ui, onboarding::MacStep::Setup);
         onboarding_kit::live::fixture(ui, Page::Download);
     }),
@@ -774,10 +774,10 @@ fn first_run(ui: &mut Ui, state: FirstRun, page: Page) {
 
 fn mac_first_run(ui: &mut Ui, step: onboarding::MacStep, page: Page) {
     *ui = mac_fixture();
-    // A new Mac starts at the speech step; the pages after it have MouseVoice
+    // A new Mac starts at the speech step; the pages after it have VoiceBuddy
     // set up.
     if page == Page::Download {
-        mouse_voice::fixture(ui, Setup::Missing, false);
+        voice_buddy::fixture(ui, Setup::Missing, false);
     }
     onboarding::mac_fixture(ui, step);
     onboarding_kit::live::fixture(ui, page);
@@ -800,10 +800,10 @@ pub(super) fn mac_fixture() -> Ui {
     let mut ui = fixture(DesktopShortcuts::Registered);
     ui.platform = platform::PlatformState::preview(platform::Capabilities::MACOS);
     ui.host = platform::PlatformHost::Fixture(Vec::new());
-    mouse_voice::fixture(
+    voice_buddy::fixture(
         &mut ui,
         Setup::Ready {
-            host: mouse_voice::FIXTURE_HOST.into(),
+            host: voice_buddy::FIXTURE_HOST.into(),
         },
         false,
     );

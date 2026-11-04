@@ -1,8 +1,8 @@
-//! The capsule for a dictation MouseVoice couldn't finish: what went wrong,
+//! The capsule for a dictation VoiceBuddy couldn't finish: what went wrong,
 //! that the recording is still held, and the ways out. Like the meeting
 //! capsules it is a non-activating overlay, so its buttons take clicks while
 //! the app being dictated into keeps focus, and a retry pastes there. Its
-//! audio lives in memory only (`dictation::mouse_voice`), and the capsule
+//! audio lives in memory only (`dictation::voice_buddy`), and the capsule
 //! leaves with the last held recording.
 
 use rune::{Align, Anim, Cx, El, OverlayHandle, OverlayPlacement, OverlaySpec, ScreenEdge, row};
@@ -11,7 +11,7 @@ use rune_kit::{Button, ButtonVariant, ControlSize, IconButton, IconButtonVariant
 use super::controls::{Paint, PushSize, status_dot};
 use super::live_text::Spot;
 use super::meeting_capsules::{panel_radius, pill_body};
-use super::mouse_voice::reason_copy;
+use super::voice_buddy::reason_copy;
 use crate::desktop::i18n::{tr, tr_fill};
 use crate::dictation::backend::{FailedAction, FailedDictation};
 
@@ -98,7 +98,7 @@ fn offer_button(p: Paint, offer: Offer, id: u64, primary: bool, open: Option<fn(
 
 #[cfg(target_os = "macos")]
 fn act(id: u64, action: FailedAction) {
-    crate::dictation::mouse_voice::act_on_failed(id, action);
+    crate::dictation::voice_buddy::act_on_failed(id, action);
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -194,7 +194,7 @@ pub(crate) fn install<S: 'static>(
             ..Capsule::default()
         },
     );
-    crate::dictation::mouse_voice::watch_failed(move |failed| {
+    crate::dictation::voice_buddy::watch_failed(move |failed| {
         let failed = failed.to_vec();
         let (_, selection) = crate::app_settings::transcription_selection();
         let local = crate::transcription::models::validate(&selection).is_ok_and(|model| {

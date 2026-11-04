@@ -2,7 +2,7 @@
 
 Hold the configured shortcut, speak, and release. Hex transcribes through the
 chosen backend and inserts the result at the current focus. On this fork,
-macOS uses MouseVoice after explicit configuration import; otherwise it uses
+macOS uses VoiceBuddy after explicit configuration import; otherwise it uses
 the selected local model. New captures do not cancel accepted
 work. Only Toggle mode has a cancel: its cancel shortcut, Escape by default,
 discards the recording (#786, #1022); every other intentional dictation
@@ -12,7 +12,7 @@ This map covers the macOS release path. Linux shares the basic journey, not
 every timing, input, or recovery guarantee; see the
 [platform map](README.md#other-platforms-and-consumers). This is a map, not a
 verified end-to-end driver. Linked checks are locators; no tests or previews
-were run for the original rewrite. MouseVoice verification is recorded beside
+were run for the original rewrite. VoiceBuddy verification is recorded beside
 its contract below.
 
 ## How To Get To It
@@ -23,7 +23,7 @@ The GPUI regression that injected this failure went with GPUI; no Rune test
 injects a failed shortcut save yet.
 
 **Shortcut:** Option by default, after macOS permissions and speech (usable
-MouseVoice or the selected local model) are ready. Commands and OpenCode are not required. General > Dictation >
+VoiceBuddy or the selected local model) are ready. Commands and OpenCode are not required. General > Dictation >
 Shortcut accepts modifier-only, modifier-plus-key, standalone Fn/Globe, and
 standalone function-key bindings. On macOS, Windows and Linux/X11 it also
 accepts mouse buttons, alone or with modifiers. Mouse 1/2/3 are left/right/middle;
@@ -810,55 +810,55 @@ speaker playing the tone.
 
 ### Streaming Finish
 
-On this fork, macOS defaults to the MouseVoice backend, independently of the
+On this fork, macOS defaults to the VoiceBuddy backend, independently of the
 saved local `transcription` model. It becomes effective only after the person
 imports a usable configuration. No configuration, a refused configuration, or
 choosing Local keeps dictation on the local path below. This is the owner's
 explicit exception to the off-by-default Labs policy.
 
 ```ts
-macOS dictation backend                    // dictate.mouse-voice
-├── MouseVoice chosen + usable imported configuration -> speech service
+macOS dictation backend                    // dictate.voice-buddy
+├── VoiceBuddy chosen + usable imported configuration -> speech service
 │   ├── Intentional hold -> one Session; complete 16 kHz timeline, no pause cap
 │   ├── Short tap / chord / cancel / silence -> drop session and live text
 │   ├── Connection fails during capture -> keep recording; line becomes Offline
 │   └── Release -> Publisher travels with clip -> Finishing -> Polishing -> text
 └── Otherwise -> selected local model, with the existing local stream/fallback
 
-Explicit configuration import              // dictate.mouse-voice-setup
+Explicit configuration import              // dictate.voice-buddy-setup
 ├── Validate bounded regular file, not itself a symlink -> durable fields only
-│   ├── <support>/mouse-voice.json: 0600; parent: 0700
+│   ├── <support>/voice-buddy.json: 0600; parent: 0700
 │   └── Copy voice options into settings once; leave source alone
-├── Explicit discovery only -> MouseVoice/context.json
+├── Explicit discovery only -> the MouseVoice app's context.json
 │   └── Never copy automatically, scan other apps, create an identity, or use Keychain
 └── Service Rejected -> Broken; import another valid configuration to recover
 ```
 
 ```ts
-General > Speech: MouseVoice | Local model          // dictate.mouse-voice-window
+General > Speech: VoiceBuddy | Local model          // dictate.voice-buddy-window
 ├── Local model -> the Speech model and Language rows, as before
 ├── Ready -> "Your voice goes to <host> while you dictate" -> Options
 │   └── Options sheet: polish, remove repetition, paragraphs, Traditional Chinese,
 │       Test connection, Replace…, Remove… (two presses)
 ├── Not set up -> what Hex uses until then, and:
-│   ├── MouseVoice's file found -> Use it, or Choose file…
+│   ├── VoiceBuddy's file found -> Use it, or Choose file…
 │   └── Nothing found -> Choose file…
-└── Refused or unreadable -> "MouseVoice can't run" -> Choose file…
+└── Refused or unreadable -> "VoiceBuddy can't run" -> Choose file…
 
-First run on macOS -> "Choose how Hex hears you"    // dictate.mouse-voice-first-run
-├── MouseVoice first, recommended, selected; its row says where the voice goes
+First run on macOS -> "Choose how Hex hears you"    // dictate.voice-buddy-first-run
+├── VoiceBuddy first, recommended, selected; its row says where the voice goes
 ├── Nothing downloads until a pick
 ├── Continue -> saved: use it; found: import it; neither: the file dialog
 │   └── Dialog cancelled or file refused -> The list asks again
 └── A local row -> Chooses Local and prepares that model
 
-The live text plate, with no Labs toggle            // dictate.mouse-voice-live
+The live text plate, with no Labs toggle            // dictate.voice-buddy-live
 ├── Hearing -> The words, newest in view
 ├── Offline -> "No connection, still recording"; the words dim
 ├── Finishing -> A pulsing dot; the words dim (past the recording)
 └── Polishing -> "Polishing" beside the words
 
-A failed dictation's capsule                        // dictate.mouse-voice-failed
+A failed dictation's capsule                        // dictate.voice-buddy-failed
 ├── Where the words were, just past the HUD; non-activating, so focus stays
 ├── Retryable -> Try again; Use local model when one is installed; Paste heard text
 ├── Refused or not set up -> Open Settings; Use local model when one is installed
@@ -866,25 +866,25 @@ A failed dictation's capsule                        // dictate.mouse-voice-faile
 └── Audio stays in memory only: 8 recordings, 10 minutes, gone on quit
 ```
 
-Checks: `found_choice` and `mouse_voice` tests in `rune_ui`, `live_text` and
-`dictation_failed` tests (fixtures; `--snap` scenes `mac-mouse-voice-*` and
-`mac-onboarding-mouse-voice-found`, and those tests' ignored `snapshots`). No
+Checks: `found_choice` and `voice_buddy` tests in `rune_ui`, `live_text` and
+`dictation_failed` tests (fixtures; `--snap` scenes `mac-voice-buddy-*` and
+`mac-onboarding-voice-buddy-found`, and those tests' ignored `snapshots`). No
 capsule or plate was observed on a real screen.
 
 The window calls the unchanged API in
-[mouse_voice.rs](../../src/dictation/mouse_voice.rs), whose store, capture and
+[voice_buddy.rs](../../src/dictation/voice_buddy.rs), whose store, capture and
 recovery owners live alongside it. The local model stays cold at startup while
-MouseVoice is effective. Meetings and Annotate activate locally; `/transcribe`
+VoiceBuddy is effective. Meetings and Annotate activate locally; `/transcribe`
 uses the local service's model, and `/streams` activates the local engine on
 first admission when it has no model. Benchmarks and History's Transcribe again
 also stay local. Keyboard-language switching applies only while Local is in
-effect. Selecting a local menu model chooses Local; MouseVoice is the menu's
+effect. Selecting a local menu model chooses Local; VoiceBuddy is the menu's
 first item and opens Settings when it needs configuration.
 
-Checks for `dictate.mouse-voice` and its recovery policy live in
-[store.rs](../../src/dictation/mouse_voice/store.rs),
-[capture.rs](../../src/dictation/mouse_voice/capture.rs),
-[tests.rs](../../src/dictation/mouse_voice/tests.rs),
+Checks for `dictate.voice-buddy` and its recovery policy live in
+[store.rs](../../src/dictation/voice_buddy/store.rs),
+[capture.rs](../../src/dictation/voice_buddy/capture.rs),
+[tests.rs](../../src/dictation/voice_buddy/tests.rs),
 [capture_stream.rs](../../src/dictation/capture_stream.rs), and
 [jobs.rs](../../src/dictation/jobs.rs): effective-backend rules, bounded imports
 and private modes, refusal/reimport, hold gating, complete audio and delayed
@@ -921,7 +921,7 @@ service, or an automatic retry recovering against the real service (the retry is
 checked against a local fake service,
 `a_retry_linked_to_a_failed_session_really_runs_and_can_still_be_cancelled`).
 
-The following stream rules describe the **local** backend. The MouseVoice
+The following stream rules describe the **local** backend. The VoiceBuddy
 Publisher always publishes, regardless of Labs; an older job cannot overwrite a
 newer capture's line, and a completed job drops its Publisher before processing.
 
@@ -1179,10 +1179,10 @@ macOS or a microphone.
 ### Ongoing Jobs And Output
 
 ```ts
-Accepted MouseVoice job                     // dictate.mouse-voice-recovery
+Accepted VoiceBuddy job                     // dictate.voice-buddy-recovery
 ├── Wait off the engine and microphone threads; dictation_busy stays true
 ├── Retryable failure -> one whole-clip retry, silently, line stays Finishing
-├── Text -> unchanged ordered processing and output; source=mouse-voice
+├── Text -> unchanged ordered processing and output; source=voice-buddy
 └── Final failure -> no paste; one failed HUD event and error tone
     ├── Paste / Raw Paste -> volatile failed list, oldest first
     │   ├── At most 8, 10-minute expiry, 128 MiB audio, 64 KiB heard text per clip
@@ -1195,7 +1195,7 @@ Full pipeline -> leave the recovery request pending; expiry still applies
 Quit -> cancel service tokens before draining; clear held clips
 ```
 
-Successful service output records History normally (model label MouseVoice),
+Successful service output records History normally (model label VoiceBuddy),
 but omits its words from the persisted event log. Failed service clips bypass
 diagnostic WAV retention and History. Local capture, processing, admission and
 submission-order output retain their existing contracts. Toggle cancel still

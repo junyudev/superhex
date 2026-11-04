@@ -197,7 +197,7 @@ fn models_page(p: Paint, s: &Onboard, live: &Live) -> El {
     let (title, line) = if service {
         (
             tr("Choose how Hex hears you"),
-            tr("MouseVoice streams your voice to its service. A local model stays on this Mac."),
+            tr("VoiceBuddy streams your voice to its service. A local model stays on this Mac."),
         )
     } else {
         (

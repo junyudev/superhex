@@ -27,7 +27,7 @@ pub(crate) fn model_menu_entries(
     installed: impl Fn(&ModelDefinition, &str) -> bool,
 ) -> Vec<ModelMenuEntry> {
     #[cfg(target_os = "macos")]
-    let local = crate::dictation::mouse_voice::effective_backend(settings)
+    let local = crate::dictation::voice_buddy::effective_backend(settings)
         == crate::dictation::backend::DictationBackend::Local;
     #[cfg(not(target_os = "macos"))]
     let local = true;

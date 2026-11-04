@@ -1,6 +1,6 @@
 //! The live text plate: one click-through line beside the recording HUD with
 //! what the dictation has said so far, on every OS. Labs › Live text turns it
-//! on for local models; MouseVoice always shows it, and keeps it up past the
+//! on for local models; VoiceBuddy always shows it, and keeps it up past the
 //! recording while the service finishes the words, saying so with its phase.
 //! It shows while a recording has text and hides when the recording ends
 //! ([`crate::dictation::live_text`]); `rune_hud` says where the HUD is, so the
@@ -101,7 +101,7 @@ pub(crate) fn refollow_pointer() {
 pub(crate) type Place = fn() -> Spot;
 
 /// Adds the plate to the app. It shows only while a dictation publishes its
-/// text (Labs › Live text, applied at once, or MouseVoice), so it's prewarmed
+/// text (Labs › Live text, applied at once, or VoiceBuddy), so it's prewarmed
 /// only when one of them is on at launch.
 pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     let spec = OverlaySpec {
@@ -116,7 +116,7 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
         view,
     }
     .options(OverlayOptions {
-        prewarm: crate::labs::live_text() || mouse_voice_chosen(),
+        prewarm: crate::labs::live_text() || voice_buddy_chosen(),
         #[cfg(not(target_os = "macos"))]
         display: crate::rune_hud::display(),
         ..Default::default()
@@ -157,12 +157,12 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     });
 }
 
-/// Whether the saved settings choose MouseVoice, so its plate is ready.
-fn mouse_voice_chosen() -> bool {
+/// Whether the saved settings choose VoiceBuddy, so its plate is ready.
+fn voice_buddy_chosen() -> bool {
     use crate::dictation::backend::DictationBackend;
     cfg!(target_os = "macos")
         && crate::app_settings::AppSettings::read()
-            .is_ok_and(|settings| settings.dictation_backend == DictationBackend::MouseVoice)
+            .is_ok_and(|settings| settings.dictation_backend == DictationBackend::VoiceBuddy)
 }
 
 /// The model's first update often has no words yet. A line in another phase

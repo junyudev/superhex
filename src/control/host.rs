@@ -116,7 +116,7 @@ fn command(host: &dyn Host, command: ControlCommand) -> ControlReply {
         ControlCommand::Status => reply(status(host)),
         ControlCommand::DictationRetry => ControlReply::error(
             "unsupported",
-            "MouseVoice dictation is available only on macOS",
+            "VoiceBuddy dictation is available only on macOS",
         ),
         ControlCommand::Quit { force } | ControlCommand::Restart { force } => {
             let restart = matches!(command, ControlCommand::Restart { .. });

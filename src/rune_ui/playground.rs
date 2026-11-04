@@ -214,30 +214,30 @@ const PATHS: &[(&str, &str)] = &[
     ("mac-labs-drawer", "Window/General/Labs drawer"),
     ("mac-production", "Window/General/Production build"),
     (
-        "mac-mouse-voice-found",
-        "Window/General/MouseVoice/Found on this Mac",
+        "mac-voice-buddy-found",
+        "Window/General/VoiceBuddy/Found on this Mac",
     ),
     (
-        "mac-mouse-voice-missing",
-        "Window/General/MouseVoice/Not set up",
+        "mac-voice-buddy-missing",
+        "Window/General/VoiceBuddy/Not set up",
     ),
     (
-        "mac-mouse-voice-broken",
-        "Window/General/MouseVoice/Refused",
+        "mac-voice-buddy-broken",
+        "Window/General/VoiceBuddy/Refused",
     ),
     (
-        "mac-mouse-voice-options",
-        "Window/General/MouseVoice/Options",
+        "mac-voice-buddy-options",
+        "Window/General/VoiceBuddy/Options",
     ),
     (
-        "mac-mouse-voice-local",
-        "Window/General/MouseVoice/Local model chosen",
+        "mac-voice-buddy-local",
+        "Window/General/VoiceBuddy/Local model chosen",
     ),
     ("mac-activity", "Window/Activity/Activity"),
     ("mac-onboarding", "Window/Onboarding/Setting up Hex"),
     (
-        "mac-onboarding-mouse-voice-found",
-        "Window/Onboarding/MouseVoice found on this Mac",
+        "mac-onboarding-voice-buddy-found",
+        "Window/Onboarding/VoiceBuddy found on this Mac",
     ),
     (
         "mac-onboarding-permissions",

@@ -1,4 +1,4 @@
-//! MouseVoice configuration, capture sessions and failed dictations on macOS.
+//! VoiceBuddy configuration, capture sessions and failed dictations on macOS.
 mod capture;
 mod failed;
 mod store;
@@ -6,11 +6,11 @@ mod store;
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
-use mouse_voice::{Config, Options};
+use voice_buddy::{Config, Options};
 
 use super::backend::{
-    DictationBackend, FailedAction, FailedDictation, FailureReason, FoundConfig,
-    MouseVoicePreferences, Setup,
+    DictationBackend, FailedAction, FailedDictation, FailureReason, FoundConfig, Setup,
+    VoiceBuddyPreferences,
 };
 use crate::app_settings::AppSettings;
 
@@ -18,7 +18,7 @@ use crate::app_settings::AppSettings;
 pub(crate) use capture::retry_once;
 pub(crate) use capture::{Capture, Pending};
 pub(crate) use failed::{Retry, RetryClip};
-pub(crate) fn failure_reason(failure: &mouse_voice::Failure) -> FailureReason {
+pub(crate) fn failure_reason(failure: &voice_buddy::Failure) -> FailureReason {
     reason(failure)
 }
 
@@ -41,18 +41,18 @@ fn store_path() -> std::path::PathBuf {
     // HEX_APPLICATION_SUPPORT_DIR set. Tests install synthetic stores explicitly.
     std::env::temp_dir()
         .join(format!("hex-mouse-runtime-{}", std::process::id()))
-        .join("mouse-voice.json")
+        .join("voice-buddy.json")
 }
 
 #[cfg(not(test))]
 fn store_path() -> std::path::PathBuf {
-    crate::app_paths::mouse_voice_file().unwrap_or_default()
+    crate::app_paths::voice_buddy_file().unwrap_or_default()
 }
 
 #[derive(Clone, Copy, Default)]
 struct Preferences {
     backend: DictationBackend,
-    voice: MouseVoicePreferences,
+    voice: VoiceBuddyPreferences,
 }
 
 fn preferences() -> &'static Mutex<Preferences> {
@@ -63,7 +63,7 @@ fn preferences() -> &'static Mutex<Preferences> {
 pub(crate) fn configure(settings: &AppSettings) {
     *lock(preferences()) = Preferences {
         backend: settings.dictation_backend,
-        voice: settings.mouse_voice,
+        voice: settings.voice_buddy,
     };
 }
 
@@ -73,8 +73,8 @@ pub(crate) fn effective_backend(settings: &AppSettings) -> DictationBackend {
 }
 
 fn effective(chosen: DictationBackend, setup: &Setup) -> DictationBackend {
-    if chosen == DictationBackend::MouseVoice && matches!(setup, Setup::Ready { .. }) {
-        return DictationBackend::MouseVoice;
+    if chosen == DictationBackend::VoiceBuddy && matches!(setup, Setup::Ready { .. }) {
+        return DictationBackend::VoiceBuddy;
     }
     DictationBackend::Local
 }
@@ -105,7 +105,7 @@ pub(crate) fn import(path: &Path) -> Result<Setup, String> {
     let options = config.options();
     let previous = AppSettings::load().map_err(|_| "Could not read settings")?;
     let mut settings = previous.clone();
-    settings.mouse_voice = MouseVoicePreferences {
+    settings.voice_buddy = VoiceBuddyPreferences {
         polish: options.polish,
         traditional: options.traditional,
         paragraph: options.paragraph,
@@ -123,7 +123,7 @@ pub(crate) fn import(path: &Path) -> Result<Setup, String> {
     }
     *lock(store()) = candidate;
     if previous_backend == DictationBackend::Local
-        && current_backend() == DictationBackend::MouseVoice
+        && current_backend() == DictationBackend::VoiceBuddy
         && let Some(runtime) = crate::macos_rune::runtime()
     {
         let _ = runtime.send(crate::macos_rune::Request::CancelModel);
@@ -141,7 +141,7 @@ pub(crate) fn forget() -> Result<(), String> {
 
 pub(crate) fn check_connection() -> Result<(), FailureReason> {
     let config = config().ok_or(FailureReason::NotSetUp)?;
-    mouse_voice::check(&config).map_err(|error| {
+    voice_buddy::check(&config).map_err(|error| {
         reject(&config, &error);
         persist_rejection(&config, &error);
         reason(&error)
@@ -183,24 +183,24 @@ fn options(config: &Config) -> Options {
         ..config.options()
     }
 }
-fn reject(config: &Arc<Config>, failure: &mouse_voice::Failure) {
-    if matches!(failure, mouse_voice::Failure::Rejected(_)) {
+fn reject(config: &Arc<Config>, failure: &voice_buddy::Failure) {
+    if matches!(failure, voice_buddy::Failure::Rejected(_)) {
         lock(store()).reject(config);
     }
 }
-fn persist_rejection(config: &Arc<Config>, failure: &mouse_voice::Failure) {
-    if matches!(failure, mouse_voice::Failure::Rejected(_)) {
+fn persist_rejection(config: &Arc<Config>, failure: &voice_buddy::Failure) {
+    if matches!(failure, voice_buddy::Failure::Rejected(_)) {
         let _write = lock(&STORE_WRITES);
         let snapshot = lock(store()).clone();
         snapshot.persist_rejection(config);
     }
 }
-fn reason(failure: &mouse_voice::Failure) -> FailureReason {
+fn reason(failure: &voice_buddy::Failure) -> FailureReason {
     match failure {
-        mouse_voice::Failure::Connection(_) => FailureReason::Connection,
-        mouse_voice::Failure::TimedOut => FailureReason::TimedOut,
-        mouse_voice::Failure::Rejected(_) => FailureReason::Rejected,
-        mouse_voice::Failure::Service(_) | mouse_voice::Failure::Internal(_) => {
+        voice_buddy::Failure::Connection(_) => FailureReason::Connection,
+        voice_buddy::Failure::TimedOut => FailureReason::TimedOut,
+        voice_buddy::Failure::Rejected(_) => FailureReason::Rejected,
+        voice_buddy::Failure::Service(_) | voice_buddy::Failure::Internal(_) => {
             FailureReason::Service
         }
     }
@@ -212,7 +212,7 @@ pub(crate) fn failure_message(reason: FailureReason) -> &'static str {
         FailureReason::TimedOut => "The speech service did not answer in time",
         FailureReason::Rejected => "The speech service refused this configuration",
         FailureReason::Service => "The speech service could not transcribe this dictation",
-        FailureReason::NotSetUp => "MouseVoice is not set up and no local model is ready",
+        FailureReason::NotSetUp => "VoiceBuddy is not set up and no local model is ready",
     }
 }
 

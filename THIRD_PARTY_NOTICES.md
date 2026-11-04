@@ -6,9 +6,9 @@ licences. Dependencies retain their respective upstream licenses.
 
 ## Opus
 
-The macOS build links libopus statically for the MouseVoice speech client
-(`crates/mouse-voice`). Its three-clause BSD license and copyright notices are
-in [`crates/mouse-voice/OPUS-COPYING`](crates/mouse-voice/OPUS-COPYING).
+The macOS build links libopus statically for the VoiceBuddy speech client
+(`crates/voice-buddy`). Its three-clause BSD license and copyright notices are
+in [`crates/voice-buddy/OPUS-COPYING`](crates/voice-buddy/OPUS-COPYING).
 
 ## Parakeet Ultra
 

@@ -140,10 +140,10 @@ pub(super) fn summary(ui: &Ui) -> String {
 /// none (Parakeet biases toward it; Whisper and Qwen3-ASR read it as a
 /// prompt).
 pub(super) fn unused_note(ui: &Ui) -> Option<String> {
-    if super::mouse_voice::in_effect(ui) {
+    if super::voice_buddy::in_effect(ui) {
         return Some(tr_fill(
             "{} doesn't use these terms; rewriting and search still do",
-            tr("MouseVoice"),
+            tr("VoiceBuddy"),
         ));
     }
     let model = crate::transcription::models::definition(ui.settings.transcription.model);

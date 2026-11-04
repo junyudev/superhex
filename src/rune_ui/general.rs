@@ -113,8 +113,8 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         }
         rows.extend(configure_shortcuts_row(ui, p).map(CardRow::from));
     }
-    if ui.platform.caps.mouse_voice {
-        rows.push(super::mouse_voice::backend_row(ui, p).into());
+    if ui.platform.caps.voice_buddy {
+        rows.push(super::voice_buddy::backend_row(ui, p).into());
     }
     let picker_button = value_button(
         p,
@@ -173,11 +173,11 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         }
         None => (s::transcription_status(ui, p), picker_button),
     };
-    if super::mouse_voice::chosen(ui) {
-        rows.push(super::mouse_voice::status_row(ui, p));
+    if super::voice_buddy::chosen(ui) {
+        rows.push(super::voice_buddy::status_row(ui, p));
     } else {
         // With the choice above leading the card, the model is its detail.
-        let glyph = [&WAVE, &MODEL][usize::from(ui.platform.caps.mouse_voice)];
+        let glyph = [&WAVE, &MODEL][usize::from(ui.platform.caps.voice_buddy)];
         rows.push(
             icon_described_row(
                 p,

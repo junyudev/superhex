@@ -126,7 +126,7 @@ impl Session {
         let (sender, receiver) = queue::channel(8192);
         let (reply, result) = mpsc::sync_channel(1);
         let worker_control = control.clone();
-        let spawn = std::thread::Builder::new().name("mouse-voice".into()).spawn(move || {
+        let spawn = std::thread::Builder::new().name("voice-buddy".into()).spawn(move || {
             // Dependency diagnostics can contain endpoint names or message bodies.
             tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
                 let mut heard = String::new();

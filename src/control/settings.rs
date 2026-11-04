@@ -193,28 +193,28 @@ const KEYS: &[Key] = &[
     ),
     key(
         "dictation_backend",
-        Kind::Choice(&["mouse_voice", "local"]),
-        "Who turns dictation into text: the MouseVoice speech service, or the local model",
+        Kind::Choice(&["voice_buddy", "local"]),
+        "Who turns dictation into text: the VoiceBuddy speech service, or the local model",
     ),
     key(
-        "mouse_voice.polish",
+        "voice_buddy.polish",
         Kind::Bool,
-        "MouseVoice polishes the final text",
+        "VoiceBuddy polishes the final text",
     ),
     key(
-        "mouse_voice.traditional",
+        "voice_buddy.traditional",
         Kind::Bool,
-        "MouseVoice returns Traditional Chinese",
+        "VoiceBuddy returns Traditional Chinese",
     ),
     key(
-        "mouse_voice.paragraph",
+        "voice_buddy.paragraph",
         Kind::Bool,
-        "MouseVoice breaks long text into paragraphs",
+        "VoiceBuddy breaks long text into paragraphs",
     ),
     key(
-        "mouse_voice.reduce_redundancy",
+        "voice_buddy.reduce_redundancy",
         Kind::Bool,
-        "MouseVoice removes repetition",
+        "VoiceBuddy removes repetition",
     ),
     key(
         "dictation_hotkey",
@@ -677,8 +677,8 @@ const CAPTURE_KEYS: &[Key] = &[];
 /// `rune_ui::capabilities` name), the same one that shows their row in the
 /// window. The first matching prefix decides.
 const NEEDS: &[(&str, &str)] = &[
-    ("dictation_backend", "mouse_voice"),
-    ("mouse_voice.", "mouse_voice"),
+    ("dictation_backend", "voice_buddy"),
+    ("voice_buddy.", "voice_buddy"),
     ("meetings.calendar.", "calendar"),
     ("meetings.", "meetings"),
     ("labs.live_chapters", "meetings"),

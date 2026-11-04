@@ -362,7 +362,7 @@ pub fn listen(
     #[cfg(hex_capture)]
     let mut capture_shortcut = crate::capture_host::CaptureShortcut::default();
     let (mut transcription_revision, _) = crate::app_settings::transcription_selection();
-    let mut backend = crate::dictation::mouse_voice::chosen_backend();
+    let mut backend = crate::dictation::voice_buddy::chosen_backend();
     let mut personal_host_enabled = crate::app_settings::custom_transformations_enabled();
     let mut personal_commands = personal_host_enabled
         .then(|| crate::personal_commands::PersonalCommands::start(transformations.clone()))
@@ -825,11 +825,11 @@ pub fn listen(
             microphone_revision = next_microphone_revision;
         }
         let (next_revision, selection) = crate::app_settings::transcription_selection();
-        let next_backend = crate::dictation::mouse_voice::chosen_backend();
+        let next_backend = crate::dictation::voice_buddy::chosen_backend();
         let changed_to_local = backend != next_backend
             && next_backend == crate::dictation::backend::DictationBackend::Local;
         let local_selection_changed = next_revision != transcription_revision
-            && crate::dictation::mouse_voice::current_backend()
+            && crate::dictation::voice_buddy::current_backend()
                 == crate::dictation::backend::DictationBackend::Local;
         if changed_to_local || local_selection_changed {
             let _ = dictation_worker.reload(selection);

@@ -701,14 +701,14 @@ impl Runtime {
                 self.manual_choice();
                 // `hex model use` replies "already in use" on the same test.
                 if !same_model_and_language(&selection, &self.settings.transcription)
-                    || crate::dictation::mouse_voice::chosen_backend()
+                    || crate::dictation::voice_buddy::chosen_backend()
                         != crate::dictation::backend::DictationBackend::Local
                 {
                     self.preparation.start(selection, true);
                 }
             }
             Request::InputSourceChanged(source) => {
-                if crate::dictation::mouse_voice::current_backend()
+                if crate::dictation::voice_buddy::current_backend()
                     != crate::dictation::backend::DictationBackend::Local
                 {
                     return;
@@ -771,7 +771,7 @@ impl Runtime {
     }
 
     fn tick_at(&mut self, now: Instant) {
-        if crate::dictation::mouse_voice::current_backend()
+        if crate::dictation::voice_buddy::current_backend()
             != crate::dictation::backend::DictationBackend::Local
         {
             self.keyboard_switcher.manual_choice();
@@ -1121,7 +1121,7 @@ impl Pump {
         match action {
             StatusItemAction::OpenSettings => show(&self.window, Destination::Settings),
             StatusItemAction::OpenModels => show(&self.window, Destination::Models),
-            StatusItemAction::SelectMouseVoice => self.select_mouse_voice(),
+            StatusItemAction::SelectVoiceBuddy => self.select_voice_buddy(),
             StatusItemAction::SelectModel(model) => {
                 let _ = self.runtime.send(Request::SelectInstalledModel(model));
                 self.model_menu_at = Instant::now();

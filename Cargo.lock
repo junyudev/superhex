@@ -1991,7 +1991,7 @@ dependencies = [
  "getrandom 0.4.3",
  "hound",
  "libc",
- "mouse-voice",
+ "voice-buddy",
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-core-audio",
@@ -2702,7 +2702,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mouse-voice"
+name = "voice-buddy"
 version = "0.1.0"
 dependencies = [
  "aes",

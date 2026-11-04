@@ -94,7 +94,7 @@ pub enum ControlCommand {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         raw: bool,
     },
-    /// Retry the newest failed MouseVoice dictation at the current focus (macOS).
+    /// Retry the newest failed VoiceBuddy dictation at the current focus (macOS).
     DictationRetry,
     PasteLast,
     MeetingRecord {
@@ -548,24 +548,24 @@ pub struct StatusReport {
 pub struct DictationReport {
     pub backend: crate::dictation::backend::DictationBackend,
     /// missing, ready, broken, or unsupported (off macOS).
-    pub mouse_voice_setup: String,
+    pub voice_buddy_setup: String,
 }
 
 impl Default for DictationReport {
     fn default() -> Self {
         Self {
             backend: crate::dictation::backend::DictationBackend::Local,
-            mouse_voice_setup: "unsupported".into(),
+            voice_buddy_setup: "unsupported".into(),
         }
     }
 }
 
 #[cfg(target_os = "macos")]
 pub(crate) fn dictation_report(settings: &crate::app_settings::AppSettings) -> DictationReport {
-    use crate::dictation::{backend::Setup, mouse_voice};
+    use crate::dictation::{backend::Setup, voice_buddy};
     DictationReport {
-        backend: mouse_voice::effective_backend(settings),
-        mouse_voice_setup: match mouse_voice::setup() {
+        backend: voice_buddy::effective_backend(settings),
+        voice_buddy_setup: match voice_buddy::setup() {
             Setup::Missing => "missing",
             Setup::Ready { .. } => "ready",
             Setup::Broken { .. } => "broken",

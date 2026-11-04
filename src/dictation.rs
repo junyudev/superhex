@@ -20,12 +20,6 @@ pub(crate) mod indicator;
 pub(crate) mod live_text;
 #[cfg_attr(target_os = "macos", allow(dead_code))]
 pub(crate) mod modes;
-#[cfg(target_os = "macos")]
-#[allow(
-    dead_code,
-    reason = "Window API, integrated separately from this plumbing"
-)]
-pub(crate) mod mouse_voice;
 #[cfg_attr(any(target_os = "linux", target_os = "windows"), allow(dead_code))]
 pub(crate) mod processor;
 pub(crate) mod service;
@@ -34,6 +28,12 @@ pub(crate) mod spoken_symbols;
 pub(crate) mod text_replacements;
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) mod vocabulary;
+#[cfg(target_os = "macos")]
+#[allow(
+    dead_code,
+    reason = "Window API, integrated separately from this plumbing"
+)]
+pub(crate) mod voice_buddy;
 
 use std::collections::VecDeque;
 use std::time::Duration;
@@ -331,7 +331,7 @@ pub struct DictationClip {
     /// The live stream fed with this clip's audio during capture, if any.
     stream: Option<LiveStream>,
     #[cfg(target_os = "macos")]
-    mouse_voice: Option<Box<mouse_voice::Capture>>,
+    voice_buddy: Option<Box<voice_buddy::Capture>>,
     #[cfg(target_os = "macos")]
     stream_backend: Option<backend::DictationBackend>,
     /// Keeps background work deferring until the clip is submitted.
@@ -377,7 +377,7 @@ impl DictationClip {
             source: None,
             stream: None,
             #[cfg(target_os = "macos")]
-            mouse_voice: None,
+            voice_buddy: None,
             #[cfg(target_os = "macos")]
             stream_backend: None,
             #[cfg(target_os = "macos")]
@@ -639,7 +639,7 @@ struct Recording {
     resampler: Option<Fft<f32>>,
     stream: Option<LiveStream>,
     #[cfg(target_os = "macos")]
-    mouse_voice: Option<Box<mouse_voice::Capture>>,
+    voice_buddy: Option<Box<voice_buddy::Capture>>,
     #[cfg(target_os = "macos")]
     stream_backend: Option<backend::DictationBackend>,
     voice: VoiceTrack,
@@ -715,7 +715,7 @@ impl Recording {
             resampler,
             stream: None,
             #[cfg(target_os = "macos")]
-            mouse_voice: None,
+            voice_buddy: None,
             #[cfg(target_os = "macos")]
             stream_backend: None,
             voice: VoiceTrack::default(),
@@ -1163,7 +1163,7 @@ impl DictationCapture {
 
         let stream = recording.stream.take();
         #[cfg(target_os = "macos")]
-        let mouse_voice = recording.mouse_voice.take();
+        let voice_buddy = recording.voice_buddy.take();
         #[cfg(target_os = "macos")]
         let stream_backend = recording.stream_backend;
         let kept_tail = recording
@@ -1190,7 +1190,7 @@ impl DictationCapture {
             samples,
             stream,
             #[cfg(target_os = "macos")]
-            mouse_voice,
+            voice_buddy,
             #[cfg(target_os = "macos")]
             stream_backend,
             #[cfg(target_os = "macos")]

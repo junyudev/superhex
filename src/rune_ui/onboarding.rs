@@ -38,7 +38,7 @@ impl Tour {
     /// The tour from Welcome, as on a new install: Run setup again.
     pub(super) fn replay(settings: &AppSettings, platform: &PlatformState) -> Tour {
         let installed = super::picker::Picker::default().selected_installed(settings)
-            || super::mouse_voice::saved_in_effect(settings);
+            || super::voice_buddy::saved_in_effect(settings);
         Tour::new(
             Flow::new(
                 Step::Welcome,
@@ -53,7 +53,7 @@ impl Tour {
     /// The tour when this run still needs it.
     pub(super) fn start(settings: &AppSettings, platform: &PlatformState) -> Option<Tour> {
         let installed = super::picker::Picker::default().selected_installed(settings)
-            || super::mouse_voice::saved_in_effect(settings);
+            || super::voice_buddy::saved_in_effect(settings);
         let status = platform.setup_status(installed);
         let completed = crate::desktop::onboarding::completion_recorded();
         let resume = crate::desktop::onboarding::take_resume();
@@ -75,8 +75,8 @@ impl Tour {
 }
 
 pub(super) fn progress(ui: &Ui) -> (bool, ModelProgress) {
-    // MouseVoice in effect needs no local model, so the speech step is ready.
-    let installed = ui.picker.selected_installed(&ui.settings) || super::mouse_voice::in_effect(ui);
+    // VoiceBuddy in effect needs no local model, so the speech step is ready.
+    let installed = ui.picker.selected_installed(&ui.settings) || super::voice_buddy::in_effect(ui);
     let selected = crate::transcription::models::validate(&ui.settings.transcription).ok();
     let transcription = ui.view.as_ref().map(|view| &view.transcription);
     let downloading = selected.and_then(|model| {

@@ -1,10 +1,10 @@
 //! Explicit live verification. Prints only timings, counts, and failure codes.
-//! cargo run --manifest-path crates/mouse-voice/Cargo.toml --features live --example live -- --config /private/context.json --wav /private/clip.wav --pace 1
-use mouse_voice::{Config, Session};
+//! cargo run --manifest-path crates/voice-buddy/Cargo.toml --features live --example live -- --config /private/context.json --wav /private/clip.wav --pace 1
 use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use voice_buddy::{Config, Session};
 fn main() {
     if run().is_err() {
         eprintln!("live verification failed");
@@ -24,7 +24,7 @@ fn run() -> Result<(), ()> {
     );
     let started = Instant::now();
     if args.iter().any(|a| a == "--check") {
-        mouse_voice::check(&config).map_err(|e| {
+        voice_buddy::check(&config).map_err(|e| {
             eprintln!("{e}");
         })?;
         println!("check_ms={}", started.elapsed().as_millis());
@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
         .collect::<Result<_, _>>()
         .map_err(|_| ())?;
     let mut options = if args.iter().any(|a| a == "--defaults") {
-        mouse_voice::Options::default()
+        voice_buddy::Options::default()
     } else {
         config.options()
     };
@@ -55,7 +55,7 @@ fn run() -> Result<(), ()> {
     let mut partials = 0;
     let mut first_ms = None;
     let mut polishing = false;
-    let mut observe = |update: &mouse_voice::Update| {
+    let mut observe = |update: &voice_buddy::Update| {
         if !update.text.is_empty() {
             partials += 1;
             first_ms.get_or_insert(started.elapsed().as_millis());
@@ -65,7 +65,7 @@ fn run() -> Result<(), ()> {
     let release;
     let result = if args.iter().any(|a| a == "--transcribe") {
         release = Instant::now();
-        mouse_voice::transcribe(config, options, &samples, None, &mut observe)
+        voice_buddy::transcribe(config, options, &samples, None, &mut observe)
     } else {
         let mut session = Session::start(config, options);
         for (index, chunk) in samples.chunks(320).enumerate() {
@@ -119,7 +119,7 @@ fn run() -> Result<(), ()> {
         Err(error) => {
             println!("failure={}", error.failure);
             if args.iter().any(|a| a == "--cancel")
-                && error.failure == mouse_voice::Failure::Internal("cancelled".into())
+                && error.failure == voice_buddy::Failure::Internal("cancelled".into())
             {
                 return Ok(());
             }

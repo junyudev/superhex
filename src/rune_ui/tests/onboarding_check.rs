@@ -15,7 +15,7 @@ pub(super) const SCENES: &[&str] = &[
     // A fresh install: setting up Hex, the recommended model downloading.
     "onboarding",
     "mac-onboarding",
-    "mac-onboarding-mouse-voice-found",
+    "mac-onboarding-voice-buddy-found",
     // The download stopped; Continue without a model, then Settings.
     "onboarding-download-failed",
     "onboarding-no-model",

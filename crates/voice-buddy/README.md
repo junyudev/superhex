@@ -1,4 +1,4 @@
-# MouseVoice native client
+# VoiceBuddy native client
 
 One recording per session, using only an imported configuration. No identity
 creation, subprocesses, or runtime codec downloads. The client implements the
@@ -49,8 +49,8 @@ Opus packets are not required or promised.
 From the Hex worktree root, with the installed toolchain selected explicitly:
 
 ```sh
-RUSTUP_TOOLCHAIN=1.99.1-aarch64-apple-darwin cargo test -p mouse-voice
-RUSTUP_TOOLCHAIN=1.99.1-aarch64-apple-darwin cargo clippy -p mouse-voice --all-targets -- -D warnings
+RUSTUP_TOOLCHAIN=1.99.1-aarch64-apple-darwin cargo test -p voice-buddy
+RUSTUP_TOOLCHAIN=1.99.1-aarch64-apple-darwin cargo clippy -p voice-buddy --all-targets -- -D warnings
 ```
 
 The root test command passed all 27 tests. Tests use invented credentials,
@@ -82,7 +82,7 @@ without it, Cargo treats the crate as an unlisted member of that checkout.
 
 ```sh
 RUSTUP_TOOLCHAIN=1.99.1-aarch64-apple-darwin cargo run \
-  --manifest-path crates/mouse-voice/Cargo.toml --features live --example live -- \
+  --manifest-path crates/voice-buddy/Cargo.toml --features live --example live -- \
   --config /private/context.json --wav /private/clip.wav --pace 1
 ```
 

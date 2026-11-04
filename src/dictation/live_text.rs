@@ -9,7 +9,7 @@
 //! loop's thread; it must hand the text to its own thread and never wait.
 //! The text is provisional: it is only ever shown, never pasted or kept.
 //!
-//! MouseVoice's text outlives the recording: the [`Publisher`] travels with
+//! VoiceBuddy's text outlives the recording: the [`Publisher`] travels with
 //! the clip until the final text is ready, because the service keeps
 //! rewriting the words after the audio ends. Its [`Phase`] says so.
 

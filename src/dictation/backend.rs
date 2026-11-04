@@ -1,6 +1,6 @@
 //! Where dictation's speech goes, as plain data every OS's window can draw.
-//! Only macOS has MouseVoice today (`rune_ui::capability("mouse_voice")`, and
-//! [`crate::dictation::mouse_voice`] carries it out), but the panes' scenes
+//! Only macOS has VoiceBuddy today (`rune_ui::capability("voice_buddy")`, and
+//! [`crate::dictation::voice_buddy`] carries it out), but the panes' scenes
 //! render on every OS, so what they show lives here.
 
 use serde::{Deserialize, Serialize};
@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DictationBackend {
-    /// The MouseVoice speech service: the audio leaves this computer.
-    MouseVoice,
+    /// The VoiceBuddy speech service: the audio leaves this computer.
+    #[serde(alias = "mouse_voice")]
+    VoiceBuddy,
     /// The selected model (`transcription`) on this computer.
     Local,
 }
@@ -18,7 +19,7 @@ pub enum DictationBackend {
 impl Default for DictationBackend {
     fn default() -> Self {
         if cfg!(target_os = "macos") {
-            Self::MouseVoice
+            Self::VoiceBuddy
         } else {
             Self::Local
         }
@@ -29,7 +30,7 @@ impl Default for DictationBackend {
 /// fill these in once, when it is imported.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(default)]
-pub struct MouseVoicePreferences {
+pub struct VoiceBuddyPreferences {
     /// The service polishes the final text.
     pub polish: bool,
     /// The text comes back in Traditional Chinese.
@@ -40,7 +41,7 @@ pub struct MouseVoicePreferences {
     pub reduce_redundancy: bool,
 }
 
-impl Default for MouseVoicePreferences {
+impl Default for VoiceBuddyPreferences {
     fn default() -> Self {
         Self {
             polish: true,
@@ -51,7 +52,7 @@ impl Default for MouseVoicePreferences {
     }
 }
 
-/// Whether MouseVoice can run.
+/// Whether VoiceBuddy can run.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum Setup {
     /// No configuration saved.
@@ -82,7 +83,7 @@ pub enum FailureReason {
     Rejected,
     /// The service reported an error for this dictation.
     Service,
-    /// MouseVoice isn't set up and no local model can take over.
+    /// VoiceBuddy isn't set up and no local model can take over.
     NotSetUp,
 }
 

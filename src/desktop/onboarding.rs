@@ -980,8 +980,8 @@ pub fn status(selection: &TranscriptionSelection) -> SetupStatus {
 #[cfg(target_os = "macos")]
 pub fn status_with_transcription_model(transcription_model: bool) -> SetupStatus {
     let transcription_model = transcription_model
-        || crate::dictation::mouse_voice::current_backend()
-            == crate::dictation::backend::DictationBackend::MouseVoice;
+        || crate::dictation::voice_buddy::current_backend()
+            == crate::dictation::backend::DictationBackend::VoiceBuddy;
     SetupStatus {
         microphone: microphone_state(),
         // Accessibility also grants the listen-event access Hex's shortcut
