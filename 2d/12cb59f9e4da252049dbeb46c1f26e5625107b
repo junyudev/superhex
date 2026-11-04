@@ -1,0 +1,95 @@
+AGENTS.md
+  s_eaf24bb7841bbf::t_fc7c97559a1d35 32-36,98-104,139-141,402-406,613-618,792,804-833,886-887,1491-1493
+Cargo.lock
+  s_eaf24bb7841bbf::t_52a9e1c4e9ac68 231,1500,2351,3661,4959,4972,5729,6912,7117,7126,7144-7151
+crates/capture-core/Cargo.toml
+  s_eaf24bb7841bbf::t_307a6b233b1a1f 48-50
+crates/capture/Cargo.toml
+  s_eaf24bb7841bbf::t_6b9c7a4e91100a 97-99
+docs/cli.md
+  s_eaf24bb7841bbf::t_60252ce4623fa2 35,83-90,261,324,347-366
+docs/features/dictation.md
+  s_eaf24bb7841bbf::t_418c77bcacc943 3-6,15-16,25-26,813-872,1125-1147
+scripts/file-size-exceptions.txt
+  s_eaf24bb7841bbf::t_e9a31d88ab463d 13-14
+src/app_paths.rs
+  s_eaf24bb7841bbf::t_d19469db95b433 93-98
+src/app_settings.rs
+  s_eaf24bb7841bbf::t_34ff949f9b492d 532-535,758-759,2246-2250
+src/control.rs
+  s_eaf24bb7841bbf::t_7475a35d71d0e0 97-98,529-530,545-581
+src/control/cli.rs
+  s_eaf24bb7841bbf::t_33c65a593ce846 9,70,414,1436,1439-1442
+src/control/cli/dictation.rs
+  s_eaf24bb7841bbf::t_2d9684d7a35e8e 1-67
+src/control/cli/human.rs
+  s_eaf24bb7841bbf::t_4f4456456c2926 310-314,361
+src/control/host.rs
+  s_eaf24bb7841bbf::t_35537bf760cae1 117-120,569
+src/control/settings.rs
+  s_eaf24bb7841bbf::t_f446b44bae2dd5 1067-1070
+src/desktop/onboarding.rs
+  s_eaf24bb7841bbf::t_a38c59f3950f73 982-984
+src/desktop/tray_menu.rs
+  s_eaf24bb7841bbf::t_5335712e60b480 29-38,47-49,251-254
+src/dictation.rs
+  s_eaf24bb7841bbf::t_f0af77aa19ca37 4-7,11,24-27,333-336,380-383,641-644,717-720,1165-1168,1193-1196
+src/dictation/audio.rs
+  s_eaf24bb7841bbf::t_c7e69ad533c26a 859-860
+src/dictation/backend_runtime.rs
+  s_eaf24bb7841bbf::t_b20aefb2b73ca5 1-37
+src/dictation/capture_stream.rs
+  s_eaf24bb7841bbf::t_368816325e8d7c 1-211
+src/dictation/indicator.rs
+  s_eaf24bb7841bbf::t_b810eba0687945 48-51,332-335,671-689
+src/dictation/jobs.rs
+  s_eaf24bb7841bbf::t_8d31d09ef8e30c 1-687
+src/dictation/live_text.rs
+  s_eaf24bb7841bbf::t_d2f5d2090c44bd 49,57,125-133,256-281
+src/dictation/mouse_voice.rs
+  s_eaf24bb7841bbf::t_142f4f91d31613 1-4,7-9,12-13,17-78,82-89,91,95-97,100-131,135-138,143-148,152-170,173-217,219-220
+src/dictation/mouse_voice/capture.rs
+  s_eaf24bb7841bbf::t_8abc13c0dc1bbc 1-362
+src/dictation/mouse_voice/failed.rs
+  s_eaf24bb7841bbf::t_028be0f6899ecf 1-269
+src/dictation/mouse_voice/store.rs
+  s_eaf24bb7841bbf::t_5846c62e435690 1-307
+src/dictation/mouse_voice/tests.rs
+  s_eaf24bb7841bbf::t_77a8486c9e1ccf 1-109
+src/durable.rs
+  s_eaf24bb7841bbf::t_f579c9cc6f4a27 33-46,53-67
+src/macos_rune.rs
+  s_eaf24bb7841bbf::t_1cd63ea92478a3 59-60,703-706,711-715,738,774-779,1124
+src/macos_rune/control.rs
+  s_eaf24bb7841bbf::t_75cc3f847e6b5f 69-75,760,899
+src/macos_rune/status_item.rs
+  s_eaf24bb7841bbf::t_e91702754e0ef6 25,75-79,192,282-283,386,455-458
+src/macos_rune/tests.rs
+  s_eaf24bb7841bbf::t_265f24535b360a 18,128-134,155,179,225,286-306
+src/meeting/transcript.rs
+  s_eaf24bb7841bbf::t_30b135be3b18c6 836-842
+src/parakeet.rs
+  s_eaf24bb7841bbf::t_ed95a9b74866c9 21-24,29,55,67,110-112,185-186,289-301,303-304,337-339,455-466,807,853,856,891,901-902,913-918,929,947-951
+src/recognition.rs
+  s_eaf24bb7841bbf::t_5580c5a9aa5218 365,401-407,828-835,837-838,1776,1788-1792,1837,1843
+src/transcription/engine.rs
+  s_eaf24bb7841bbf::t_4c4e62f1e1c5c2 338-339,349-350,765-766,771-780,1318-1319,2034-2045
+src/transcription/stream.rs
+  s_eaf24bb7841bbf::t_4decae411cc0a0 185-198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2d12cb59f9e4da252049dbeb46c1f26e5625107b",
+  "prompts": {},
+  "sessions": {
+    "s_eaf24bb7841bbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e8fb7ff1-d8c5-4052-b6df-2d0682da4efe",
+        "model": "unknown"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
