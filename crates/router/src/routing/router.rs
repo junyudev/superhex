@@ -1,4 +1,4 @@
-//! `scrawl router decide`, `deliver`, `correct` and `eval`: Jev routing for any item (Hex calls
+//! `scrawl router decide`, `deliver`, `correct` and `eval`: Jev routing for any item (Superhex calls
 //! it for dictation), sending a decided item, logging Kit's corrections, and Jev's accuracy on
 //! past captures whose real destination is known. Only `deliver` sends. The contract is in
 //! `docs/routing.md`.
@@ -22,7 +22,7 @@ use crate::delivery::{self, Delivery};
 use crate::model::ScrawlBundle;
 use crate::opencode::Posted;
 
-/// Hex's deadline is 3 s: `scrawl router decide` answers within this whatever happens...
+/// Superhex's deadline is 3 s: `scrawl router decide` answers within this whatever happens...
 pub const DEADLINE: Duration = Duration::from_millis(2500);
 /// ...and reading sessions and asking Jev must be done this long before it.
 const JEV_MARGIN: Duration = Duration::from_millis(200);
@@ -37,7 +37,7 @@ const LISTED: usize = 5;
 #[derive(Clone, Debug, Deserialize)]
 struct Input {
     item: Item,
-    /// Sessions pinned in Hex: always candidates, never winners on their own.
+    /// Sessions pinned in Superhex: always candidates, never winners on their own.
     #[serde(default, deserialize_with = "one_or_many")]
     pinned: Vec<String>,
     /// Recent items and where they went, passed to Jev as state.
@@ -47,7 +47,7 @@ struct Input {
 
 #[derive(Clone, Debug, Default, Deserialize)]
 struct Item {
-    /// The caller's ID for the item (Hex's UUID), echoed in the reply and the log.
+    /// The caller's ID for the item (Superhex's UUID), echoed in the reply and the log.
     #[serde(default, alias = "id")]
     item_id: Option<String>,
     #[serde(default)]
@@ -62,7 +62,7 @@ struct Item {
     url: Option<String>,
     #[serde(default)]
     selected_text: Option<String>,
-    /// Hex's mode.
+    /// Superhex's mode.
     #[serde(default)]
     mode: Option<String>,
     /// A capture's bundle, which `deliver` sends the normal way.
@@ -326,7 +326,7 @@ pub fn decide_within(request: Value, deadline: Duration) -> Result<Output> {
     Ok(output)
 }
 
-/// A timed-out answer names no target; Hex shows its picker.
+/// A timed-out answer names no target; Superhex shows its picker.
 fn line_timeout(output: &mut Output) {
     output.decision = Band::Keep.label();
     output.target = None;
@@ -857,7 +857,7 @@ fn deliver_with(
     match text {
         Some(text) => {
             item.text = text.to_owned();
-            // Hex's text is the whole prompt; the saved selection may no longer apply.
+            // Superhex's text is the whole prompt; the saved selection may no longer apply.
             item.selected_text = None;
         }
         None if found.is_none() => bail!("no saved decision for that item, and no text on stdin"),
@@ -947,14 +947,14 @@ fn deliver_with(
 }
 
 /// The prompt for an item: a bracketed first line saying where it came from
-/// (`[voice via Hex · from Ghostty]`), then the text and any selection.
+/// (`[voice via Superhex · from Ghostty]`), then the text and any selection.
 fn prompt_text(item: &Item) -> String {
-    if item.text.trim_start().starts_with("[voice via Hex") {
+    if item.text.trim_start().starts_with("[voice via Superhex") {
         return item.text.trim().to_owned();
     }
     let mut head = match item.kind() {
         "capture" => "[scrawl capture".to_owned(),
-        _ => "[voice via Hex".to_owned(),
+        _ => "[voice via Superhex".to_owned(),
     };
     if let Some(app) = item.app_name() {
         head.push_str(&format!(" · from {app}"));
@@ -1008,7 +1008,7 @@ fn correction(
     Ok(line)
 }
 
-/// `scrawl router log`: one correction line from stdin (Hex's spelling), joined to its
+/// `scrawl router log`: one correction line from stdin (Superhex's spelling), joined to its
 /// decision by `decision_id` or `item_id`, then written like every other correction.
 pub fn log(input: &str) -> Result<()> {
     let line: Value =
@@ -1843,7 +1843,7 @@ mod tests {
     fn a_confident_answer_is_a_send() {
         let out = run(
             json!({"item": {"kind": "dictation", "text": "the hex icon is wrong",
-                            "app": {"id": "com.example.Hex", "name": "Hex"}, "mode": "Code", "extra": 1},
+                            "app": {"id": "com.example.Superhex", "name": "Superhex"}, "mode": "Code", "extra": 1},
                    "history": [{"text": "the menu", "to": "ses_hex"}]}),
             sure,
         );
@@ -1856,7 +1856,7 @@ mod tests {
         assert_eq!(out["any_fits"], 0.9);
         assert_eq!(out["why"], "jev: confident");
         let asked = ASKED.with(|a| a.borrow().clone()).unwrap();
-        assert_eq!(asked["state"]["capture"]["app"], "Hex");
+        assert_eq!(asked["state"]["capture"]["app"], "Superhex");
         assert_eq!(asked["state"]["capture"]["mode"], "Code");
     }
 
@@ -2018,7 +2018,7 @@ mod tests {
 
     #[test]
     fn the_text_is_required_and_the_app_can_be_a_bundle_id() {
-        assert!(serde_json::from_value::<Input>(json!({"item": {"app": "Hex"}})).is_err());
+        assert!(serde_json::from_value::<Input>(json!({"item": {"app": "Superhex"}})).is_err());
         let input: Input =
             serde_json::from_value(json!({"item": {"text": "x", "app": "com.mitchellh.ghostty",
                 "window_title": "zsh"}, "pinned": "ses_a"}))
@@ -2132,7 +2132,7 @@ mod tests {
         let (session, text) = last_sent();
         assert_eq!(session, "ses_hex");
         assert!(
-            text.starts_with("[voice via Hex · from Ghostty]\nmake the icon bigger"),
+            text.starts_with("[voice via Superhex · from Ghostty]\nmake the icon bigger"),
             "{text}"
         );
         assert!(text.ends_with("Selected text:\n> icon.png"), "{text}");
@@ -2141,7 +2141,7 @@ mod tests {
             "sent prompts leave the outbox"
         );
 
-        // Hex's spelling: the item ID and the text on stdin, which wins.
+        // Superhex's spelling: the item ID and the text on stdin, which wins.
         let request = DeliverRequest {
             item_id: Some("A1B2-C3".into()),
             to: "ses_b".into(),
@@ -2153,7 +2153,7 @@ mod tests {
             last_sent(),
             (
                 "ses_b".into(),
-                "[voice via Hex · from Ghostty]\nmake it smaller".into()
+                "[voice via Superhex · from Ghostty]\nmake it smaller".into()
             )
         );
 
@@ -2165,17 +2165,17 @@ mod tests {
             ..DeliverRequest::default()
         };
         deliver_with(&decisions, request, &outbox, &ok).unwrap();
-        assert_eq!(last_sent().1, "[voice via Hex]\nhello");
+        assert_eq!(last_sent().1, "[voice via Superhex]\nhello");
 
         // Text that already carries the prefix isn't given a second one.
         let request = DeliverRequest {
             item_id: Some("zz-10".into()),
             to: "ses_b".into(),
-            text: Some("[voice via Hex · from Zed]\nhello".into()),
+            text: Some("[voice via Superhex · from Zed]\nhello".into()),
             ..DeliverRequest::default()
         };
         deliver_with(&decisions, request, &outbox, &ok).unwrap();
-        assert_eq!(last_sent().1, "[voice via Hex · from Zed]\nhello");
+        assert_eq!(last_sent().1, "[voice via Superhex · from Zed]\nhello");
 
         // A failed send waits in the outbox for the app's retries.
         let down = DeliverHooks {

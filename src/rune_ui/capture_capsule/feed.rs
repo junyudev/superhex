@@ -1,6 +1,6 @@
 //! The capsule's side of the capture: it follows the newest capture in
 //! `capture_host`'s published snapshot from its start to its outcome, and
-//! hands presses back to the listener as `hex capture` commands.
+//! hands presses back to the listener as `superhex capture` commands.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -26,7 +26,7 @@ pub(crate) struct Follow {
     /// to save it, not to start it.
     began: bool,
     /// The settled capture the previous snapshot held: `None` before the
-    /// first snapshot, so an outcome from before Hex started moves nothing.
+    /// first snapshot, so an outcome from before Superhex started moves nothing.
     last_seen: Option<Option<PathBuf>>,
     /// The captures the previous snapshot held recording or finishing: a
     /// failure among them is a background capture's, never a start's.
@@ -43,7 +43,7 @@ impl Follow {
     /// shortcut started it on the pointer's display; its first click,
     /// scroll, or stroke folds them. A start that failed before any
     /// snapshot showed it recording still shows its failure. A capture it
-    /// never showed otherwise (one that settled before Hex started, or one a
+    /// never showed otherwise (one that settled before Superhex started, or one a
     /// chip discarded) moves nothing.
     pub(crate) fn next(&mut self, snapshot: &CaptureSnapshot) -> Vec<Input> {
         let mut inputs = Vec::new();
@@ -158,7 +158,7 @@ impl Follow {
             {
                 inputs.push(Input::Delivered(Delivered::Sent { to }));
             }
-            // A send the capsule knows of, or one from `hex capture send`.
+            // A send the capsule knows of, or one from `superhex capture send`.
             Some(RouteDelivery::Sent { .. }) => inputs.push(Input::Settled),
             Some(RouteDelivery::TakenBack) => inputs.push(Input::Undone(Undone::TakenBack)),
             Some(RouteDelivery::TooLate { .. }) => inputs.push(Input::Undone(Undone::TooLate)),
@@ -293,7 +293,7 @@ pub(crate) struct CaptureOverlays {
 impl CaptureOverlays {
     /// Adds the three overlays, prewarmed and hidden, and starts following
     /// captures. Away from macOS they make their GPU surfaces only to show,
-    /// so a Hex that never annotates holds none.
+    /// so a Superhex that never annotates holds none.
     pub(crate) fn install<S: 'static>(app: &mut rune::App<S>) -> Self {
         let picker = PickerOverlay::install(app, act);
         let aim = picker.clone();
@@ -433,7 +433,7 @@ fn first_frame(images: &rune::ImageCache, bundle: &std::path::Path) -> Option<ru
 }
 
 /// Carries out a press or key on the capsule: Finish and Cancel end the
-/// capture as `hex capture stop|cancel` would, a chip discards the
+/// capture as `superhex capture stop|cancel` would, a chip discards the
 /// recording, the picker starts what it picked, and Record (or the
 /// shortcut) without a pick records the display under the pointer. Runs on the
 /// main thread, so it only queues the commands.
@@ -495,7 +495,7 @@ pub(crate) fn act(action: Action) {
     }
 }
 
-/// Whether this Hex can't record the screen now, read afresh.
+/// Whether this Superhex can't record the screen now, read afresh.
 fn screen_off() -> bool {
     crate::capture_host::permission_state(CaptureNeed::ScreenRecording, true).is_some()
 }
@@ -506,7 +506,7 @@ fn show_helper(capsule: &CaptureCapsule, need: CaptureNeed) {
     watch_grant(capsule.clone(), need);
 }
 
-/// The pointer. Wayland tells Hex nothing of it: the portal picks the
+/// The pointer. Wayland tells Superhex nothing of it: the portal picks the
 /// screen.
 #[cfg(target_os = "linux")]
 fn pointer() -> [f64; 2] {

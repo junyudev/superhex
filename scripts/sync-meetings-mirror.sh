@@ -1,5 +1,5 @@
 #!/bin/sh
-# Mirrors another Mac's Hex meetings folder for a local, read-only `hex mcp
+# Mirrors another Mac's Superhex meetings folder for a local, read-only `hex mcp
 # --meetings-dir`. One rsync over SSH; audio (*.wav), lock, and temporary
 # files stay behind. Updated files land together at the end of the transfer
 # (--delay-updates), and meetings trashed on the source disappear here.

@@ -1,6 +1,6 @@
 //! Live transcription of another app's audio (`/streams` in the local API;
 //! contract in `docs/streams.md`). The app records and pushes 16 kHz mono
-//! audio; Hex transcribes it on the dictation engine's loaded model and
+//! audio; Superhex transcribes it on the dictation engine's loaded model and
 //! reports partial text, one final segment per window, and the final text.
 //!
 //! Dictation always comes first. Audio is cut into windows at pauses (at most
@@ -273,7 +273,7 @@ impl Engine for SharedEngine {
     fn quitting(&self) -> bool {
         #[cfg(target_os = "macos")]
         return crate::desktop::process_exit::quitting();
-        // Elsewhere the engine itself goes when Hex quits.
+        // Elsewhere the engine itself goes when Superhex quits.
         #[cfg(not(target_os = "macos"))]
         false
     }
@@ -684,7 +684,7 @@ impl<E: Engine> Worker<E> {
                     return End::Cancelled;
                 }
                 if self.engine.quitting() {
-                    return failed("hex-quitting", "Hex is quitting");
+                    return failed("hex-quitting", "Superhex is quitting");
                 }
                 if !state.finishing && Instant::now() >= state.lease_deadline {
                     return failed("lease-expired", "no audio or heartbeat within the lease");
@@ -844,7 +844,7 @@ impl<E: Engine> Worker<E> {
         if !self.engine.holds_model() {
             return Err(failed(
                 MODEL_CHANGED,
-                "Hex's dictation model changed during the stream",
+                "Superhex's dictation model changed during the stream",
             ));
         }
         let text = match self.stream_window(&mut window) {
@@ -859,7 +859,7 @@ impl<E: Engine> Worker<E> {
                     Err(message) if message == MODEL_CHANGED => {
                         return Err(failed(
                             MODEL_CHANGED,
-                            "Hex's dictation model changed during the stream",
+                            "Superhex's dictation model changed during the stream",
                         ));
                     }
                     Err(message) => return Err(failed("transcription-failed", &message)),

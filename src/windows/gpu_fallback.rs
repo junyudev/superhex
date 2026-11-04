@@ -1,6 +1,6 @@
-//! Which GPU Hex draws on. Rune takes the lowest-power adapter that drives a
+//! Which GPU Superhex draws on. Rune takes the lowest-power adapter that drives a
 //! display, which keeps a hybrid laptop's discrete GPU asleep. A broken
-//! integrated GPU driver can crash Hex before its first frame (#662), and a
+//! integrated GPU driver can crash Superhex before its first frame (#662), and a
 //! driver crash can't be caught, so the app marks its launch from when Rune
 //! starts its first GPU device until a frame reaches the screen or it quits
 //! cleanly. A tray launch that never draws makes no device and leaves no
@@ -58,7 +58,7 @@ pub(crate) fn watch() {
         SETTLED.store(true, Ordering::Relaxed);
         tracing::warn!(
             marker = %marker().map(|path| path.display().to_string()).unwrap_or_default(),
-            "a previous launch of this Hex crashed before drawing; drawing on the high-performance GPU until Hex updates or the marker is deleted"
+            "a previous launch of this Superhex crashed before drawing; drawing on the high-performance GPU until Superhex updates or the marker is deleted"
         );
         return;
     }
@@ -87,7 +87,7 @@ fn arm() {
     }
 }
 
-/// A frame reached the screen, or Hex quit cleanly: this launch's GPU works.
+/// A frame reached the screen, or Superhex quit cleanly: this launch's GPU works.
 pub(crate) fn disarm() {
     if SETTLED.swap(true, Ordering::Relaxed) {
         return;

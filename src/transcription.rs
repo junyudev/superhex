@@ -87,7 +87,7 @@ impl Transcriber {
     }
 
     /// Brings an idle GGUF model's weights back before audio arrives (see
-    /// [`Parakeet::prewarm`]). Apple Speech has no weights of Hex's to warm.
+    /// [`Parakeet::prewarm`]). Apple Speech has no weights of Superhex's to warm.
     pub fn prewarm(&mut self) -> Result<()> {
         match self {
             Self::Gguf(model) => model.prewarm(),

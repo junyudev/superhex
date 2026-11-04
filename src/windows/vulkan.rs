@@ -1,6 +1,6 @@
 //! The Vulkan loader (vulkan-1.dll) that ggml's Vulkan backend calls on x64.
 //! It comes with the graphics driver, not with Windows, and an old one lacks
-//! Vulkan 1.1's functions: imported at load time, that stopped Hex before
+//! Vulkan 1.1's functions: imported at load time, that stopped Superhex before
 //! `main` with a missing-entry-point dialog (#1240). The executable now
 //! delay-loads it (build.rs), and `check` asks the loader for its version
 //! before anything touches ggml. Without a Vulkan 1.2 loader, which ggml

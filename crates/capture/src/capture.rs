@@ -2041,7 +2041,7 @@ fn poll_clicks(
 /// through `passthrough` ones) is the host's own: this process's chrome
 /// ([`is_own_chrome`](crate::windows::is_own_chrome), with the host's `excluded` windows), or a
 /// helper's other than the app being captured (`source`). Clicks and scrolls there aren't part
-/// of what is being shown; on the host's normal windows (Hex's Settings) they are.
+/// of what is being shown; on the host's normal windows (Superhex's Settings) they are.
 pub fn on_own_window(
     windows: &[crate::windows::RawWindow],
     (x, y): (f64, f64),
@@ -2298,7 +2298,7 @@ pub fn is_scrawl_app_running() -> bool {
 }
 
 /// Explicit ownership switches for machine-wide shared resources so an embedded host (such as
-/// Hex) can yield while Scrawl (`dev.kitlangton.scrawl`) runs instead of colliding on port 47777,
+/// Superhex) can yield while Scrawl (`dev.kitlangton.scrawl`) runs instead of colliding on port 47777,
 /// racing `.deliver.json` retries, or registering conflicting global shortcuts.
 ///
 /// Defaults to `false` for all resources so [`Engine::new`] never claims machine-wide resources
@@ -3238,8 +3238,8 @@ mod tests {
 
     /// Clicks on `scrawl-helper`'s windows (the SwiftUI capsule, Settings, onboarding) are
     /// Scrawl's own, except on the iPhone mirror, which is what's being recorded. The host's
-    /// chrome takes clicks unless it lets them through: Hex's capsule is a 640×424 panel, named
-    /// and click-through (only its pill, which Hex checks itself, takes clicks).
+    /// chrome takes clicks unless it lets them through: Superhex's capsule is a 640×424 panel, named
+    /// and click-through (only its pill, which Superhex checks itself, takes clicks).
     #[test]
     fn helper_windows_are_scrawl_s_except_the_capture_source() {
         let (sender, _receiver) = flume::unbounded();

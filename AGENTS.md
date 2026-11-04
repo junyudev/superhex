@@ -1,5 +1,12 @@
 <!-- tallow -->
-# Hex Agent Guide
+# Superhex Agent Guide
+
+This fork is `junyudev/superhex`. For identity, paths, or source installation,
+read [the Superhex contract](docs/features/branding.md) before changing the
+referenced implementation. Install with `scripts/install-app.sh` (remote HEAD)
+or `--local` (this checkout). Keep source builds marked local with updates off.
+The upstream publication recipes below describe Hex distribution history;
+Superhex currently installs from source.
 
 ## Private Kit Tool
 

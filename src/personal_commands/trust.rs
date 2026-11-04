@@ -1,7 +1,7 @@
 //! The trust prompt's data: what a loaded config can reach (`fetch`, or
 //! programs through `node:child_process`), the hosts and programs its source
 //! names where they are written literally, and the content hash the person's
-//! approval is pinned to. Approval lives in Hex's own support folder, not the
+//! approval is pinned to. Approval lives in Superhex's own support folder, not the
 //! config folder, and any change to the config's files asks again.
 
 use std::fs;

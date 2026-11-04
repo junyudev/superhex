@@ -54,7 +54,7 @@ struct Job {
     recording: Option<crate::history::Recording>,
     /// Dictate without processing: paste the transcript as heard.
     raw: bool,
-    /// `hex dictation stop --print`: the text goes here, never pasted.
+    /// `superhex dictation stop --print`: the text goes here, never pasted.
     print: Option<PrintReply>,
 }
 
@@ -126,7 +126,7 @@ pub enum ListenerCommand {
         raw: bool,
     },
     PasteLast,
-    /// `hex dictation stop --print`.
+    /// `superhex dictation stop --print`.
     StopAndPrint(PrintReply),
 }
 
@@ -327,7 +327,7 @@ pub fn run(
     })?;
     emit_state(&mut events, VoiceState::Listening, &device_label)?;
     println!(
-        "Hex is ready on {}. Hold {} to dictate, release to paste; Ctrl-C stops.",
+        "Superhex is ready on {}. Hold {} to dictate, release to paste; Ctrl-C stops.",
         device_label, hotkey_label
     );
 
@@ -444,7 +444,7 @@ pub fn run(
                         Some(host) => host.control(action, &timeline),
                         None => crate::control::ControlReply::error(
                             "feature-off",
-                            "Annotate is off; turn it on with `hex settings set capture.enabled on`",
+                            "Annotate is off; turn it on with `superhex settings set capture.enabled on`",
                         ),
                     });
                     continue;

@@ -1,4 +1,4 @@
-//! Read-only queries over recorded meetings, for agents (`hex mcp`).
+//! Read-only queries over recorded meetings, for agents (`superhex mcp`).
 //!
 //! Nothing here writes to the meetings folder. A meeting whose recorder holds
 //! `active.lock` is in progress: its rolling transcript is read and
@@ -484,7 +484,7 @@ impl Library {
             if meeting.in_progress {
                 let _ = writeln!(
                     output,
-                    "No notes yet: the meeting is still {}. Hex writes a title and summary after it is transcribed.",
+                    "No notes yet: the meeting is still {}. Superhex writes a title and summary after it is transcribed.",
                     status_name(meeting.status)
                 );
             } else {
@@ -607,7 +607,7 @@ with get_transcript or search_transcripts for details, decisions, and action ite
 with live chapters on."
                 } else {
                     "No chapters are stored for this meeting. This read-only reader never \
-generates them; read the meeting with get_transcript or `hex meetings show`."
+generates them; read the meeting with get_transcript or `superhex meetings show`."
                 }
             );
             return Ok(output);
@@ -639,7 +639,7 @@ generates them; read the meeting with get_transcript or `hex meetings show`."
         let _ = writeln!(
             output,
             "\nModel-written names that may be wrong. Read a chapter with get_transcript (start \
-and end as shown) or `hex meetings show {} --chapter N`.",
+and end as shown) or `superhex meetings show {} --chapter N`.",
             meeting.id
         );
         Ok(output)

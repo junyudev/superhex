@@ -30,7 +30,7 @@ impl AppSettings {
                 (
                     Self::default(),
                     Some(format!(
-                        "Hex couldn't read its settings and started with defaults. ({error:#})"
+                        "Superhex couldn't read its settings and started with defaults. ({error:#})"
                     )),
                 )
             }

@@ -460,7 +460,7 @@ fn the_cancel_shortcut_shows_in_toggle_and_restores_escape() {
     );
 
     // On Wayland the portal would hold the key for good: the row points
-    // to `hex dictation cancel` instead of recording one.
+    // to `superhex dictation cancel` instead of recording one.
     let portal = runtime("portal-toggle-cancel", true, PANE_SIZE);
     assert!(portal.find("cancel-shortcut").is_some());
     assert!(portal.find("cancel-hotkey").is_none());
@@ -804,7 +804,10 @@ fn the_practice_game_follows_hex_s_own_dictation_on_every_os() {
         assert!(!holding(&rt));
         onboarding::input(&mut rt.state, Input::Dictation(Observation::Started));
         refresh(&mut rt);
-        assert!(holding(&rt), "{scene}: the shortcut held, as Hex records");
+        assert!(
+            holding(&rt),
+            "{scene}: the shortcut held, as Superhex records"
+        );
         onboarding::input(&mut rt.state, Input::Dictation(Observation::Transcribing));
         refresh(&mut rt);
         assert!(!holding(&rt), "{scene}: released");
@@ -1352,7 +1355,7 @@ fn the_mac_first_run_asks_each_permission_then_practices() {
         rt.state.tour.as_ref().unwrap().flow.view().practice,
         Practice::Landed
     );
-    // Done leaves the game at any point; Start using Hex closes onboarding.
+    // Done leaves the game at any point; Start using Superhex closes onboarding.
     tap(&mut rt, "done");
     tap(&mut rt, "start-using-hex");
     assert!(rt.state.tour.is_none());
@@ -1389,7 +1392,7 @@ fn a_refused_microphone_points_to_system_settings() {
     assert!(
         shown
             .iter()
-            .any(|text| text == "Switch on Hex in System Settings")
+            .any(|text| text == "Switch on Superhex in System Settings")
     );
     tap(&mut rt, "mic-pill-allow");
     assert_eq!(
@@ -1405,7 +1408,7 @@ fn windows_onboarding_asks_only_for_the_microphone_switch() {
     let mut rt = runtime("windows-onboarding-microphone", true, PANE_SIZE);
     let shown = texts(&rt);
     assert!(
-        shown.iter().any(|text| text == "Let Hex hear you"),
+        shown.iter().any(|text| text == "Let Superhex hear you"),
         "{shown:?}"
     );
     assert!(rt.find("ax-row").is_none(), "no Accessibility on Windows");
@@ -1434,7 +1437,7 @@ fn stale_permissions_offer_fix_it_and_reset_entries_across_panes() {
     assert!(
         shown
             .iter()
-            .any(|text| text == "An older Hex entry can keep this off")
+            .any(|text| text == "An older Superhex entry can keep this off")
     );
     tap(&mut rt, "ax-pill-allow");
     assert_eq!(
@@ -1452,7 +1455,7 @@ fn stale_permissions_offer_fix_it_and_reset_entries_across_panes() {
     assert!(
         shown
             .iter()
-            .any(|text| text == "An older Hex entry can keep this off")
+            .any(|text| text == "An older Superhex entry can keep this off")
     );
     tap(&mut rt, "permission-accessibility-allow");
     assert_eq!(
@@ -1473,7 +1476,7 @@ fn stale_permissions_offer_fix_it_and_reset_entries_across_panes() {
     assert!(
         shown
             .iter()
-            .any(|text| text == "An older Hex entry can keep this off")
+            .any(|text| text == "An older Superhex entry can keep this off")
     );
     tap(&mut rt, "meeting-system-audio-allow");
     assert_eq!(
@@ -1608,11 +1611,11 @@ fn try_it_records_and_plays_through_the_host() {
     assert_eq!(
         asked(&rt),
         [
-            PlatformRequest::HexMicrophoneDemo(DemoRequest::Record),
-            PlatformRequest::HexMicrophoneDemo(DemoRequest::Play(
+            PlatformRequest::SuperhexMicrophoneDemo(DemoRequest::Record),
+            PlatformRequest::SuperhexMicrophoneDemo(DemoRequest::Play(
                 crate::audio::hex_microphone::DemoPlaybackTrack::CallHears
             )),
-            PlatformRequest::HexMicrophoneDemo(DemoRequest::SelectSource(
+            PlatformRequest::SuperhexMicrophoneDemo(DemoRequest::SelectSource(
                 crate::audio::hex_microphone::DemoSourceKind::Recording
             )),
         ]
@@ -1621,7 +1624,7 @@ fn try_it_records_and_plays_through_the_host() {
     tap(&mut rt, "fun-play-call-hears");
     assert_eq!(
         asked(&rt),
-        [PlatformRequest::HexMicrophoneDemo(
+        [PlatformRequest::SuperhexMicrophoneDemo(
             DemoRequest::StopPlayback
         )]
     );
@@ -1637,7 +1640,7 @@ fn hud_lab_and_activity_stay_out_of_the_window_sidebar() {
     assert!(rt.find("nav-activity").is_none());
     assert!(
         rt.find("nav-voice-filter").is_some(),
-        "Hex Microphone is on"
+        "Superhex Microphone is on"
     );
     let rt = runtime("mac-hud-lab", true, PANE_SIZE);
     assert!(rt.find("nav-hud-lab").is_none());
@@ -2161,7 +2164,7 @@ fn an_installed_driver_keeps_the_voice_filter_on() {
     tap(&mut rt, "uninstall");
     assert!(matches!(
         asked(&rt).last(),
-        Some(PlatformRequest::UninstallHexMicrophone)
+        Some(PlatformRequest::UninstallSuperhexMicrophone)
     ));
     tap(&mut rt, "nav-labs");
     tap(&mut rt, "lab-voice-filter");

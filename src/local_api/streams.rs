@@ -385,7 +385,7 @@ mod tests {
         send(
             api,
             &format!(
-                "{method} {path} HTTP/1.1\r\nAuthorization: Bearer {}\r\nX-Hex-Stream-Token: {owner}\r\n{extra}Content-Length: {}\r\n\r\n",
+                "{method} {path} HTTP/1.1\r\nAuthorization: Bearer {}\r\nX-Superhex-Stream-Token: {owner}\r\n{extra}Content-Length: {}\r\n\r\n",
                 api.document.token,
                 body.len()
             ),
@@ -405,7 +405,7 @@ mod tests {
         send(
             api,
             &format!(
-                "POST /streams/{id}/audio HTTP/1.1\r\nAuthorization: Bearer {}\r\nX-Hex-Stream-Token: {owner}\r\n{extra}Content-Length: {length}\r\n\r\n",
+                "POST /streams/{id}/audio HTTP/1.1\r\nAuthorization: Bearer {}\r\nX-Superhex-Stream-Token: {owner}\r\n{extra}Content-Length: {length}\r\n\r\n",
                 api.document.token,
             ),
             &[],

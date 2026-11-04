@@ -59,7 +59,7 @@ curl --fail --silent --show-error --no-buffer \
   "http://127.0.0.1:$port/models/$model/prepare" > "$events"
 grep -Fq '"type":"ok"' "$events"
 
-/usr/bin/say "Hello from the local Hex transcription service." -o "$audio.aiff"
+/usr/bin/say "Hello from the local Superhex transcription service." -o "$audio.aiff"
 /usr/bin/afconvert -f WAVE -d LEI16@16000 "$audio.aiff" "$audio"
 rm -f "$audio.aiff"
 

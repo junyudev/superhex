@@ -11,7 +11,7 @@ private let storeLock = NSLock()
 private var changes: UInt64 = 0
 private var observer: NSObjectProtocol?
 /// This process's request was granted. EventKit's class-level status can
-/// keep answering from before the prompt (still not determined) until Hex
+/// keep answering from before the prompt (still not determined) until Superhex
 /// relaunches, so the answer itself is the evidence.
 private var grantedHere = false
 

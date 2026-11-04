@@ -4,7 +4,7 @@
 //!   default, `Muted felt`, `Soft warm`, and `Silent typing`), never repeating
 //!   an adjacent sample.
 //! - Tactile shortcut keycap press and release (`⌥` down / up).
-//! - Hex's real `#292` `DictationStart`, `DictationStop`, `DictationDone`, and
+//! - Superhex's real `#292` `DictationStart`, `DictationStop`, `DictationDone`, and
 //!   `OnboardingSuccess` tones played through [`crate::feedback`], respecting
 //!   the user's sound set and feedback volume (`volume == 0` is silent;
 //!   `reduced_motion` never suppresses sound).
@@ -85,12 +85,12 @@ impl SfxTrack {
             .sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
     }
 
-    /// Initial `"Setting up Hex"` hexagon bloom.
+    /// Initial `"Setting up Superhex"` hexagon bloom.
     pub(crate) fn on_download_start(&mut self, now: f64) {
         self.push(now + 0.08, Tone::Onboarding(OnboardingTone::Hexagon));
     }
 
-    /// `"Without Hex"`: hexagon settling into top pill + every typing stroke.
+    /// `"Without Superhex"`: hexagon settling into top pill + every typing stroke.
     pub(crate) fn on_without_hex(&mut self, now: f64, typing_from: f64, had_model: bool) {
         if !had_model {
             self.push(now + 0.12, Tone::Onboarding(OnboardingTone::Hexagon));
@@ -118,7 +118,7 @@ impl SfxTrack {
         }
     }
 
-    /// `"With Hex"` or scripted `"Your turn"` dictation: physical shortcut
+    /// `"With Superhex"` or scripted `"Your turn"` dictation: physical shortcut
     /// down, real `DictationStart`, then shortcut up, `DictationStop`, and
     /// `DictationDone`.
     pub(crate) fn on_voice_take(&mut self, start: f64, take: &Take) {
@@ -169,7 +169,7 @@ impl SfxTrack {
         }
     }
 
-    /// `"Hex is ready"` finale: hexagon arrival + Hex's `#292` success motif.
+    /// `"Superhex is ready"` finale: hexagon arrival + Superhex's `#292` success motif.
     pub(crate) fn on_ready(&mut self, now: f64) {
         self.push(now, Tone::Onboarding(OnboardingTone::Hexagon));
         self.push(now + 0.12, Tone::OnboardingSuccess);

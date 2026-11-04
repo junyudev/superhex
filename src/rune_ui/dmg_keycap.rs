@@ -1,4 +1,4 @@
-//! The installer window's Option keycap (`packaging/macos/dmg`): Hex's own
+//! The installer window's Option keycap (`packaging/macos/dmg`): Superhex's own
 //! dark keycap, alone, as transparent PNGs. `packaging/macos/dmg/render.sh`
 //! runs it; it never runs in the suite.
 

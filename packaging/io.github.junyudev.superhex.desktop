@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Superhex
+Comment=Local voice dictation
+Exec=@HEX_BIN@
+Icon=io.github.junyudev.superhex
+Terminal=false
+Categories=Utility;Accessibility;
+StartupNotify=true
+StartupWMClass=io.github.junyudev.superhex
+Actions=quit;
+
+[Desktop Action quit]
+Name=Quit Superhex
+Exec=@HEX_BIN@ quit

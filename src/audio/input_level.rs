@@ -1,4 +1,4 @@
-//! The latest peak of the microphone audio Hex receives, for the window's
+//! The latest peak of the microphone audio Superhex receives, for the window's
 //! level meters. The audio owner stores one atomic per chunk and the window
 //! reads it, so a meter never blocks or slows capture. Nothing is stored
 //! while the microphone is closed, so a stale peak reads as no audio.

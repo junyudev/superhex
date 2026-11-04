@@ -25,7 +25,7 @@ pub struct LabsSettings {
     pub spoken_formatting: bool,
     /// Filler words such as "um" and "uh" are removed from dictations (issue 631).
     pub filler_words: bool,
-    /// `hex meetings show --srt|--vtt` exports a transcript as timed subtitles (macOS, issue 633).
+    /// `superhex meetings show --srt|--vtt` exports a transcript as timed subtitles (macOS, issue 633).
     pub subtitle_export: bool,
     /// `second_dictation_hotkey` dictates like the dictation shortcut (macOS, issue 627).
     pub second_dictation_shortcut: bool,

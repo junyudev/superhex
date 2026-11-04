@@ -2,7 +2,7 @@
 
 use super::*;
 
-/// Annotate: Scrawl's captures inside Hex, on macOS, Linux, and Windows
+/// Annotate: Scrawl's captures inside Superhex, on macOS, Linux, and Windows
 /// (`capture_host`). On by default; off means no capture work at all.
 #[cfg(hex_capture)]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -23,7 +23,7 @@ pub struct CaptureSettings {
     /// Where a written capture is sent among OpenCode sessions: Scrawl's
     /// router settings, imported once from Scrawl.
     pub routing: CaptureRouting,
-    /// Lets screen recordings, Hex's own captures included, show Hex's
+    /// Lets screen recordings, Superhex's own captures included, show Superhex's
     /// overlays: the capture capsule, picker, and ink, the dictation HUD,
     /// and the meeting capsules. Off keeps them out (`capture_host`).
     pub show_overlays_in_recordings: bool,
@@ -43,7 +43,7 @@ pub enum CapsuleFlow {
     /// (b) One quiet line, "Send to SEER ⏎"; ⇥ moves to the next guess.
     Toast,
     /// (c) A short hint of the guesses in the capsule, which then folds
-    /// into Hex's menu-bar item.
+    /// into Superhex's menu-bar item.
     MenuBar,
     /// (d) The guesses in a small card at the pointer.
     Cursor,
@@ -83,7 +83,7 @@ impl Default for CaptureSettings {
 
 /// Scrawl's router settings (`scrawl_capture::RouterConfig`, its
 /// camelCase JSON). Never holds a Jev key: Jev is called with
-/// `$OPENCODE_API_KEY` or OpenCode's own credential, so `hex settings`
+/// `$OPENCODE_API_KEY` or OpenCode's own credential, so `superhex settings`
 /// never shows one.
 #[cfg(hex_capture)]
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -146,7 +146,7 @@ impl CaptureSettings {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CaptureTranscriber {
-    /// The dictation model Hex already has loaded, with word times.
+    /// The dictation model Superhex already has loaded, with word times.
     #[default]
     Parakeet,
     /// Apple's speech recognizer, as Scrawl uses by default.
@@ -195,7 +195,7 @@ pub fn capture_on() -> bool {
     CAPTURE_ON.load(Ordering::Acquire)
 }
 
-/// Scrawl's own app is running, so it owns the capture shortcut and Hex
+/// Scrawl's own app is running, so it owns the capture shortcut and Superhex
 /// doesn't match it.
 #[cfg(hex_capture)]
 pub fn scrawl_app_running() -> bool {

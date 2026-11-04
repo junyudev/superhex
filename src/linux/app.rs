@@ -1,4 +1,4 @@
-//! The one Linux Hex process: the dictation host (listener, shortcut
+//! The one Linux Superhex process: the dictation host (listener, shortcut
 //! registration, model preparation, updates, History writes, paste), the
 //! single-instance socket, and the window and HUD, opened on demand and
 //! closed without stopping anything.
@@ -128,7 +128,7 @@ struct LinuxDesktopHost {
     status: String,
     error: Option<String>,
     dismissed_failure_at: Option<u64>,
-    /// What Hex's GNOME custom shortcuts were last written for (#781).
+    /// What Superhex's GNOME custom shortcuts were last written for (#781).
     gnome_shortcuts: Option<String>,
     settings_error: Option<String>,
     settings: AppSettings,
@@ -192,7 +192,7 @@ struct Shared {
     /// Whether the window shows, as its app reports it.
     window_visible: Mutex<Option<WindowVisible>>,
     /// Why the window's app stopped, once it panicked (#979): the window
-    /// and overlays are gone until Hex restarts.
+    /// and overlays are gone until Superhex restarts.
     window_failure: Mutex<Option<String>>,
     shutdown: &'static AtomicBool,
 }
@@ -215,7 +215,7 @@ impl HostHandle {
         }))
     }
 
-    /// The window's "Quit Hex": drains accepted work, then exits.
+    /// The window's "Quit Superhex": drains accepted work, then exits.
     pub(crate) fn quit(&self) {
         self.0.shutdown.store(true, Ordering::Release);
     }
@@ -278,7 +278,7 @@ impl HostHandle {
         *self.0.waker.lock().unwrap() = Some(waker);
     }
 
-    /// `hex status` asks `visible` whether the window shows.
+    /// `superhex status` asks `visible` whether the window shows.
     pub(crate) fn set_window_visible(&self, visible: WindowVisible) {
         *self.0.window_visible.lock().unwrap() = Some(visible);
     }
@@ -348,7 +348,7 @@ impl HostHandle {
 }
 
 /// Becomes the Linux instance: claims the data root, starts the host, and
-/// runs the window's event loop on this (the main) thread until `hex quit`,
+/// runs the window's event loop on this (the main) thread until `superhex quit`,
 /// a signal, or the window's Quit. `activation` opens the window at once.
 pub(crate) fn run(
     event_path: PathBuf,
@@ -358,16 +358,16 @@ pub(crate) fn run(
     let mut server = linux_service::Server::bind()?;
     // Installs before #579 named the entries hex.desktop.
     if let Err(error) = crate::linux::icons::install() {
-        tracing::warn!(%error, "could not install Hex's icon");
+        tracing::warn!(%error, "could not install Superhex's icon");
     }
     if let Err(error) = crate::linux::portal::tidy_desktop_entries() {
-        tracing::warn!(%error, "could not move Hex's desktop entry");
+        tracing::warn!(%error, "could not move Superhex's desktop entry");
     }
     if let Err(error) = crate::linux::portal::forget_legacy_gnome_shortcuts() {
-        tracing::warn!(%error, "could not remove Hex's old GNOME shortcuts");
+        tracing::warn!(%error, "could not remove Superhex's old GNOME shortcuts");
     }
     if let Err(error) = crate::linux::login_item::tidy() {
-        tracing::warn!(%error, "could not tidy Hex's autostart entry");
+        tracing::warn!(%error, "could not tidy Superhex's autostart entry");
     }
     // Off the main thread: the portal may take a moment to answer.
     let _ = std::thread::Builder::new()
@@ -415,7 +415,7 @@ pub(crate) fn run(
         crate::linux::tray::start(host.clone(), published.clone(), control.clone(), shutdown)
             .map(Arc::new);
     linux_service::notify("READY=1");
-    tracing::info!(pid = std::process::id(), "Hex instance ready");
+    tracing::info!(pid = std::process::id(), "Superhex instance ready");
 
     let worker = {
         let host = host.clone();
@@ -502,8 +502,8 @@ fn run_host(
 }
 
 /// The one seam between the process and its window, on the main thread
-/// until Hex quits. `first` opens the window at once. A missing display or
-/// GPU fails the window, never Hex.
+/// until Superhex quits. `first` opens the window at once. A missing display or
+/// GPU fails the window, never Superhex.
 fn run_window(
     host: &HostHandle,
     requests: Receiver<Control>,
@@ -515,8 +515,8 @@ fn run_window(
         crate::rune_ui::run_app(app, requests, first, shutdown)
     })) {
         let reason = panic_reason(panic.as_ref());
-        tracing::error!(%reason, "the Hex window failed; Hex keeps running without it");
-        // `hex window show` and `hex status` say so instead of reporting
+        tracing::error!(%reason, "the Superhex window failed; Superhex keeps running without it");
+        // `superhex window show` and `superhex status` say so instead of reporting
         // a window that can no longer open (#979).
         host.window_failed(reason);
         while !shutdown.load(Ordering::Acquire) {
@@ -534,11 +534,11 @@ fn panic_reason(panic: &(dyn std::any::Any + Send)) -> String {
         .unwrap_or_else(|| "no reason given".into())
 }
 
-/// What `hex status` and `hex window show` report once the window failed.
+/// What `superhex status` and `superhex window show` report once the window failed.
 fn window_failure_message(reason: &str) -> String {
     let reason = reason.lines().next().unwrap_or(reason);
     format!(
-        "The Hex window and recording HUD stopped ({reason}). Dictation still works; restart Hex to try again."
+        "The Superhex window and recording HUD stopped ({reason}). Dictation still works; restart Superhex to try again."
     )
 }
 
@@ -645,9 +645,9 @@ impl LinuxDesktopHost {
         self.refresh_personal_commands();
     }
 
-    /// Adopts `settings.json` when something other than Hex changed it, so
+    /// Adopts `settings.json` when something other than Superhex changed it, so
     /// its modes reach the listener and the window's next save keeps the
-    /// edit. Hex's own saves read back equal and change nothing.
+    /// edit. Superhex's own saves read back equal and change nothing.
     fn reload_changed_settings(&mut self) {
         if cfg!(test) || self.shortcut_edit.is_some() {
             return;
@@ -659,7 +659,7 @@ impl LinuxDesktopHost {
         self.settings_modified = modified;
         match AppSettings::load() {
             Ok(settings) if settings != self.settings => {
-                tracing::info!("settings.json changed outside Hex; applying it");
+                tracing::info!("settings.json changed outside Superhex; applying it");
                 self.adopt_settings(settings);
             }
             Ok(_) => {}
@@ -746,8 +746,8 @@ impl LinuxDesktopHost {
         self.status = "Enabling…".into();
     }
 
-    /// Enable and Disable also decide whether Hex listens at its next launch,
-    /// so a disabled Hex stays disabled after a restart (#575).
+    /// Enable and Disable also decide whether Superhex listens at its next launch,
+    /// so a disabled Superhex stays disabled after a restart (#575).
     fn remember_listening(&mut self, enabled: bool) {
         if self.settings.enable_on_launch == enabled {
             return;
@@ -760,8 +760,8 @@ impl LinuxDesktopHost {
         }
     }
 
-    /// Keeps Hex's GNOME custom shortcuts (#781) in step: written while Hex
-    /// listens with them on, for its current shortcuts; removed when Hex is
+    /// Keeps Superhex's GNOME custom shortcuts (#781) in step: written while Superhex
+    /// listens with them on, for its current shortcuts; removed when Superhex is
     /// disabled or they're turned off.
     fn sync_gnome_shortcuts(&mut self) {
         if !self.settings_valid || !crate::linux::portal::gnome() {
@@ -781,7 +781,7 @@ impl LinuxDesktopHost {
         if self.gnome_shortcuts.as_deref() == Some(key.as_str()) {
             return;
         }
-        // Nothing to remove that this Hex wrote or was asked to keep.
+        // Nothing to remove that this Superhex wrote or was asked to keep.
         if !wanted && self.gnome_shortcuts.is_none() && !self.settings.gnome_keyboard_shortcuts {
             self.gnome_shortcuts = Some(key);
             return;
@@ -793,7 +793,10 @@ impl LinuxDesktopHost {
             crate::linux::gnome_shortcuts::remove()
         };
         match result {
-            Ok(()) => tracing::info!(written = wanted, "updated Hex's GNOME keyboard shortcuts"),
+            Ok(()) => tracing::info!(
+                written = wanted,
+                "updated Superhex's GNOME keyboard shortcuts"
+            ),
             Err(error) => {
                 self.error = Some(format!(
                     "Could not update GNOME keyboard shortcuts: {error:#}"
@@ -816,10 +819,10 @@ impl LinuxDesktopHost {
 
     fn refresh(&mut self) {
         self.switch_with_keyboard();
-        // Restart to update asks systemd to restart Hex after the updater's
+        // Restart to update asks systemd to restart Superhex after the updater's
         // final check; only a failure needs showing.
         if let Some(Err(error)) = self.updater.take_restart() {
-            self.error = Some(format!("Could not restart Hex: {error:#}"));
+            self.error = Some(format!("Could not restart Superhex: {error:#}"));
         }
         // Settings may set up the transformations workspace at any time.
         if self.personal_commands_checked_at.elapsed() >= Duration::from_secs(2) {
@@ -1377,7 +1380,7 @@ impl LinuxDesktopHost {
                     let _ = std::fs::write(marker, b"");
                 }
                 if let Err(error) = self.updater.act(&action) {
-                    self.error = Some(format!("Could not restart Hex: {error:#}"));
+                    self.error = Some(format!("Could not restart Superhex: {error:#}"));
                     return Err(error);
                 }
             }

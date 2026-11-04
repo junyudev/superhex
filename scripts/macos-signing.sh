@@ -37,11 +37,11 @@ hex_notarize() {
 }
 
 hex_version() {
-  printf '%s\n' "${HEX_VERSION:-$(cargo metadata --no-deps --format-version 1 --manifest-path "$1/Cargo.toml" | jq -r '.packages[] | select(.name == "hex") | .version')}"
+  printf '%s\n' "${HEX_VERSION:-$(sed -n 's/^version = "\(.*\)"/\1/p' "$1/Cargo.toml" | head -1)}"
 }
 
 # CFBundleVersion: the run number of a dev build (0.0.0-dev-N), else from
-# X.Y.Z (a prerelease shares its release's number). Hex's updater compares
+# X.Y.Z (a prerelease shares its release's number). Superhex's updater compares
 # neither; it follows the channel's current release.
 hex_build_number() {
   if [ -n "${HEX_BUILD_NUMBER:-}" ]; then

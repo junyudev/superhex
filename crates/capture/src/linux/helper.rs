@@ -1,7 +1,7 @@
 //! The Linux side of `scrawl-helper`: the same calls as `src/helper.rs`, answered in process.
 //! Movies go through `ffmpeg` (`linux::media`); the screen is asked for through the portal
 //! when a capture starts, so nothing needs granting ahead of time. Transcription is the
-//! host's (Hex's model); there is no cabled-iPhone mirror on Linux.
+//! host's (Superhex's model); there is no cabled-iPhone mirror on Linux.
 
 use std::path::{Path, PathBuf};
 

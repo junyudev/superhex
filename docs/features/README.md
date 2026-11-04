@@ -1,4 +1,4 @@
-# Hex Feature Map
+# Superhex Feature Map
 
 What can the user do, how do they reach it, and what would prove it works?
 This maps existing behavior. [ROADMAP.md](../../ROADMAP.md) owns future work;
@@ -56,12 +56,10 @@ button was pressed during that verification.
 
 ## Get Ready
 
-Install the signed macOS app with `brew install --cask anomalyco/tap/hex` or the
-[manual DMG](../../README.md#downloads). The cask uses a versioned, checksum-pinned
-DMG, requires Apple silicon/macOS 15+, and leaves updates to Hex's own updater. It does
-not require OpenCode, launch the app automatically, migrate the legacy
-Swift app's data, or forcibly replace an existing app destination. Homebrew uninstall
-leaves runtime settings, models, and retained data intact.
+This fork installs from [junyudev/superhex HEAD](branding.md) with
+`scripts/install-app.sh`; its own app identity and data folders are described
+there. The release and distribution details below document inherited Hex
+behavior, not published Superhex artifacts.
 
 ```ts
 Download Hex                              // setup.download-recovery
@@ -1170,7 +1168,7 @@ or the driver installed; off, the pane is hidden  // fun.hex-microphone; macOS, 
 │   ├── macOS driver status -> Installed v<ver> / In use by <app> + Uninstall
 │   │   ├── Version mismatch -> v<old> installed + Update + Uninstall
 │   │   ├── Pre-Anomaly com.kitlangton driver at the same path -> Update replaces it in place
-│   │   ├── Not installed -> Install -> macOS admin prompt -> copies bundled HexMicrophone.driver + restarts coreaudiod
+│   │   ├── Not installed -> Install -> macOS admin prompt -> copies bundled SuperhexMicrophone.driver + restarts coreaudiod
 │   │   └── Inline state -> Installing… / Uninstalling… / Cancelled / Failed with reason
 │   ├── Mode while dictating -> Muffled (default), Muted, Quiet, Normal, Chipmunk, Robot, Walkie, Underwater, Far
 │   ├── Key sliders -> Live mode tuning + Effect strength + Reset
@@ -1187,7 +1185,7 @@ or the driver installed; off, the pane is hidden  // fun.hex-microphone; macOS, 
 
 Sources: [audio/voice_filter.rs](../../src/audio/voice_filter.rs),
 [audio/hex_microphone.rs](../../src/audio/hex_microphone.rs),
-[HexMicrophoneDriver.c](../../macos/HexMicrophoneDriver/HexMicrophoneDriver.c),
+[SuperhexMicrophoneDriver.c](../../macos/SuperhexMicrophoneDriver/SuperhexMicrophoneDriver.c),
 [build-app.sh](../../scripts/build-app.sh),
 and [rune_ui/fun.rs](../../src/rune_ui/fun.rs). Checks:
 `default_mode_is_muffled`,

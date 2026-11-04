@@ -6,7 +6,7 @@
 //! click records the display.
 //!
 //! It takes the pointer only while it shows and never takes focus: Escape
-//! and the capture shortcut reach the capsule through Hex's tap, and the
+//! and the capture shortcut reach the capsule through Superhex's tap, and the
 //! shortcut records what the picker shows ([`PickerOverlay::aim`]).
 //!
 //! [`Scene::at`] decides what shows from the mode, the windows, the pointer
@@ -872,7 +872,7 @@ impl PickerOverlay {
         act: impl Fn(Action) + Send + Sync + 'static,
     ) -> Self {
         use rune::{OverlayLevel, OverlayOptions, OverlayPlacement, OverlaySpec};
-        let spec = OverlaySpec::new("Hex capture picker", (1440.0, 900.0), view)
+        let spec = OverlaySpec::new("Superhex capture picker", (1440.0, 900.0), view)
             .options(OverlayOptions {
                 placement: Some(OverlayPlacement::FullScreen),
                 display: DISPLAY,

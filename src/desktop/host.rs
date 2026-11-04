@@ -35,7 +35,7 @@ pub(crate) struct DesktopListenerSnapshot {
     pub(crate) warning: Option<String>,
     #[serde(default)]
     pub(crate) shortcuts: DesktopShortcuts,
-    /// The desktop can show its own dialog for Hex's shortcuts.
+    /// The desktop can show its own dialog for Superhex's shortcuts.
     #[serde(default)]
     pub(crate) shortcuts_configurable: bool,
 }
@@ -46,7 +46,7 @@ pub(crate) enum DesktopShortcuts {
     /// No listener has registered its shortcuts yet: it is starting or stopped.
     #[default]
     Unregistered,
-    /// Hex registers the shortcuts Settings records (X11).
+    /// Superhex registers the shortcuts Settings records (X11).
     Registered,
     /// The desktop's shortcuts portal bound these, in request order.
     Portal(Vec<DesktopGrantedShortcut>),
@@ -62,7 +62,7 @@ pub(crate) struct DesktopGrantedShortcut {
     pub(crate) trigger: Option<String>,
     /// The desktop assigns the key in its own configuration and its portal
     /// describes no trigger (Hyprland), so a missing trigger is not a
-    /// refusal: Hex cannot confirm which key, if any, runs it.
+    /// refusal: Superhex cannot confirm which key, if any, runs it.
     #[serde(default)]
     pub(crate) unconfirmed: bool,
 }
@@ -93,7 +93,7 @@ pub(crate) enum DesktopUpdateStatus {
     SourceBuild,
     /// Installed by a package manager (pacman, Nix), which updates it.
     PackageManager,
-    /// The package manager that installed Hex serves another version.
+    /// The package manager that installed Superhex serves another version.
     PackageUpdate {
         command: String,
     },

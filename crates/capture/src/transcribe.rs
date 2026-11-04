@@ -1,7 +1,7 @@
 //! Transcription: Apple's SpeechAnalyzer through `scrawl-helper` (measured word and segment
-//! timings), Hex when `"transcriber": "hex"` is set and Hex is connected (`crate::hex`; word
+//! timings), Superhex when `"transcriber": "hex"` is set and Superhex is connected (`crate::hex`; word
 //! times estimated), or a program of the user's when `"transcriber": "command"`
-//! (`crate::command_transcriber`). Any Hex or command trouble falls back to Apple for that
+//! (`crate::command_transcriber`). Any Superhex or command trouble falls back to Apple for that
 //! recording.
 
 use std::path::{Path, PathBuf};
@@ -12,10 +12,10 @@ use anyhow::Result;
 use crate::audio::RecordedAudio;
 use crate::model::{TranscriptData, TranscriptSegment, WordTiming};
 
-/// Keep the previous English default; Hex, not Scrawl, validates model/language support.
+/// Keep the previous English default; Superhex, not Scrawl, validates model/language support.
 pub const DEFAULT_LANGUAGE: &str = "en";
 
-/// Accept language-code syntax without maintaining another list of Hex's languages.
+/// Accept language-code syntax without maintaining another list of Superhex's languages.
 /// Blank resets to English; disallow query delimiters before constructing the API URL.
 pub fn language_code(value: &str) -> Option<String> {
     let value = value.trim();
@@ -36,8 +36,8 @@ const MAX_MERGED_MS: u64 = 30_000;
 const MAX_FORCED_MERGE_MS: u64 = 8 * 60_000;
 pub const MAX_CLIPS: usize = 24;
 
-/// Hex's support folder, as Hex's `app_paths::support_dir` resolves it: `~/Library/Application
-/// Support/hex` on macOS, `%APPDATA%\hex` on Windows.
+/// Superhex's support folder, as Superhex's `app_paths::support_dir` resolves it: `~/Library/Application
+/// Support/superhex` on macOS, `%APPDATA%\superhex` on Windows.
 pub fn hex_support_dir() -> PathBuf {
     std::env::var_os("HEX_APPLICATION_SUPPORT_DIR")
         .map(PathBuf::from)
@@ -45,7 +45,7 @@ pub fn hex_support_dir() -> PathBuf {
         .unwrap_or_else(|| {
             scrawl_router::user_dirs::data_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
-                .join("hex")
+                .join("superhex")
         })
 }
 
@@ -255,7 +255,7 @@ impl Transcriber for CommandTranscriber {
 pub enum Engine {
     #[default]
     Apple,
-    Hex,
+    Superhex,
     Command,
 }
 
@@ -263,7 +263,7 @@ impl Engine {
     pub fn parse(name: &str) -> Option<Self> {
         match name.trim().to_ascii_lowercase().as_str() {
             "apple" => Some(Self::Apple),
-            "hex" => Some(Self::Hex),
+            "hex" => Some(Self::Superhex),
             "command" => Some(Self::Command),
             _ => None,
         }
@@ -272,7 +272,7 @@ impl Engine {
     pub fn name(self) -> &'static str {
         match self {
             Self::Apple => "apple",
-            Self::Hex => "hex",
+            Self::Superhex => "hex",
             Self::Command => "command",
         }
     }
@@ -296,7 +296,7 @@ impl Engine {
     pub fn preferred() -> Self {
         match OVERRIDE.load(Ordering::Relaxed) {
             1 => Self::Apple,
-            2 => Self::Hex,
+            2 => Self::Superhex,
             3 => Self::Command,
             _ => Self::configured(),
         }
@@ -314,14 +314,14 @@ static OVERRIDE: AtomicU8 = AtomicU8::new(0);
 static LOGGED_NOT_CONNECTED: std::sync::Once = std::sync::Once::new();
 static LOGGED_NO_COMMAND: std::sync::Once = std::sync::Once::new();
 
-/// What the Settings window's Transcription controls show. A Hex preference stays saved while Hex
+/// What the Settings window's Transcription controls show. A Superhex preference stays saved while Superhex
 /// is away, but the active choice follows what recordings would really use.
 #[derive(Debug, PartialEq, Eq)]
 pub struct MenuState {
     pub hex_title: &'static str,
     pub hex_enabled: bool,
     pub hex_checked: bool,
-    /// Ready Hex models as `(id, title, chosen)`, empty when Hex is away.
+    /// Ready Superhex models as `(id, title, chosen)`, empty when Superhex is away.
     pub models: Vec<(String, String, bool)>,
 }
 
@@ -333,7 +333,7 @@ pub fn menu_state(
 ) -> MenuState {
     let Some(status) = status else {
         return MenuState {
-            hex_title: "Hex (not running)",
+            hex_title: "Superhex (not running)",
             hex_enabled: false,
             hex_checked: false,
             models: Vec::new(),
@@ -357,9 +357,13 @@ pub fn menu_state(
         .collect();
     let ready = chosen.is_some();
     MenuState {
-        hex_title: if ready { "Hex" } else { "Hex (no model ready)" },
+        hex_title: if ready {
+            "Superhex"
+        } else {
+            "Superhex (no model ready)"
+        },
         hex_enabled: ready,
-        hex_checked: ready && preferred == Engine::Hex,
+        hex_checked: ready && preferred == Engine::Superhex,
         models,
     }
 }
@@ -369,7 +373,7 @@ pub fn set_override(engine: Engine) {
     OVERRIDE.store(
         match engine {
             Engine::Apple => 1,
-            Engine::Hex => 2,
+            Engine::Superhex => 2,
             Engine::Command => 3,
         },
         Ordering::Relaxed,
@@ -394,7 +398,7 @@ pub fn transcribe(wav: Option<&Path>, audio: Option<&RecordedAudio>) -> Transcri
         engine,
         || match engine {
             Engine::Apple => Ok(None),
-            Engine::Hex => try_hex(audio),
+            Engine::Superhex => try_hex(audio),
             Engine::Command => try_command(wav, audio),
         },
         || {
@@ -488,7 +492,7 @@ fn finish_live(
 }
 
 /// The preferred engine when it isn't Apple, with Apple as the answer to anything it can't do.
-/// `other` returns `Ok(None)` when that engine isn't there at all (Hex not connected or without a
+/// `other` returns `Ok(None)` when that engine isn't there at all (Superhex not connected or without a
 /// ready model, no usable `transcribeCommand`).
 fn run(
     engine: Engine,
@@ -497,7 +501,7 @@ fn run(
 ) -> TranscriptData {
     let name = match engine {
         Engine::Apple => return apple(),
-        Engine::Hex => "Hex",
+        Engine::Superhex => "Superhex",
         Engine::Command => "Command",
     };
     match other() {
@@ -536,7 +540,7 @@ fn try_hex(audio: &RecordedAudio) -> Result<Option<TranscriptData>> {
     let not_connected = |reason: String| {
         LOGGED_NOT_CONNECTED.call_once(|| {
             crate::log::scrawl_log(format!(
-                "Hex preferred but unavailable ({reason}); using {LOCAL_ENGINE_TITLE}"
+                "Superhex preferred but unavailable ({reason}); using {LOCAL_ENGINE_TITLE}"
             ));
         });
         Ok(None)
@@ -557,7 +561,7 @@ fn try_hex(audio: &RecordedAudio) -> Result<Option<TranscriptData>> {
 fn try_hex(_audio: &RecordedAudio) -> Result<Option<TranscriptData>> {
     LOGGED_NOT_CONNECTED.call_once(|| {
         crate::log::scrawl_log(format!(
-            "Hex preferred but hex-client feature is disabled; using {LOCAL_ENGINE_TITLE}"
+            "Superhex preferred but hex-client feature is disabled; using {LOCAL_ENGINE_TITLE}"
         ));
     });
     Ok(None)
@@ -597,7 +601,7 @@ mod tests {
 
     #[test]
     fn engine_names_parse_and_unknown_is_not_an_engine() {
-        assert_eq!(Engine::parse("hex"), Some(Engine::Hex));
+        assert_eq!(Engine::parse("hex"), Some(Engine::Superhex));
         assert_eq!(Engine::parse(" Apple "), Some(Engine::Apple));
         assert_eq!(Engine::parse("Command"), Some(Engine::Command));
         assert_eq!(Engine::parse("whisper"), None);
@@ -617,7 +621,7 @@ mod tests {
     #[test]
     fn the_preferred_engine_is_used_when_it_answers() {
         for (engine, source) in [
-            (Engine::Hex, "hex:parakeet_v3"),
+            (Engine::Superhex, "hex:parakeet_v3"),
             (Engine::Command, "command:whisper-scrawl"),
         ] {
             let result = run(
@@ -631,7 +635,7 @@ mod tests {
 
     #[test]
     fn an_unavailable_or_failing_engine_falls_back_to_apple() {
-        for engine in [Engine::Hex, Engine::Command] {
+        for engine in [Engine::Superhex, Engine::Command] {
             let apple = || named("speech-analyzer");
             assert_eq!(run(engine, || Ok(None), apple).source, "speech-analyzer");
             let failed = run(engine, || Err(anyhow::anyhow!("took too long")), apple);
@@ -654,15 +658,15 @@ mod tests {
             verified: true,
         };
 
-        let away = menu_state(Engine::Hex, None, None);
+        let away = menu_state(Engine::Superhex, None, None);
         assert!(!away.hex_checked && !away.hex_enabled);
-        assert_eq!(away.hex_title, "Hex (not running)");
+        assert_eq!(away.hex_title, "Superhex (not running)");
 
         let up = status(vec![
             ready("parakeet_v3", "Parakeet v3"),
             ready("qwen3_asr06_b", ""),
         ]);
-        let hex = menu_state(Engine::Hex, Some(&up), Some("qwen3_asr06_b"));
+        let hex = menu_state(Engine::Superhex, Some(&up), Some("qwen3_asr06_b"));
         assert!(hex.hex_checked && hex.hex_enabled);
         assert_eq!(
             hex.models,
@@ -680,9 +684,9 @@ mod tests {
             installed: false,
             verified: false,
         }]);
-        let none = menu_state(Engine::Hex, Some(&empty), None);
+        let none = menu_state(Engine::Superhex, Some(&empty), None);
         assert!(!none.hex_checked && !none.hex_enabled && none.models.is_empty());
-        assert_eq!(none.hex_title, "Hex (no model ready)");
+        assert_eq!(none.hex_title, "Superhex (no model ready)");
     }
 
     #[test]

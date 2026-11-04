@@ -105,7 +105,7 @@ struct Voice {
     energy: f32,
     kick: f32,
     kick_velocity: f32,
-    /// The prototype's 16 bands, all the level: Hex meters no spectrum.
+    /// The prototype's 16 bands, all the level: Superhex meters no spectrum.
     band: f32,
 }
 

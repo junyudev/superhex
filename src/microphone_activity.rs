@@ -95,7 +95,7 @@ fn is_browser_id(canonical_bundle_id: Option<&str>) -> bool {
     )
 }
 
-/// One of the browsers Hex knows, or one of their audio helpers.
+/// One of the browsers Superhex knows, or one of their audio helpers.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) fn browser_bundle(bundle_id: &str, name: Option<&str>) -> bool {
     is_browser_id(canonical_bundle_id_for(bundle_id, name))
@@ -121,7 +121,7 @@ impl BrowserProcesses {
 }
 
 #[cfg(target_os = "macos")]
-/// The Core Audio process objects of the running browsers, Hex excluded.
+/// The Core Audio process objects of the running browsers, Superhex excluded.
 pub(crate) fn browser_process_objects(which: BrowserProcesses) -> Result<Vec<AudioObjectID>> {
     objc2::rc::autoreleasepool(|_| {
         let own_pid = std::process::id() as i32;
@@ -970,7 +970,7 @@ mod tests {
                 true,
             ),
             ("company.thebrowser.dia", "Dia", None, false),
-            ("anomaly.hex", "Hex", None, false),
+            ("io.github.junyudev.superhex", "Superhex", None, false),
             ("zoom", "Zoom", Some("us.zoom.xos"), false),
             (
                 "ms-teams.exe",

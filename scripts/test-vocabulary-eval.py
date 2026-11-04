@@ -36,16 +36,16 @@ class Scoring(unittest.TestCase):
     def test_boundaries_spacing_and_repetition(self):
         count = score["occurrences"]
         self.assertEqual(count("OPEN CODE and OpenCode", "OpenCode"), 2)
-        self.assertEqual(count("hexadecimal toolkit effects runes", "Hex"), 0)
+        self.assertEqual(count("hexadecimal toolkit effects runes", "Superhex"), 0)
         self.assertEqual(count("hexadecimal toolkit effects runes", "Kit"), 0)
         self.assertEqual(count("A rune carved into stone", "Rune"), 1)
 
     def test_guard_and_target_denominators_and_all_hex_timings(self):
-        manifest = dict(vocabulary=["Hex", "Rune"], clips=[
-            dict(id="term", expected="Use Hex", expected_terms=["Hex"], group="target"),
+        manifest = dict(vocabulary=["Superhex", "Rune"], clips=[
+            dict(id="term", expected="Use Superhex", expected_terms=["Superhex"], group="target"),
             dict(id="guard", expected="Hanks found a rune", group="distractor")])
-        results = [dict(type="clip", id="term", transcript="Use Hex", audio_ms=1000, inference_ms=10),
-                   dict(type="clip", id="guard", transcript="Hex found a rune", audio_ms=1000, inference_ms=10)]
+        results = [dict(type="clip", id="term", transcript="Use Superhex", audio_ms=1000, inference_ms=10),
+                   dict(type="clip", id="guard", transcript="Superhex found a rune", audio_ms=1000, inference_ms=10)]
         for run, time in [(1, 10), (2, 20), (3, 60)]:
             results.extend(dict(type="measurement", id=c["id"], run=run, inference_ms=time) for c in manifest["clips"])
         report = score["score"](manifest, results)

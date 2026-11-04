@@ -23,7 +23,7 @@ impl LinuxControl {
     fn published(&self) -> std::result::Result<Arc<Published>, ControlError> {
         self.published
             .upgrade()
-            .ok_or_else(|| ControlError::new("unavailable", "Hex is quitting"))
+            .ok_or_else(|| ControlError::new("unavailable", "Superhex is quitting"))
     }
 
     fn route(&self) -> std::result::Result<ShortcutRoute, ControlError> {
@@ -35,7 +35,7 @@ impl LinuxControl {
             .ok_or_else(|| {
                 ControlError::new(
                     "not-ready",
-                    "Hex is not listening; enable it in Settings or run `hex start`",
+                    "Superhex is not listening; enable it in Settings or run `superhex start`",
                 )
             })
     }
@@ -48,7 +48,7 @@ impl LinuxControl {
     fn window(&self, control: Control) -> std::result::Result<(), ControlError> {
         self.window
             .try_send(control)
-            .map_err(|_| ControlError::new("busy", "Hex is busy; try again"))
+            .map_err(|_| ControlError::new("busy", "Superhex is busy; try again"))
     }
 }
 
@@ -60,7 +60,7 @@ impl crate::control::host::Host for LinuxControl {
             .lock()
             .unwrap()
             .clone()
-            .ok_or_else(|| ControlError::new("not-ready", "Hex is starting; try again"))?;
+            .ok_or_else(|| ControlError::new("not-ready", "Superhex is starting; try again"))?;
         Ok(crate::control::host::HostState {
             capture: crate::control::host::capture_from_state(status.desktop.activity.state),
             listener: status.desktop.listener,
@@ -82,7 +82,7 @@ impl crate::control::host::Host for LinuxControl {
                 .route()?
                 .commands
                 .try_send(ListenerCommand::StopAndPrint(print))
-                .map_err(|_| ControlError::new("busy", "Hex is busy; try again"));
+                .map_err(|_| ControlError::new("busy", "Superhex is busy; try again"));
         }
         self.shortcut(match (action, raw) {
             (CaptureAction::Start, false) => ShortcutCommand::DictationStart,
@@ -167,7 +167,7 @@ impl crate::control::host::Host for LinuxControl {
     }
 
     fn quit(&self, restart: bool) -> std::result::Result<(), ControlError> {
-        // A unit restarts by itself; otherwise `hex restart` reopens Hex
+        // A unit restarts by itself; otherwise `superhex restart` reopens Superhex
         // once this one has drained.
         if restart && linux_service::supervised() {
             return linux_service::schedule_restart()
@@ -190,12 +190,12 @@ impl crate::control::host::Host for LinuxControl {
                 match crate::capture_host::send_to_listener(
                     crate::capture_host::CaptureControl::Scrawl(action),
                 ) {
-                    Ok(()) => ControlReply::done("Sent to Hex"),
+                    Ok(()) => ControlReply::done("Sent to Superhex"),
                     Err(error) => ControlReply::error("failed", format!("{error:#}")),
                 }
             }
             _ => crate::control::host::unsupported(
-                "run this `hex annotate` command directly; it reads the captures folder itself",
+                "run this `superhex annotate` command directly; it reads the captures folder itself",
             ),
         }
     }

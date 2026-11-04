@@ -1,14 +1,14 @@
-//! Hex (the local dictation app) as an optional transcriber, through its desktop local API v2
-//! (`HEX_APPLICATION_SUPPORT_DIR` or `~/Library/Application Support/hex/local-api.json` holds
+//! Superhex (the local dictation app) as an optional transcriber, through its desktop local API v2
+//! (`HEX_APPLICATION_SUPPORT_DIR` or `~/Library/Application Support/superhex/local-api.json` holds
 //! the port and bearer token; `GET /health`, `GET /models`, `POST /transcriptions`).
 //!
-//! Hex returns text and a duration but no word times, and Scrawl needs them to hand each
+//! Superhex returns text and a duration but no word times, and Scrawl needs them to hand each
 //! keyframe its words. So the recording is cut into speech islands (`audio::speech_islands`),
 //! each island is transcribed on its own, and its words are spread across it by length. Those
 //! times are estimates (`TranscriptData::estimated`): they place words inside the right island
 //! but not on the right syllable, so spoken cues never cut keyframes from them.
 //!
-//! "Hex isn't connected" covers a missing discovery file, a refused connection, a rejected
+//! "Superhex isn't connected" covers a missing discovery file, a refused connection, a rejected
 //! token and any API version but 2. Nothing here logs or prints the token.
 
 use std::io::{Read, Write};
@@ -48,7 +48,7 @@ const BUSY_RETRIES: u32 = 5;
 const BUSY_BACKOFF: Duration = Duration::from_millis(200);
 
 const MIN_ISLAND_MS: u64 = 120;
-/// Extra audio on each side of an island sent to Hex, so edge words aren't clipped.
+/// Extra audio on each side of an island sent to Superhex, so edge words aren't clipped.
 const CLIP_PAD_MS: u64 = 200;
 
 #[derive(Clone, PartialEq, Eq)]
@@ -78,17 +78,17 @@ pub fn discovery_path() -> PathBuf {
 pub fn parse_discovery(bytes: &[u8]) -> Result<Endpoint> {
     // serde's messages can quote the offending value, so none of them are passed on.
     let Ok(discovery) = serde_json::from_slice::<Discovery>(bytes) else {
-        bail!("Hex discovery file is not valid");
+        bail!("Superhex discovery file is not valid");
     };
     ensure!(
         discovery.api_version == "2",
-        "Hex API version {:?} is not supported (need 2)",
+        "Superhex API version {:?} is not supported (need 2)",
         discovery.api_version
     );
-    ensure!(discovery.port != 0, "Hex discovery file has no port");
+    ensure!(discovery.port != 0, "Superhex discovery file has no port");
     ensure!(
         !discovery.token.is_empty() && !discovery.token.contains(['\r', '\n']),
-        "Hex discovery file has no usable token"
+        "Superhex discovery file has no usable token"
     );
     Ok(Endpoint {
         port: discovery.port,
@@ -115,8 +115,8 @@ fn request(
     timeouts: Timeouts,
 ) -> Result<Response> {
     let address = SocketAddr::from((Ipv4Addr::LOCALHOST, endpoint.port));
-    let mut stream =
-        TcpStream::connect_timeout(&address, CONNECT_TIMEOUT).context("Could not reach Hex")?;
+    let mut stream = TcpStream::connect_timeout(&address, CONNECT_TIMEOUT)
+        .context("Could not reach Superhex")?;
     stream.set_write_timeout(Some(UPLOAD_TIMEOUT))?;
     stream.set_read_timeout(Some(timeouts.read))?;
     write!(
@@ -126,7 +126,7 @@ fn request(
         endpoint.token,
         body.len()
     )?;
-    // Hex can reject before it has read the whole upload; keep its answer over a broken pipe.
+    // Superhex can reject before it has read the whole upload; keep its answer over a broken pipe.
     let upload = stream.write_all(body);
     let mut bytes = Vec::new();
     let read = stream.take(RESPONSE_LIMIT + 1).read_to_end(&mut bytes);
@@ -135,20 +135,20 @@ fn request(
     }
     ensure!(
         bytes.len() as u64 <= RESPONSE_LIMIT,
-        "Hex response too large"
+        "Superhex response too large"
     );
     let split = bytes
         .windows(4)
         .position(|window| window == b"\r\n\r\n")
-        .context("Invalid Hex HTTP response")?;
-    let header = std::str::from_utf8(&bytes[..split]).context("Invalid Hex HTTP header")?;
+        .context("Invalid Superhex HTTP response")?;
+    let header = std::str::from_utf8(&bytes[..split]).context("Invalid Superhex HTTP header")?;
     let status: u16 = header
         .lines()
         .next()
         .and_then(|line| line.split_whitespace().nth(1))
-        .context("Missing Hex HTTP status")?
+        .context("Missing Superhex HTTP status")?
         .parse()
-        .context("Invalid Hex HTTP status")?;
+        .context("Invalid Superhex HTTP status")?;
     let body = bytes[split + 4..].to_vec();
     if let Some(length) = header
         .lines()
@@ -156,10 +156,10 @@ fn request(
         .find(|(key, _)| key.eq_ignore_ascii_case("content-length"))
         .and_then(|(_, value)| value.trim().parse::<usize>().ok())
     {
-        ensure!(body.len() == length, "Incomplete Hex HTTP response");
+        ensure!(body.len() == length, "Incomplete Superhex HTTP response");
     }
     if status == 200 {
-        upload.context("Hex upload failed")?;
+        upload.context("Superhex upload failed")?;
     }
     Ok(Response { status, body })
 }
@@ -177,20 +177,20 @@ fn error_code(body: &[u8]) -> String {
 /// Why a transcription request failed.
 #[derive(Debug)]
 pub enum Failure {
-    /// Hex's queue is full (`429 queue-full`): try again shortly.
+    /// Superhex's queue is full (`429 queue-full`): try again shortly.
     Busy,
-    /// Hex refused this audio or model (`4xx`), which retrying won't change.
+    /// Superhex refused this audio or model (`4xx`), which retrying won't change.
     Rejected { status: u16, code: String },
-    /// Anything else: Hex is gone, errored or too slow.
+    /// Anything else: Superhex is gone, errored or too slow.
     Unavailable(String),
 }
 
 impl std::fmt::Display for Failure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Busy => write!(f, "Hex is busy"),
+            Self::Busy => write!(f, "Superhex is busy"),
             Self::Rejected { status, code } => {
-                write!(f, "Hex rejected the audio ({status} {code})")
+                write!(f, "Superhex rejected the audio ({status} {code})")
             }
             Self::Unavailable(reason) => write!(f, "{reason}"),
         }
@@ -211,7 +211,7 @@ pub struct Model {
 }
 
 impl Model {
-    /// Ready to transcribe now. Scrawl never asks Hex to download or prepare a model.
+    /// Ready to transcribe now. Scrawl never asks Superhex to download or prepare a model.
     pub fn usable(&self) -> bool {
         self.installed && self.verified
     }
@@ -229,7 +229,7 @@ impl Status {
     }
 }
 
-/// The configured model when Hex has it ready, else the first ready one of `PREFERRED_MODELS`.
+/// The configured model when Superhex has it ready, else the first ready one of `PREFERRED_MODELS`.
 pub fn pick_model(models: &[Model], configured: Option<&str>) -> Option<String> {
     let usable = |id: &str| models.iter().any(|model| model.id == id && model.usable());
     configured
@@ -257,13 +257,13 @@ struct Transcription {
 }
 
 impl Client {
-    /// Connects to the running Hex, or says why it can't.
+    /// Connects to the running Superhex, or says why it can't.
     pub fn connect() -> Result<Self> {
         Self::connect_at(&discovery_path())
     }
 
     pub fn connect_at(path: &Path) -> Result<Self> {
-        let bytes = std::fs::read(path).context("Hex is not running (no discovery file)")?;
+        let bytes = std::fs::read(path).context("Superhex is not running (no discovery file)")?;
         let client = Self {
             endpoint: parse_discovery(&bytes)?,
         };
@@ -283,30 +283,30 @@ impl Client {
         )?;
         ensure!(
             response.status != 401,
-            "Hex rejected Scrawl's credentials (restart Hex?)"
+            "Superhex rejected Scrawl's credentials (restart Superhex?)"
         );
         ensure!(
             response.status == 200,
-            "Hex answered {path} with HTTP {}",
+            "Superhex answered {path} with HTTP {}",
             response.status
         );
         Ok(response)
     }
 
-    /// Hex's version, after checking it speaks API 2.
+    /// Superhex's version, after checking it speaks API 2.
     pub fn health(&self) -> Result<String> {
         let health: Health = serde_json::from_slice(&self.get("/health")?.body)
-            .context("Invalid Hex health response")?;
+            .context("Invalid Superhex health response")?;
         ensure!(
             health.api_version == "2",
-            "Hex API version {:?} is not supported (need 2)",
+            "Superhex API version {:?} is not supported (need 2)",
             health.api_version
         );
         Ok(health.version)
     }
 
     pub fn models(&self) -> Result<Vec<Model>> {
-        serde_json::from_slice(&self.get("/models")?.body).context("Invalid Hex model list")
+        serde_json::from_slice(&self.get("/models")?.body).context("Invalid Superhex model list")
     }
 
     pub fn status(&self) -> Result<Status> {
@@ -335,14 +335,16 @@ impl Client {
         match response.status {
             200 => serde_json::from_slice::<Transcription>(&response.body)
                 .map(|transcription| transcription.transcript)
-                .map_err(|_| Failure::Unavailable("Invalid Hex transcription response".into())),
+                .map_err(|_| {
+                    Failure::Unavailable("Invalid Superhex transcription response".into())
+                }),
             429 => Err(Failure::Busy),
             status @ (400 | 408 | 411 | 413 | 415) => Err(Failure::Rejected {
                 status,
                 code: error_code(&response.body),
             }),
             status => Err(Failure::Unavailable(format!(
-                "Hex transcription failed (HTTP {status} {})",
+                "Superhex transcription failed (HTTP {status} {})",
                 error_code(&response.body)
             ))),
         }
@@ -375,13 +377,13 @@ pub fn status() -> Result<Status> {
 static CACHE: Mutex<Option<Option<Status>>> = Mutex::new(None);
 static REFRESHING: AtomicBool = AtomicBool::new(false);
 
-/// The last known Hex status without touching the network, for the menu. `None` means Hex
+/// The last known Superhex status without touching the network, for the menu. `None` means Superhex
 /// wasn't connected at the last check (or none has finished yet).
 pub fn cached_status() -> Option<Status> {
     CACHE.lock().ok()?.clone()?
 }
 
-/// Re-checks Hex on a background thread (one at a time).
+/// Re-checks Superhex on a background thread (one at a time).
 pub fn refresh_in_background() {
     if REFRESHING.swap(true, Ordering::AcqRel) {
         return;
@@ -435,7 +437,7 @@ impl crate::transcribe::Transcriber for HexTranscriber {
 }
 
 /// Transcribes each clip with `send` (given that clip's WAV) and spreads its words over it.
-/// A clip Hex refuses is skipped; any other failure (or every clip refused) fails the whole
+/// A clip Superhex refuses is skipped; any other failure (or every clip refused) fails the whole
 /// recording so the caller can use another transcriber.
 pub fn transcribe_clips(
     samples: &[f32],
@@ -453,7 +455,7 @@ pub fn transcribe_clips(
     let mut rejected = 0;
     let mut texts: Vec<String> = Vec::new();
     for &(start, end) in clips {
-        ensure!(Instant::now() < deadline, "Hex took too long");
+        ensure!(Instant::now() < deadline, "Superhex took too long");
         let from = (start.saturating_sub(CLIP_PAD_MS) * SAMPLE_RATE_KHZ) as usize;
         let to = (((end + CLIP_PAD_MS) * SAMPLE_RATE_KHZ) as usize).min(samples.len());
         if from >= to {
@@ -464,7 +466,7 @@ pub fn transcribe_clips(
             Ok(text) => text,
             Err(Failure::Rejected { status, code }) => {
                 crate::log::scrawl_log(format!(
-                    "Hex rejected a clip ({status} {code}); skipping it"
+                    "Superhex rejected a clip ({status} {code}); skipping it"
                 ));
                 rejected += 1;
                 continue;
@@ -482,7 +484,7 @@ pub fn transcribe_clips(
     }
     ensure!(
         rejected == 0 || rejected < clips.len(),
-        "Hex refused every clip"
+        "Superhex refused every clip"
     );
     transcript.text = texts.join(" ");
     Ok(transcript)
@@ -499,7 +501,7 @@ pub fn transcribe_audio(
     let duration_ms = samples.len() as u64 / SAMPLE_RATE_KHZ;
     let mut clips = plan_clips(&audio::speech_islands(&samples), duration_ms);
     if clips.is_empty() && duration_ms >= MIN_ISLAND_MS * 4 {
-        // Too quiet to find speech by energy: let Hex hear the whole thing.
+        // Too quiet to find speech by energy: let Superhex hear the whole thing.
         clips.push((0, duration_ms));
     }
     transcribe_clips(&samples, &clips, model, |wav| {

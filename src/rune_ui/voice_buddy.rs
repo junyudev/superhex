@@ -40,6 +40,10 @@ mod host {
         Err(String::new())
     }
 
+    pub(super) fn create_identity() -> Result<Setup, String> {
+        Err("VoiceBuddy is available on macOS".into())
+    }
+
     pub(super) fn forget() -> Result<(), String> {
         Ok(())
     }
@@ -412,11 +416,11 @@ fn setup_copy(ui: &Ui) -> String {
     };
     let meanwhile = if ui.picker.selected_installed(&ui.settings) {
         tr_fill(
-            "Until then, Hex uses {}.",
+            "Until then, Superhex uses {}.",
             crate::transcription::models::definition(ui.settings.transcription.model).name,
         )
     } else {
-        tr("Until then, Hex can't listen.").to_owned()
+        tr("Until then, Superhex can't listen.").to_owned()
     };
     format!("{lead} {meanwhile}")
 }

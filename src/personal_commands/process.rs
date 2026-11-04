@@ -1,7 +1,7 @@
 //! The programs `node:child_process` runs for a script: `execFile` with no
 //! shell, `exec` through the platform shell as Node does (`/bin/sh -c` on
 //! Unix, `cmd.exe /d /s /c "…"` on Windows), a minimal environment, and a
-//! process tree Hex can always end: its own process group on Unix, a job
+//! process tree Superhex can always end: its own process group on Unix, a job
 //! object on Windows. Logs name the program, never its arguments, input,
 //! output, or environment.
 
@@ -33,7 +33,7 @@ pub struct ExecRequest {
     pub cwd: Option<String>,
     #[serde(default)]
     pub env: BTreeMap<String, String>,
-    /// Milliseconds before Hex sends the process tree SIGTERM; 0 is none.
+    /// Milliseconds before Superhex sends the process tree SIGTERM; 0 is none.
     pub timeout: Option<f64>,
     pub max_buffer: Option<f64>,
     /// Written to stdin, which is then closed. Without it stdin is empty.
@@ -52,7 +52,7 @@ pub struct ExecResult {
     pub stderr: String,
     /// The stream (`stdout` or `stderr`) that outgrew `maxBuffer`.
     pub max_buffer: Option<&'static str>,
-    /// Hex ended it at the request's `timeout`.
+    /// Superhex ended it at the request's `timeout`.
     pub timed_out: bool,
 }
 
@@ -227,7 +227,7 @@ fn error_code(error: &std::io::Error) -> &'static str {
 }
 
 /// The variables a program gets before the script's own `env`: enough to
-/// find programs and a home folder, nothing else from Hex's environment.
+/// find programs and a home folder, nothing else from Superhex's environment.
 fn base_environment() -> Vec<(OsString, OsString)> {
     #[cfg(unix)]
     const KEEP: &[&str] = &[
@@ -304,7 +304,7 @@ fn own_process_group(command: &mut Command) {
     use std::os::unix::process::CommandExt;
     command.process_group(0);
     // The direct child also ends with the thread that starts it (the script
-    // worker), so it never outlives a Hex that stopped without cleaning up.
+    // worker), so it never outlives a Superhex that stopped without cleaning up.
     #[cfg(target_os = "linux")]
     // SAFETY: `prctl` is async-signal-safe and touches only the child.
     unsafe {
@@ -414,7 +414,7 @@ mod windows_job {
         SetInformationJobObject, TerminateJobObject,
     };
 
-    /// A job object that ends its processes when Hex closes it, or exits.
+    /// A job object that ends its processes when Superhex closes it, or exits.
     pub struct Job(HANDLE);
 
     // SAFETY: a job handle may be used and closed from any thread.

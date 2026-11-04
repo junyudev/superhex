@@ -170,7 +170,7 @@ pub fn stage(file: &Path, version: &str) -> Result<Staged> {
 
 pub fn restart_into(staged: &Staged) -> Result<()> {
     if !staged.0.is_file() {
-        bail!("the prepared Hex update is no longer installed");
+        bail!("the prepared Superhex update is no longer installed");
     }
     crate::linux::service::schedule_restart()
 }
@@ -231,7 +231,7 @@ fn activate(support: &Path, version: &str, staging: &Path) -> Result<PathBuf> {
             && name.to_str().is_some_and(is_version_name)
             && let Err(error) = fs::remove_dir_all(entry.path())
         {
-            tracing::warn!(%error, path = %entry.path().display(), "could not prune an old Hex version");
+            tracing::warn!(%error, path = %entry.path().display(), "could not prune an old Superhex version");
         }
     }
     Ok(current.join("hex"))

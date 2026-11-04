@@ -112,8 +112,8 @@ impl Default for ExperimentalSettings {
     }
 }
 
-/// Whether the Voice Filter runs: the listener streams the Hex Microphone
-/// and Hex watches its driver. Its Labs toggle (`experimental.hex_microphone`,
+/// Whether the Voice Filter runs: the listener streams the Superhex Microphone
+/// and Superhex watches its driver. Its Labs toggle (`experimental.hex_microphone`,
 /// or `HEX_EXPERIMENTAL_MIC`) or an installed driver turns it on, so a driver
 /// apps already use keeps receiving audio.
 pub fn voice_filter_enabled(setting: bool, driver_installed: bool) -> bool {
@@ -270,7 +270,7 @@ pub struct AppSettings {
     )]
     pub retired_edit_hotkey: Option<serde_json::Value>,
     pub paste_last_hotkey: Option<HotkeyBinding>,
-    /// Toggle mode's cancel shortcut: discards the recording. Hex takes it
+    /// Toggle mode's cancel shortcut: discards the recording. Superhex takes it
     /// only while a toggled recording runs; Hold mode has no cancel.
     pub cancel_hotkey: HotkeyBinding,
     /// Dictate without processing: records like the dictation shortcut and
@@ -307,12 +307,12 @@ pub struct AppSettings {
     pub experimental: ExperimentalSettings,
     /// The Labs features' own switches (`crate::labs`).
     pub labs: LabsSettings,
-    /// Start listening when Hex opens (Windows and Linux, where the
+    /// Start listening when Superhex opens (Windows and Linux, where the
     /// listener can be off).
     pub enable_on_launch: bool,
     /// Paste with Ctrl-Shift-V for terminals (Linux and Windows).
     pub paste_with_shift: bool,
-    /// Hex keeps its own GNOME custom keyboard shortcuts, on GNOME without a
+    /// Superhex keeps its own GNOME custom keyboard shortcuts, on GNOME without a
     /// shortcuts portal (Linux, #781).
     pub gnome_keyboard_shortcuts: bool,
     /// Let other apps see the dictation shortcut's key presses too
@@ -345,7 +345,7 @@ const STREAMING_ENGLISH_MIGRATION: &str = "streaming-english-model";
 /// Annotate became a default feature: on for everyone once.
 #[cfg(hex_capture)]
 const ANNOTATE_DEFAULT_MIGRATION: &str = "annotate-on-by-default";
-/// Settings saved by an `anomaly.hex` build. Up to 2.3.1 Hex was
+/// Settings saved by an `io.github.junyudev.superhex` build. Up to 2.3.1 Superhex was
 /// `com.kitlangton.hex2` and used the same folder, so a file without this
 /// ID may carry onboarding finished under grants macOS no longer gives the
 /// new identity; the macOS launch checks setup once
@@ -597,7 +597,7 @@ impl AppSettings {
     /// Reads Scrawl's settings into `capture`, never writing Scrawl's
     /// files: `engine` is `~/.config/scrawl/config.json` (transcriber,
     /// captures folder, retention) and `app` is the app's shortcut file.
-    /// Missing or unreadable values keep Hex's defaults.
+    /// Missing or unreadable values keep Superhex's defaults.
     #[cfg(hex_capture)]
     fn import_scrawl_settings(&mut self, engine: Option<&[u8]>, app: Option<&[u8]>) {
         if let Some(config) = engine.and_then(|bytes| {
@@ -903,7 +903,7 @@ impl AppSettings {
         self.migrations.iter().any(|applied| applied == id)
     }
 
-    /// Whether these settings come from before the `anomaly.hex` identity.
+    /// Whether these settings come from before the `io.github.junyudev.superhex` identity.
     #[cfg(target_os = "macos")]
     pub(crate) fn predates_anomaly_identity(&self) -> bool {
         !self.has_migration(ANOMALY_IDENTITY_MIGRATION)
@@ -997,7 +997,7 @@ impl AppSettings {
 
     /// Labs › Second dictation shortcut's binding while it takes effect:
     /// macOS, its toggle on, bound, and sharing no key with another active
-    /// shortcut. Otherwise Hex matches, suppresses, and checks nothing for
+    /// shortcut. Otherwise Superhex matches, suppresses, and checks nothing for
     /// it.
     pub fn active_second_dictation_hotkey(&self) -> Option<&HotkeyBinding> {
         if !cfg!(target_os = "macos") || !self.labs.second_dictation_shortcut {
@@ -1067,7 +1067,7 @@ pub fn hotkey_conflicts(
         .any(|binding| candidate.overlaps(&binding))
 }
 
-/// A shortcut Settings and `hex settings` record.
+/// A shortcut Settings and `superhex settings` record.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HotkeySlot {
     Dictation,
@@ -1251,7 +1251,7 @@ pub fn set_hotkey_capture_active(active: bool) {
 }
 
 /// The Dock policy while no Settings window is open. An open window always
-/// shows the icon: hiding it deactivates Hex asynchronously, which would drop
+/// shows the icon: hiding it deactivates Superhex asynchronously, which would drop
 /// that window behind other applications.
 pub fn dock_icon_visible(show_dock_icon: bool, status_item_available: bool) -> bool {
     show_dock_icon || !status_item_available
@@ -1277,7 +1277,7 @@ pub fn set_dock_icon_visible(visible: bool) {
 #[cfg(target_os = "macos")]
 pub fn hide_application() {
     let Some(marker) = MainThreadMarker::new() else {
-        tracing::warn!("cannot hide Hex outside the main thread");
+        tracing::warn!("cannot hide Superhex outside the main thread");
         return;
     };
     NSApplication::sharedApplication(marker).hide(None);
@@ -1405,9 +1405,9 @@ mod tests {
             ..AppSettings::default()
         })
         .unwrap();
-        file["transcription"]["recognition_hints"] = "Hex, rune\nKaffar".into();
+        file["transcription"]["recognition_hints"] = "Superhex, rune\nKaffar".into();
         file["transcription_recents"] = serde_json::json!([
-            {"model": "parakeet_v3", "language": "de", "recognition_hints": "Old; Hex"},
+            {"model": "parakeet_v3", "language": "de", "recognition_hints": "Old; Superhex"},
             {"model": "qwen3_asr06_b", "language": "en", "recognition_hints": "Rodolfo"},
         ]);
         fs::write(&dir.path, serde_json::to_vec(&file).unwrap()).unwrap();
@@ -1417,7 +1417,7 @@ mod tests {
             .iter()
             .map(|entry| entry.term.as_str())
             .collect();
-        assert_eq!(terms, ["Rune", "Hex", "Kaffar", "Rodolfo", "Old"]);
+        assert_eq!(terms, ["Rune", "Superhex", "Kaffar", "Rodolfo", "Old"]);
         assert_eq!(loaded.vocabulary[0].sounds_like, ["rune's"]);
         assert_eq!(loaded.sound_effect_volume, 0.25);
         let written = fs::read_to_string(&dir.path).unwrap();
@@ -1629,7 +1629,7 @@ mod tests {
             settings
                 .meetings
                 .resolved_output_folder()
-                .ends_with("Hex Meetings")
+                .ends_with("Superhex Meetings")
         );
         assert!(settings.text_replacements.is_empty());
     }

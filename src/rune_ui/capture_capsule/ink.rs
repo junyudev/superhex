@@ -348,7 +348,7 @@ impl InkOverlay {
             DisplayTarget, OverlayInput, OverlayLevel, OverlayOptions, OverlayPlacement,
             OverlaySpec,
         };
-        let spec = OverlaySpec::new("Hex ink", (1440.0, 900.0), view)
+        let spec = OverlaySpec::new("Superhex ink", (1440.0, 900.0), view)
             .options(OverlayOptions {
                 placement: Some(OverlayPlacement::FullScreen),
                 display: DisplayTarget::Primary,

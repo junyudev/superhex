@@ -1,12 +1,12 @@
 //! The clipboard a Linux paste puts back afterwards: every format of the
 //! CLIPBOARD selection, read within a size cap and deadline, then served
-//! again from Hex until another client takes the clipboard. Wayland reads
+//! again from Superhex until another client takes the clipboard. Wayland reads
 //! and serves through ext-data-control or wlr-data-control. X11 uses its own selection owner,
 //! because `x11-clipboard` serves a single target. A Wayland desktop with
 //! neither protocol (GNOME's Mutter) restores nothing unless Labs › Restore
 //! clipboard on GNOME is on and XWayland already runs: then the paste reads
 //! and restores the CLIPBOARD selection through XWayland, which Mutter
-//! bridges to Wayland apps both ways (#1111). Hex never starts XWayland.
+//! bridges to Wayland apps both ways (#1111). Superhex never starts XWayland.
 
 use std::io::{ErrorKind, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
@@ -78,7 +78,7 @@ impl Selection {
         }
     }
 
-    /// Whether the clipboard still holds what Hex pasted: the same bytes on
+    /// Whether the clipboard still holds what Superhex pasted: the same bytes on
     /// Wayland, the paste's own selection owner on X11.
     pub(crate) fn holds(self, mime: &str, bytes: &[u8]) -> bool {
         match self {
@@ -239,7 +239,7 @@ fn write_bounded(fd: OwnedFd, data: &[u8], deadline: Instant) -> Result<()> {
 /// The Wayland snapshot and restore over a data-control protocol whose
 /// manager, device, offer, and source modules the caller imports as
 /// `manager`, `device`, `offer`, and `source`: wlroots' and the standard
-/// `ext` one share every request and event Hex uses.
+/// `ext` one share every request and event Superhex uses.
 macro_rules! data_control {
     ($name:literal) => {
         use std::collections::HashMap;

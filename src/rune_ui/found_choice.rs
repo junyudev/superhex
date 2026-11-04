@@ -1,7 +1,7 @@
 //! Onboarding's speech list, shown where VoiceBuddy can run or when the
 //! hub-cache scan found a compatible model (`found_models`): the first run's
 //! model step (`onboarding_kit::live`) shows one card of selectable rows.
-//! VoiceBuddy comes first and selected where this OS has it, then Hex's
+//! VoiceBuddy comes first and selected where this OS has it, then Superhex's
 //! recommended model, then the models already on this computer. Picking a row
 //! starts it at once: VoiceBuddy imports the configuration the row names (or
 //! asks for one), ours downloads (or, when its exact file is already here, is
@@ -44,7 +44,7 @@ pub(super) fn pending(ui: &Ui, model: ItemStatus) -> bool {
         && !ui.found.adopting()
 }
 
-/// Hex's recommended model as the list first showed it: picking a found
+/// Superhex's recommended model as the list first showed it: picking a found
 /// model changes the saved selection, and the rows stay as they were.
 fn recommended(ui: &Ui) -> TranscriptionSelection {
     ui.found
@@ -53,7 +53,7 @@ fn recommended(ui: &Ui) -> TranscriptionSelection {
         .unwrap_or_else(|| ui.settings.transcription.clone())
 }
 
-/// One row of the list: VoiceBuddy, Hex's recommended model, or a found file.
+/// One row of the list: VoiceBuddy, Superhex's recommended model, or a found file.
 enum Entry<'a> {
     VoiceBuddy,
     Recommended { on_disk: bool },
@@ -114,7 +114,7 @@ fn voice_buddy_line(ui: &Ui) -> String {
         (Setup::Ready { host }, _) => tr_fill("Your voice goes to {}", host),
         (Setup::Broken { reason }, _) => reason.clone(),
         (Setup::Missing, Some(found)) => tr_fill("Your voice goes to {}", &found.host),
-        (Setup::Missing, None) => tr("Hex sets it up next").to_owned(),
+        (Setup::Missing, None) => tr("Superhex sets it up next").to_owned(),
     }
 }
 
@@ -155,7 +155,7 @@ fn row(ui: &Ui, entry: &Entry<'_>, selected: bool, model: ItemStatus) -> ChoiceR
         ),
         (Entry::Recommended { on_disk: true }, ..) => tr("On this computer").to_owned(),
         (Entry::Found(found), ..) if found.catalog.is_some() => tr("On this computer").to_owned(),
-        (Entry::Found(_), ..) => tr("On this computer · not tested by Hex").to_owned(),
+        (Entry::Found(_), ..) => tr("On this computer · not tested by Superhex").to_owned(),
     };
     ChoiceRow {
         name: name.to_owned(),
@@ -292,7 +292,7 @@ mod tests {
     fn without_a_configuration_the_row_says_hex_sets_it_up() {
         let ui = new_mac(false);
         let rows = rows(&ui, ItemStatus::Todo);
-        assert_eq!(rows[0].line, "Hex sets it up next");
+        assert_eq!(rows[0].line, "Superhex sets it up next");
     }
 
     #[test]

@@ -248,7 +248,7 @@ export default {
 }
 
 /// Dictation's processing stage over a worker running on its own thread,
-/// as Hex runs it.
+/// as Superhex runs it.
 #[test]
 fn a_throwing_or_slow_transformation_pastes_the_text_unchanged() {
     let unique = SystemTime::now()

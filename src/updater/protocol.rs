@@ -524,28 +524,32 @@ mod tests {
     fn target_urls_resolve_against_the_manifest() {
         let manifest = "https://anoma.ly/release/hex/desktop/stable.json";
         assert_eq!(
-            resolve_url(manifest, "/release/hex/files/abc/Hex.zip").as_deref(),
-            Some("https://anoma.ly/release/hex/files/abc/Hex.zip")
+            resolve_url(manifest, "/release/hex/files/abc/Superhex.zip").as_deref(),
+            Some("https://anoma.ly/release/hex/files/abc/Superhex.zip")
         );
         assert_eq!(
             resolve_url(
                 "https://dev.anoma.ly/release/hex/desktop/dev.json",
-                "/release/hex/files/abc/Hex.zip"
+                "/release/hex/files/abc/Superhex.zip"
             )
             .as_deref(),
-            Some("https://dev.anoma.ly/release/hex/files/abc/Hex.zip")
+            Some("https://dev.anoma.ly/release/hex/files/abc/Superhex.zip")
         );
         assert_eq!(
-            resolve_url(manifest, "../files/abc/Hex.zip").as_deref(),
-            Some("https://anoma.ly/release/hex/files/abc/Hex.zip")
+            resolve_url(manifest, "../files/abc/Superhex.zip").as_deref(),
+            Some("https://anoma.ly/release/hex/files/abc/Superhex.zip")
         );
         assert_eq!(
-            resolve_url(manifest, "files/abc/Hex.zip").as_deref(),
-            Some("https://anoma.ly/release/hex/desktop/files/abc/Hex.zip")
+            resolve_url(manifest, "files/abc/Superhex.zip").as_deref(),
+            Some("https://anoma.ly/release/hex/desktop/files/abc/Superhex.zip")
         );
         assert_eq!(
-            resolve_url(manifest, "https://anoma.ly/release/hex/files/abc/Hex.zip").as_deref(),
-            Some("https://anoma.ly/release/hex/files/abc/Hex.zip")
+            resolve_url(
+                manifest,
+                "https://anoma.ly/release/hex/files/abc/Superhex.zip"
+            )
+            .as_deref(),
+            Some("https://anoma.ly/release/hex/files/abc/Superhex.zip")
         );
         for elsewhere in [
             "https://example.com/a",

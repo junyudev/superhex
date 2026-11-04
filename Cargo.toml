@@ -4,7 +4,7 @@ version = "3.3.0"
 edition = "2024"
 default-run = "hex"
 license = "MIT"
-repository = "https://github.com/anomalyco/hex"
+repository = "https://github.com/junyudev/superhex"
 
 # Crates imported from Scrawl live under `crates/`. Plain `cargo build` and
 # `cargo test` still select only Hex; pass `--workspace` or `-p` for the others.

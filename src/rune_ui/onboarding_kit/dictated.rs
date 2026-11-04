@@ -1,5 +1,5 @@
 //! The practice field's dictated words, flying in from the `"Your turn"`
-//! plate on `"With Hex"`'s flight. While the shortcut is held, a model that
+//! plate on `"With Superhex"`'s flight. While the shortcut is held, a model that
 //! streams sends its live words ([`crate::dictation::live_text`]), which fly out as they
 //! are heard. The final paste then flies whatever they did not bring: all of
 //! it for a model that doesn't stream, after the shortcut comes up.
@@ -16,7 +16,7 @@ use super::flight::{Flight, HANDOFF, flicker, flying, ink, typeset};
 use super::sparks::impacts;
 use crate::transcription::engine::Partial;
 
-/// `"With Hex"`'s calm flight.
+/// `"With Superhex"`'s calm flight.
 const CALM: f32 = 0.20;
 /// Seconds between words leaving the plate.
 const STAGGER: f64 = 0.04;

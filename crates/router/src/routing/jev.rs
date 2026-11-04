@@ -364,7 +364,7 @@ pub struct Past {
 }
 
 /// What a caller adds to the question: earlier items, sessions to always put to Jev (pinned
-/// in Hex; they don't win on their own), and what was on screen.
+/// in Superhex; they don't win on their own), and what was on screen.
 #[derive(Clone, Debug, Default)]
 pub struct Asking {
     pub history: Vec<Past>,
@@ -374,7 +374,7 @@ pub struct Asking {
 
 // MARK: The screen
 
-/// What was on screen around an item, as text (never images): the state's `screen`. Hex sends
+/// What was on screen around an item, as text (never images): the state's `screen`. Superhex sends
 /// it with dictation; a capture fills the windows and the recorded app's session. Private: it
 /// goes to Jev and the saved decision only, never to scrawl.log.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
@@ -571,7 +571,7 @@ fn name_in(value: Option<&Value>, max: usize) -> Option<String> {
     (!text.is_empty()).then_some(text)
 }
 
-/// `text` cut to about `max` characters around its middle, where Hex puts the cursor.
+/// `text` cut to about `max` characters around its middle, where Superhex puts the cursor.
 fn trim_around(text: &str, max: usize) -> String {
     let text = text.trim();
     let count = text.chars().count();
@@ -1892,9 +1892,9 @@ pub fn log_line(line: &Value) {
 /// How Kit corrected a route.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
-    /// Not sent after all (Esc or ✕ during the countdown; Hex's cancel).
+    /// Not sent after all (Esc or ✕ during the countdown; Superhex's cancel).
     Cancel,
-    /// Sent somewhere else (a chip, `scrawl send --reroute`, Hex's picker).
+    /// Sent somewhere else (a chip, `scrawl send --reroute`, Superhex's picker).
     Redirect,
     /// Pasted instead.
     Paste,

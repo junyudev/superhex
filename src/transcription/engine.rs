@@ -1079,7 +1079,7 @@ impl Worker {
     }
 
     /// Unloads a loaded GGUF model, freeing its memory, and keeps its
-    /// selection to reload. Apple Speech stays: it holds no model of Hex's.
+    /// selection to reload. Apple Speech stays: it holds no model of Superhex's.
     fn park(&mut self) {
         let Some(selection) = self
             .model

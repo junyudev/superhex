@@ -1,4 +1,4 @@
-//! Keeps the computer from idle sleep while Hex records: an IOKit
+//! Keeps the computer from idle sleep while Superhex records: an IOKit
 //! no-idle-sleep assertion on macOS, a logind `idle:sleep` (else `idle`)
 //! inhibitor on Linux, and a system-required power request on Windows. Each is held
 //! until its guard drops. Starting one may wait on the OS, so callers start
@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 static HELD: AtomicUsize = AtomicUsize::new(0);
 
 /// Prevents idle sleep until dropped. When the OS refuses (logged), the
-/// guard still counts as Hex recording ([`held`]).
+/// guard still counts as Superhex recording ([`held`]).
 pub fn prevent_sleep() -> Option<PreventSleep> {
     let platform = match platform::PreventSleep::start() {
         Ok(prevention) => Some(prevention),
@@ -25,7 +25,7 @@ pub fn prevent_sleep() -> Option<PreventSleep> {
     })
 }
 
-/// Whether Hex records now (a dictation past its hold, or a meeting): some
+/// Whether Superhex records now (a dictation past its hold, or a meeting): some
 /// guard is alive.
 pub fn held() -> bool {
     HELD.load(Ordering::Acquire) > 0
@@ -57,7 +57,7 @@ mod platform {
     impl PreventSleep {
         pub(super) fn start() -> std::io::Result<Self> {
             let assertion_type = CFString::from_static_str("NoIdleSleepAssertion");
-            let assertion_name = CFString::from_static_str("Hex intentional recording");
+            let assertion_name = CFString::from_static_str("Superhex intentional recording");
             let mut assertion_id = 0;
             // SAFETY: Both Core Foundation strings remain alive for the call and
             // assertion_id points to writable, correctly sized storage. IOKit
@@ -121,7 +121,7 @@ mod platform {
 
     impl PreventSleep {
         /// Blocks idle and sleep, or only idle where polkit refuses to let
-        /// a process outside the active seat session, such as Hex's user
+        /// a process outside the active seat session, such as Superhex's user
         /// service, block sleep.
         pub(super) fn start() -> std::io::Result<Self> {
             let runtime = tokio::runtime::Builder::new_current_thread()
@@ -144,7 +144,7 @@ mod platform {
     }
 
     async fn inhibit(bus: &zbus::Connection, what: &str) -> std::io::Result<PreventSleep> {
-        let body = (what, "Hex", "Recording", "block");
+        let body = (what, "Superhex", "Recording", "block");
         let call = bus.call_method(
             Some("org.freedesktop.login1"),
             "/org/freedesktop/login1",
@@ -186,7 +186,7 @@ mod platform {
 
     impl PreventSleep {
         pub(super) fn start() -> std::io::Result<Self> {
-            let mut reason: Vec<u16> = "Hex is recording".encode_utf16().chain([0]).collect();
+            let mut reason: Vec<u16> = "Superhex is recording".encode_utf16().chain([0]).collect();
             let context = REASON_CONTEXT {
                 Version: POWER_REQUEST_CONTEXT_VERSION,
                 Flags: POWER_REQUEST_CONTEXT_SIMPLE_STRING,

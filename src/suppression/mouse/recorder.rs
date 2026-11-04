@@ -53,7 +53,7 @@ impl Recorder {
             on_down: Box::new(on_down),
         }));
         // SAFETY: core remains alive until the tap is disabled and removed. This
-        // session tap is upstream of Hex's annotated-session listener.
+        // session tap is upstream of Superhex's annotated-session listener.
         let tap = unsafe {
             AttachedTap::create(
                 1,

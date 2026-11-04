@@ -47,7 +47,7 @@ can notarize Mac apps, so Hex can use the same key as OpenCode desktop.
 
 ```ts
 scripts/build-app.sh       // cargo build → Hex.app; signs Moonshine and ONNX dylibs,
-                           // HexMicrophone.driver, then the app with --options runtime
+                           // SuperhexMicrophone.driver, then the app with --options runtime
                            // and .github/release/hex.entitlements (audio-input,
                            // apple-events; not sandboxed)
                            // HEX_TEST_BUILD=1: ad-hoc "Hex Test.app" (anomaly.hex.test)
@@ -126,7 +126,7 @@ once (as does `windows-listener.lock` on Windows).
   Task Management) until macOS prunes it or the user removes it; when its app
   is gone or replaced it launches nothing. Unverified on a real Mac.
 - **Hex Microphone driver (experimental).** It installs at the fixed path
-  `/Library/Audio/Plug-Ins/HAL/HexMicrophone.driver`, so there is never a
+  `/Library/Audio/Plug-Ins/HAL/SuperhexMicrophone.driver`, so there is never a
   second copy. An old `com.kitlangton.hex.microphone.driver` there fails the
   bundle-ID check and reads as needing an update; the new app does not use its
   devices (different UIDs), and Update or Uninstall replaces or removes it. If
@@ -158,7 +158,7 @@ version to the first `anomaly.hex` release before publishing.
   by Background Task Management with the team; expect the item to need
   re-enabling or approval after the switch. Hex polls macOS for the status
   (no stored flag), so Settings shows the truth; verify on a real Mac.
-- **HexMicrophone.driver.** The bundled copy is re-signed by Anomaly; an
+- **SuperhexMicrophone.driver.** The bundled copy is re-signed by Anomaly; an
   installed copy in `/Library/Audio/Plug-Ins/HAL` keeps Kit's signature until
   the in-app Update reinstalls it.
 - **Keychain items and app groups.** Hex stores none, so nothing else breaks.

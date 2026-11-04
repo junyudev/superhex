@@ -180,7 +180,7 @@ pub(crate) fn install<S: 'static>(
 ) {
     let overlay = app.overlay(
         OverlaySpec {
-            name: "Hex dictation failed",
+            name: "Superhex dictation failed",
             size: (NARROW, HEIGHT),
             edge: ScreenEdge::Top,
             margin: 0.0,

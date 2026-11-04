@@ -29,10 +29,10 @@ pub const DOWNLOAD_TARGET: &str = "windows-arm64-setup";
 /// Anomaly (as on OpenCode's signed Windows builds); updates signed by
 /// anyone else are refused.
 pub const AUTHENTICODE_SIGNER: &str = "Anomaly Innovations, Inc https://anoma.ly/";
-/// `HKLM` (or `HKCU`) `\SOFTWARE\Policies\Anomaly\Hex`, value `DisableUpdates`.
-const POLICY_KEY: &str = r"SOFTWARE\Policies\Anomaly\Hex";
+/// `HKLM` (or `HKCU`) `\SOFTWARE\Policies\Anomaly\Superhex`, value `DisableUpdates`.
+const POLICY_KEY: &str = r"SOFTWARE\Policies\Anomaly\Superhex";
 /// The Apps & Features entry that packaging/windows/hex.iss registers.
-const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{6ED48C92-5177-41F4-B8D6-37B7B02CFDF4}_is1";
+const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{D2816BB2-472C-4631-89DB-AF873CFCE1A8}_is1";
 
 /// The activated `hex.exe`.
 #[derive(Clone, Debug)]
@@ -95,10 +95,10 @@ pub fn stage(file: &Path, version: &str) -> Result<Staged> {
     }
     let executable = activation?;
     if let Err(error) = crate::windows::login_item::repoint(&executable) {
-        tracing::warn!(%error, "could not repoint Launch at login to the updated Hex");
+        tracing::warn!(%error, "could not repoint Launch at login to the updated Superhex");
     }
     if let Err(error) = repoint_start_menu_shortcut(&executable) {
-        tracing::warn!(%error, "could not repoint the Start Menu shortcut to the updated Hex");
+        tracing::warn!(%error, "could not repoint the Start Menu shortcut to the updated Superhex");
     }
     if let Err(error) = update_uninstall_entry(version) {
         tracing::warn!(%error, "could not update the Apps & Features version");
@@ -143,7 +143,7 @@ fn repoint_start_menu_shortcut(executable: &Path) -> Result<()> {
     let Some(appdata) = dirs::config_dir() else {
         return Ok(());
     };
-    let shortcut = appdata.join(r"Microsoft\Windows\Start Menu\Programs\Hex.lnk");
+    let shortcut = appdata.join(r"Microsoft\Windows\Start Menu\Programs\Superhex.lnk");
     if !shortcut.exists() {
         return Ok(());
     }
@@ -154,7 +154,7 @@ fn repoint_start_menu_shortcut(executable: &Path) -> Result<()> {
             "Hidden",
             "-Command",
             "$s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:HEX_SHORTCUT); \
-             if ($s.Description -eq 'Hex managed install') { \
+             if ($s.Description -eq 'Superhex managed install') { \
              $s.TargetPath = $env:HEX_EXECUTABLE; \
              $s.WorkingDirectory = (Split-Path -Parent $env:HEX_EXECUTABLE); \
              $s.Save() }",
@@ -173,7 +173,7 @@ fn repoint_start_menu_shortcut(executable: &Path) -> Result<()> {
 }
 
 /// Show the activated version in Apps & Features when Setup.exe installed
-/// Hex; script installs have no entry and are left alone.
+/// Superhex; script installs have no entry and are left alone.
 fn update_uninstall_entry(version: &str) -> Result<()> {
     use winreg::RegKey;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE};
@@ -247,7 +247,7 @@ pub(super) fn activate(support: &Path, version: &str, staging: &Path) -> Result<
             && is_version_name(name)
             && let Err(error) = fs::remove_dir_all(entry.path())
         {
-            tracing::warn!(%error, path = %entry.path().display(), "could not prune an old Hex version");
+            tracing::warn!(%error, path = %entry.path().display(), "could not prune an old Superhex version");
         }
     }
     Ok(executable)
@@ -271,7 +271,7 @@ pub fn restart_into(staged: &Staged) -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .wrap_err("could not schedule the updated Hex version")?;
+        .wrap_err("could not schedule the updated Superhex version")?;
     Ok(())
 }
 

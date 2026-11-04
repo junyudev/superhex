@@ -274,7 +274,7 @@ impl CallPresence {
 /// Labs › Stop when the call ends (#835).
 pub const AUTO_STOP_GRACE: Duration = Duration::from_secs(30);
 
-/// Labs › Stop when the call ends: the deadline at which a recording Hex
+/// Labs › Stop when the call ends: the deadline at which a recording Superhex
 /// started on its own stops, armed when [`CallPresence`] reports the call
 /// ended and dropped when the call app comes back or the user keeps
 /// recording.
@@ -1887,7 +1887,7 @@ mod tests {
     fn the_site_is_resolved_while_hex_is_in_front() {
         let t0 = Instant::now();
         let mut memory = BrowserPageMemory::default();
-        let hex = context("Hex", None, "Hex");
+        let hex = context("Superhex", None, "Superhex");
 
         // Nothing seen yet: the site is unknown.
         let page = memory.recall(&brave(), hex.clone(), t0);
@@ -1896,7 +1896,7 @@ mod tests {
             MeetingSource::BrowserCall
         );
 
-        // Brave was in front on Banshee, then Hex came forward.
+        // Brave was in front on Banshee, then Superhex came forward.
         memory.recall(&brave(), banshee_page(), t0);
         let page = memory.recall(&brave(), hex, t0 + Duration::from_secs(30));
         let candidate = candidate_from_microphone(&brave(), &page).unwrap();
@@ -1908,7 +1908,7 @@ mod tests {
     fn a_page_seen_minutes_ago_no_longer_names_the_call() {
         let t0 = Instant::now();
         let mut memory = BrowserPageMemory::default();
-        let hex = context("Hex", None, "Hex");
+        let hex = context("Superhex", None, "Superhex");
         memory.recall(&brave(), banshee_page(), t0);
         let page = memory.recall(&brave(), hex.clone(), t0 + Duration::from_secs(61));
         assert_eq!(page, hex);
@@ -1924,7 +1924,7 @@ mod tests {
     fn a_remembered_page_belongs_to_its_browser_and_its_call() {
         let t0 = Instant::now();
         let mut memory = BrowserPageMemory::default();
-        let hex = context("Hex", None, "Hex");
+        let hex = context("Superhex", None, "Superhex");
         memory.recall(&brave(), banshee_page(), t0);
 
         let chrome = ActiveMicrophoneApplication {

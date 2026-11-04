@@ -6,7 +6,7 @@
 //! (`<data>/hex`, receipted, with the Start Menu shortcut, Launch at login,
 //! systemd unit, and desktop entries pointed at it), then relaunches from
 //! there so the release service updates it from then on. A failed move is
-//! logged and Hex runs in place; the next launch tries again.
+//! logged and Superhex runs in place; the next launch tries again.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,7 +18,7 @@ use color_eyre::eyre::{Result, WrapErr};
 const LEGACY_FOLDER: &str = "voice-control";
 
 /// Moves a legacy install into the managed layout and relaunches it from
-/// there. Returns whether the relaunched Hex took over, in which case the
+/// there. Returns whether the relaunched Superhex took over, in which case the
 /// caller exits; on Linux a successful relaunch replaces this process and
 /// never returns.
 pub fn take_over() -> bool {
@@ -148,7 +148,7 @@ mod linux {
         let data = dirs::data_dir().ok_or_else(|| color_eyre::eyre::eyre!("no data directory"))?;
         let config =
             dirs::config_dir().ok_or_else(|| color_eyre::eyre::eyre!("no config directory"))?;
-        let executable = std::env::current_exe().wrap_err("could not locate Hex")?;
+        let executable = std::env::current_exe().wrap_err("could not locate Superhex")?;
         adopt_with(
             legacy,
             root,
@@ -234,7 +234,7 @@ mod linux {
         {
             command.env("HEX_APPLICATION_SUPPORT_DIR", root);
         }
-        Err(command.exec()).wrap_err("could not start the managed Hex")
+        Err(command.exec()).wrap_err("could not start the managed Superhex")
     }
 }
 
@@ -262,20 +262,20 @@ mod windows {
             .write(true)
             .open(updates.join("update.lock"))?;
         lock.try_lock_exclusive()
-            .wrap_err("a Hex install or update is already in progress")?;
+            .wrap_err("a Superhex install or update is already in progress")?;
         let staging = updates.join("hex.exe.staging");
         let _ = fs::remove_file(&staging);
-        fs::copy(std::env::current_exe()?, &staging).wrap_err("could not copy Hex")?;
+        fs::copy(std::env::current_exe()?, &staging).wrap_err("could not copy Superhex")?;
         let executable = super::super::platform::activate(root, crate::VERSION, &staging)?;
         write_receipt(root)?;
         if super::super::receipt_channel(root).is_none() {
             bail!("the managed install's receipt does not verify");
         }
         if let Err(error) = replace_shortcut(&executable) {
-            tracing::warn!(%error, "could not point the Start Menu shortcut at the managed Hex");
+            tracing::warn!(%error, "could not point the Start Menu shortcut at the managed Superhex");
         }
         if let Err(error) = crate::windows::login_item::repoint(&executable) {
-            tracing::warn!(%error, "could not point Launch at login at the managed Hex");
+            tracing::warn!(%error, "could not point Launch at login at the managed Superhex");
         }
         match RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(LEGACY_UNINSTALL_KEY) {
             Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
@@ -301,7 +301,7 @@ mod windows {
         Ok(())
     }
 
-    /// Recreates `Hex.lnk` as the installer's managed shortcut (2.3.1 named
+    /// Recreates `Superhex.lnk` as the installer's managed shortcut (2.3.1 named
     /// its file `HEX.lnk`), unless the user made their own.
     fn replace_shortcut(executable: &Path) -> Result<()> {
         let Some(appdata) = dirs::config_dir() else {
@@ -316,18 +316,18 @@ mod windows {
                 "-Command",
                 "$shell = New-Object -ComObject WScript.Shell; \
                  if (Test-Path -LiteralPath $env:HEX_SHORTCUT) { \
-                 if ($shell.CreateShortcut($env:HEX_SHORTCUT).Description -ne 'Hex managed install') { exit 0 }; \
+                 if ($shell.CreateShortcut($env:HEX_SHORTCUT).Description -ne 'Superhex managed install') { exit 0 }; \
                  Remove-Item -LiteralPath $env:HEX_SHORTCUT -Force }; \
                  $s = $shell.CreateShortcut($env:HEX_SHORTCUT); \
                  $s.TargetPath = $env:HEX_EXECUTABLE; \
                  $s.Arguments = 'app'; \
-                 $s.Description = 'Hex managed install'; \
+                 $s.Description = 'Superhex managed install'; \
                  $s.WorkingDirectory = (Split-Path -Parent $env:HEX_EXECUTABLE); \
                  $s.Save()",
             ])
             .env(
                 "HEX_SHORTCUT",
-                appdata.join(r"Microsoft\Windows\Start Menu\Programs\Hex.lnk"),
+                appdata.join(r"Microsoft\Windows\Start Menu\Programs\Superhex.lnk"),
             )
             .env("HEX_EXECUTABLE", executable)
             .env_remove("PSModulePath")
@@ -351,7 +351,7 @@ mod windows {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
-            .wrap_err("could not start the managed Hex")?;
+            .wrap_err("could not start the managed Superhex")?;
         Ok(())
     }
 }
@@ -472,10 +472,13 @@ mod tests {
         );
         let unit = fs::read_to_string(config.join("systemd/user/hex.service")).unwrap();
         assert!(
-            unit.lines().any(|line| line == "# X-Hex-Managed=true"),
+            unit.lines().any(|line| line == "# X-Superhex-Managed=true"),
             "{unit}"
         );
-        assert!(data.join("applications/anomaly.hex.desktop").exists());
+        assert!(
+            data.join("applications/io.github.junyudev.superhex.desktop")
+                .exists()
+        );
         assert!(!data.join("applications/hex.desktop").exists());
         // An entry the user wrote stays.
         assert!(config.join("autostart/hex.desktop").exists());

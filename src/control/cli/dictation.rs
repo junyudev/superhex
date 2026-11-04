@@ -36,7 +36,7 @@ pub(super) fn run(action: Action, print: bool, raw: bool, output: Output) -> u8 
     match command(action, print, raw) {
         Ok(command) => send(command, output),
         Err(error) => {
-            eprintln!("hex: {}", error.message);
+            eprintln!("superhex: {}", error.message);
             2
         }
     }

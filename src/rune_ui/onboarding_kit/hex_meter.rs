@@ -1,4 +1,4 @@
-//! The Hex mark: a thin single-hexagon outline matching Round 3 of the icon
+//! The Superhex mark: a thin single-hexagon outline matching Round 3 of the icon
 //! (`t573`, Hairline), built from one swappable [`HexGlyphSpec`].
 
 use rune::{El, LineCap, Shape, canvas};
@@ -150,7 +150,7 @@ pub(crate) fn hex_meter(p: Paint, key: &str, size: f32, progress: f32, closed: f
         .label(format!("{}%", (progress.clamp(0.0, 1.0) * 100.0).round()))
 }
 
-/// Thin single-hexagon outline with a quiet breathing corona for `"Hex is ready"`.
+/// Thin single-hexagon outline with a quiet breathing corona for `"Superhex is ready"`.
 pub(crate) fn hex_meter_glowing(p: Paint, key: &str, size: f32, now: f64, reduced: bool) -> El {
     let spec = ACTIVE_GLYPH;
     let w = spec.stroke_width(size);
@@ -193,7 +193,7 @@ pub(crate) fn hex_meter_glowing(p: Paint, key: &str, size: f32, now: f64, reduce
         )
         .stroke_with(ring, true, w, LineCap::Round, p.text());
 
-    canvas(shape).key(key).size(total, total).label("Hex")
+    canvas(shape).key(key).size(total, total).label("Superhex")
 }
 
 fn meter_shape(p: Paint, size: f32, progress: f32, closed: f32) -> Shape {

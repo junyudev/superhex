@@ -51,7 +51,7 @@ const RETRY_AFTER: [Duration; 3] = [
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum State {
-    /// Not checked yet (or the configured transcriber is Hex).
+    /// Not checked yet (or the configured transcriber is Superhex).
     #[default]
     Unknown,
     Checking,
@@ -173,7 +173,7 @@ pub fn current() -> Status {
 }
 
 /// Checks the model in the background and installs it if it's missing, unless the transcriber
-/// is Hex (whose users don't need it) or a check is already running. Cheap to call again.
+/// is Superhex (whose users don't need it) or a check is already running. Cheap to call again.
 pub fn ensure() {
     start(false);
 }
@@ -184,7 +184,7 @@ pub fn restart() {
 }
 
 fn start(restart: bool) {
-    let enabled = crate::transcribe::Engine::configured() != crate::transcribe::Engine::Hex;
+    let enabled = crate::transcribe::Engine::configured() != crate::transcribe::Engine::Superhex;
     if !restart && !enabled {
         return;
     }
@@ -306,7 +306,7 @@ pub fn missing(why: &str, locale: &str, error: Option<&str>) -> MissingTranscrip
         },
         "unsupported" => MissingTranscript {
             reason: format!(
-                "this Mac has no Apple speech model for {locale}. Hex can transcribe instead \
+                "this Mac has no Apple speech model for {locale}. Superhex can transcribe instead \
                  (Scrawl Settings › Recording)."
             ),
             retry: false,

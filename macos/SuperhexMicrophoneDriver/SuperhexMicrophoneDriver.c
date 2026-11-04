@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Kit Langton
 //
-// HexMicrophoneDriver.c
-// Minimal CoreAudio AudioServerPlugIn virtual microphone driver for Hex.
+// SuperhexMicrophoneDriver.c
+// Minimal CoreAudio AudioServerPlugIn virtual microphone driver for Superhex.
 //
 // Exposes two devices inside coreaudiod:
-//   1. "Hex Microphone" (UID: "anomaly.hex.microphone")
+//   1. "Superhex Microphone" (UID: "io.github.junyudev.superhex.microphone")
 //      Visible 48 kHz mono float32 virtual input device for call apps.
-//   2. "Hex Microphone (Internal Sink)" (UID: "anomaly.hex.microphone.sink")
-//      Hidden 48 kHz mono float32 output sink that Hex writes processed capture
+//   2. "Superhex Microphone (Internal Sink)" (UID: "io.github.junyudev.superhex.microphone.sink")
+//      Hidden 48 kHz mono float32 output sink that Superhex writes processed capture
 //      audio into.
 
 #include <CoreAudio/AudioServerPlugIn.h>
@@ -395,13 +395,13 @@ static OSStatus HexPlugInGetPropertyData(
 
         case kAudioObjectPropertyManufacturer:
             if (inDataSize < sizeof(CFStringRef)) return kAudioHardwareBadPropertySizeError;
-            *((CFStringRef *)outData) = CFSTR("Hex");
+            *((CFStringRef *)outData) = CFSTR("Superhex");
             *outDataSize = sizeof(CFStringRef);
             return kAudioHardwareNoError;
 
         case kAudioPlugInPropertyBundleID:
             if (inDataSize < sizeof(CFStringRef)) return kAudioHardwareBadPropertySizeError;
-            *((CFStringRef *)outData) = CFSTR("anomaly.hex.microphone.driver");
+            *((CFStringRef *)outData) = CFSTR("io.github.junyudev.superhex.microphone.driver");
             *outDataSize = sizeof(CFStringRef);
             return kAudioHardwareNoError;
 
@@ -429,9 +429,9 @@ static OSStatus HexPlugInGetPropertyData(
             CFStringRef uid = *((const CFStringRef *)inQualifierData);
             AudioObjectID found = kAudioObjectUnknown;
             if (uid != NULL) {
-                if (CFStringCompare(uid, CFSTR("anomaly.hex.microphone"), 0) == kCFCompareEqualTo) {
+                if (CFStringCompare(uid, CFSTR("io.github.junyudev.superhex.microphone"), 0) == kCFCompareEqualTo) {
                     found = kObjectID_MicDevice;
-                } else if (CFStringCompare(uid, CFSTR("anomaly.hex.microphone.sink"), 0) == kCFCompareEqualTo) {
+                } else if (CFStringCompare(uid, CFSTR("io.github.junyudev.superhex.microphone.sink"), 0) == kCFCompareEqualTo) {
                     found = kObjectID_SinkDevice;
                 }
             }
@@ -595,30 +595,30 @@ static OSStatus HexDeviceGetPropertyData(
         case kAudioObjectPropertyName:
             if (inDataSize < sizeof(CFStringRef)) return kAudioHardwareBadPropertySizeError;
             *((CFStringRef *)outData) = isMic
-                ? CFSTR("Hex Microphone")
-                : CFSTR("Hex Microphone (Internal Sink)");
+                ? CFSTR("Superhex Microphone")
+                : CFSTR("Superhex Microphone (Internal Sink)");
             *outDataSize = sizeof(CFStringRef);
             return kAudioHardwareNoError;
 
         case kAudioObjectPropertyManufacturer:
             if (inDataSize < sizeof(CFStringRef)) return kAudioHardwareBadPropertySizeError;
-            *((CFStringRef *)outData) = CFSTR("Hex");
+            *((CFStringRef *)outData) = CFSTR("Superhex");
             *outDataSize = sizeof(CFStringRef);
             return kAudioHardwareNoError;
 
         case kAudioDevicePropertyDeviceUID:
             if (inDataSize < sizeof(CFStringRef)) return kAudioHardwareBadPropertySizeError;
             *((CFStringRef *)outData) = isMic
-                ? CFSTR("anomaly.hex.microphone")
-                : CFSTR("anomaly.hex.microphone.sink");
+                ? CFSTR("io.github.junyudev.superhex.microphone")
+                : CFSTR("io.github.junyudev.superhex.microphone.sink");
             *outDataSize = sizeof(CFStringRef);
             return kAudioHardwareNoError;
 
         case kAudioDevicePropertyModelUID:
             if (inDataSize < sizeof(CFStringRef)) return kAudioHardwareBadPropertySizeError;
             *((CFStringRef *)outData) = isMic
-                ? CFSTR("anomaly.hex.microphone.model")
-                : CFSTR("anomaly.hex.microphone.sink.model");
+                ? CFSTR("io.github.junyudev.superhex.microphone.model")
+                : CFSTR("io.github.junyudev.superhex.microphone.sink.model");
             *outDataSize = sizeof(CFStringRef);
             return kAudioHardwareNoError;
 
@@ -1263,7 +1263,7 @@ static AudioServerPlugInDriverInterface *gDriverInterfacePtr = &gDriverInterface
 static AudioServerPlugInDriverRef gDriverRef = &gDriverInterfacePtr;
 
 __attribute__((visibility("default")))
-void *HexMicrophoneDriverCreate(CFAllocatorRef inAllocator, CFUUIDRef inRequestedTypeUUID) {
+void *SuperhexMicrophoneDriverCreate(CFAllocatorRef inAllocator, CFUUIDRef inRequestedTypeUUID) {
     (void)inAllocator;
     if (inRequestedTypeUUID == NULL) {
         return NULL;

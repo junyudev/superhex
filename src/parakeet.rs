@@ -96,7 +96,7 @@ pub enum TranscriptionTarget {
     /// pane's steps.
     RawPaste,
     Service,
-    /// `hex dictation stop --print`: processed as a paste, then handed to
+    /// `superhex dictation stop --print`: processed as a paste, then handed to
     /// the waiting command instead of pasted.
     Print,
     /// A printing stop of a raw dictation: the transcript as heard.
@@ -654,7 +654,7 @@ fn wait_for_dictation_idle() -> Result<()> {
         thread::sleep(std::time::Duration::from_millis(50));
     }
     if crate::desktop::process_exit::quitting() {
-        return Err(eyre!("Hex is quitting"));
+        return Err(eyre!("Superhex is quitting"));
     }
     Ok(())
 }

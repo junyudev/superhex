@@ -1,5 +1,5 @@
 //! XKB groups as input sources on X11. Wayland has no general protocol for
-//! the active layout (each compositor keeps its own), so it has none. Hex
+//! the active layout (each compositor keeps its own), so it has none. Superhex
 //! reads them only while keyboard model switching is on.
 
 use x11rb::protocol::xkb::{self, ConnectionExt as _, NameDetail};

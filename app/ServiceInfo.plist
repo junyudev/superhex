@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleDisplayName</key>
-  <string>HEX Service</string>
+  <string>Superhex Service</string>
   <key>CFBundleExecutable</key>
-  <string>hex-service</string>
+  <string>superhex-service</string>
   <key>CFBundleIdentifier</key>
-  <string>anomaly.hex.service</string>
+  <string>io.github.junyudev.superhex.service</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>HEX Service</string>
+  <string>Superhex Service</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -23,6 +23,6 @@
   <key>LSUIElement</key>
   <true/>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>HEX Service uses on-device Apple Speech when you select it as your transcription model.</string>
+  <string>Superhex Service uses on-device Apple Speech when you select it as your transcription model.</string>
 </dict>
 </plist>

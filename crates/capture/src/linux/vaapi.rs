@@ -28,7 +28,7 @@ const ENTRYPOINT_VIDEO_PROC: c_int = 10;
 const ATTRIB_RATE_CONTROL: c_int = 5;
 const ATTRIB_RT_FORMAT: c_int = 0;
 const ATTRIB_PACKED_HEADERS: c_int = 10;
-/// Hex writes the sequence, picture and slice headers; the driver writes the slice data.
+/// Superhex writes the sequence, picture and slice headers; the driver writes the slice data.
 const PACKED_HEADERS: u32 = 0x1 | 0x2 | 0x4;
 const BUFFER_PACKED_PARAMS: c_int = 25;
 const BUFFER_PACKED_DATA: c_int = 26;
@@ -816,7 +816,7 @@ impl Encoder {
         Ok(id)
     }
 
-    /// Adds one header Hex wrote (start code, NAL header, payload) as a packed header.
+    /// Adds one header Superhex wrote (start code, NAL header, payload) as a packed header.
     fn packed(
         &self,
         buffers: &mut Vec<Id>,

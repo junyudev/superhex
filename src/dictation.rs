@@ -650,7 +650,7 @@ struct Recording {
     environment: RecordingEnvironmentState,
     #[cfg(target_os = "macos")]
     capture: Option<crate::audio::recording_environment::CaptureMarker>,
-    /// Filters Hex Microphone from the hold threshold until the recording
+    /// Filters Superhex Microphone from the hold threshold until the recording
     /// ends (macOS follows its recording environment instead).
     #[cfg(target_os = "linux")]
     voice_filter: Option<crate::audio::hex_microphone::Dictation>,

@@ -54,7 +54,7 @@ pub(crate) fn screen_recording_permitted() -> bool {
     unsafe { CGPreflightScreenCaptureAccess() }
 }
 
-/// Asks macOS to list Hex under Screen & System Audio Recording. The system
+/// Asks macOS to list Superhex under Screen & System Audio Recording. The system
 /// prompts at most once; later requests return the current state.
 pub(crate) fn request_screen_recording() -> bool {
     // SAFETY: A CoreGraphics request without arguments.
@@ -76,7 +76,7 @@ pub(crate) fn system_audio_ready() -> bool {
     )
 }
 
-/// Fails, after asking macOS, until Hex may hear the other participants.
+/// Fails, after asking macOS, until Superhex may hear the other participants.
 pub(super) fn ensure_system_audio() -> Result<()> {
     if system_audio_permitted() {
         return Ok(());
@@ -85,7 +85,7 @@ pub(super) fn ensure_system_audio() -> Result<()> {
         request_screen_recording();
     }
     Err(eyre!(
-        "Allow Hex in System Settings › Privacy & Security › Screen & System Audio Recording, then try again"
+        "Allow Superhex in System Settings › Privacy & Security › Screen & System Audio Recording, then try again"
     ))
 }
 
@@ -135,13 +135,13 @@ pub(super) fn open_system_audio(sink: &PacketSink) -> Result<Box<dyn LiveSource>
     }
     if !screen_permitted {
         return Err(eyre!(
-            "Allow Hex under System Settings › Privacy & Security › Screen & System Audio Recording"
+            "Allow Superhex under System Settings › Privacy & Security › Screen & System Audio Recording"
         ));
     }
     ScreenCaptureSource::start(sink).map(|source| Box::new(source) as Box<dyn LiveSource>)
 }
 
-/// Whole-system output, minus Hex's own sounds, through a private Core Audio
+/// Whole-system output, minus Superhex's own sounds, through a private Core Audio
 /// process tap on a private aggregate device. It has no display dependency.
 struct ProcessTapSource {
     tap: AudioObjectID,
@@ -171,7 +171,7 @@ impl ProcessTapSource {
                 CATapDescription::alloc(),
                 &excluded,
             );
-            description.setName(&NSString::from_str("Hex meeting system audio"));
+            description.setName(&NSString::from_str("Superhex meeting system audio"));
             description.setPrivate(true);
             description.setMuteBehavior(CATapMuteBehavior::Unmuted);
             description
@@ -208,8 +208,11 @@ impl ProcessTapSource {
         let tap_uid = unsafe { description.UUID() }.UUIDString();
         source.aggregate = create_tap_aggregate(
             &tap_uid,
-            "Hex Meeting System Audio",
-            &format!("anomaly.hex.meeting-tap.{}", std::process::id()),
+            "Superhex Meeting System Audio",
+            &format!(
+                "io.github.junyudev.superhex.meeting-tap.{}",
+                std::process::id()
+            ),
         )?;
 
         let channels = format.mChannelsPerFrame.max(1) as usize;

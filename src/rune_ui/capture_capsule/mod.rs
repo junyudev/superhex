@@ -341,7 +341,7 @@ pub(crate) struct CapsuleState {
     replace: bool,
     /// Where the overlay was last placed for ([`Surface::anchor`]).
     placed: surface::Anchor,
-    /// The keys Hex's tap hands the capsule ([`Flow::keys`]): the overlay
+    /// The keys Superhex's tap hands the capsule ([`Flow::keys`]): the overlay
     /// never takes focus.
     keys: Option<(
         crate::capture_host::CapsuleKeys,
@@ -359,7 +359,7 @@ pub(crate) struct CapsuleState {
     backdrop: bool,
     /// Plays the flow's cues; none in stills and tests, which stay silent.
     sound: Option<Arc<dyn Fn(Cue) + Send + Sync>>,
-    /// The playground's controls and fake host (`hex capsule-playground`).
+    /// The playground's controls and fake host (`superhex capsule-playground`).
     #[cfg(target_os = "macos")]
     playground: Option<Box<playground::Playground>>,
 }
@@ -659,7 +659,7 @@ fn place(overlay: &OverlayHandle<CapsuleState>, anchor: surface::Anchor) {
     }
 }
 
-/// Takes, changes, or lets go of the keys the capsule wants from Hex's tap.
+/// Takes, changes, or lets go of the keys the capsule wants from Superhex's tap.
 fn take_keys(s: &mut CapsuleState) {
     let wanted = s.flow.keys();
     match (wanted, &mut s.keys) {
@@ -725,7 +725,7 @@ impl CaptureCapsule {
             Align, DisplayTarget, OverlayInput, OverlayLevel, OverlayOptions, OverlayPlacement,
             OverlaySpec, ScreenEdge,
         };
-        let spec = OverlaySpec::new("Hex capture", (PANEL_W, PANEL_H), view)
+        let spec = OverlaySpec::new("Superhex capture", (PANEL_W, PANEL_H), view)
             .options(OverlayOptions {
                 placement: Some(OverlayPlacement::Edge {
                     edge: ScreenEdge::Top,
@@ -831,7 +831,7 @@ fn view(s: &CapsuleState, cx: &mut Cx<CapsuleState>) -> El {
     capsule
 }
 
-/// Hex's menu-bar item where the menu-bar flow folds the capsule, for
+/// Superhex's menu-bar item where the menu-bar flow folds the capsule, for
 /// stills and clips, which have no menu bar.
 fn menu_item(p: Paint) -> El {
     let [x, y, w, h] = surface::MENU_FOLD;
@@ -1833,7 +1833,7 @@ fn list_panel(p: Paint, body: El, hints: Option<El>, x: f32, w: f32, h: f32, blu
         .role("list")
         .label("Send to")
         .hit()
-        // Hex's tap reports a press on the list before the list hears it:
+        // Superhex's tap reports a press on the list before the list hears it:
         // the pointer being here keeps it from reading as a click away.
         .on_hover_change(|s: &mut CapsuleState, on, tx| s.hover(Part::List, on, tx))
         .transition(

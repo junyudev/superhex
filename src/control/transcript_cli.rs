@@ -46,7 +46,7 @@ pub struct HistoryArgs {
     pub action: Option<HistoryAction>,
 }
 
-/// History changes, carried out by the running Hex (`crate::control`).
+/// History changes, carried out by the running Superhex (`crate::control`).
 #[derive(Subcommand, Debug)]
 pub enum HistoryAction {
     /// Delete every retained dictation.
@@ -120,7 +120,7 @@ pub enum MeetingsCommand {
         /// Only entries starting before this offset: mm:ss, h:mm:ss, or seconds.
         #[arg(long)]
         to: Option<String>,
-        /// Only chapter N (counting from 1), as `hex meetings chapters` lists them.
+        /// Only chapter N (counting from 1), as `superhex meetings chapters` lists them.
         #[arg(long, conflicts_with_all = ["from", "to"])]
         chapter: Option<usize>,
     },
@@ -141,7 +141,7 @@ pub enum MeetingsCommand {
         #[arg(long, default_value_t = 10, value_parser = clap::value_parser!(u32).range(1..=50))]
         limit: u32,
     },
-    /// Start recording a meeting in the running Hex, visibly, as the menu
+    /// Start recording a meeting in the running Superhex, visibly, as the menu
     /// bar's Record Meeting does (needs meetings.enabled).
     Record {
         /// The meeting's title (default: the calendar event's, or a
@@ -341,12 +341,12 @@ fn require_history_stats(on: bool) -> Result<()> {
         Ok(())
     } else {
         Err(eyre!(
-            "Dictation stats are a Labs feature and are off. Turn them on with `hex labs on history-stats` or in Settings › Labs."
+            "Dictation stats are a Labs feature and are off. Turn them on with `superhex labs on history-stats` or in Settings › Labs."
         ))
     }
 }
 
-/// `hex history stats`.
+/// `superhex history stats`.
 fn history_stats(since: Option<&str>, until: Option<&str>, json: bool) -> Result<()> {
     require_history_stats(crate::labs::history_stats())?;
     let root = crate::app_paths::support_dir()?;
@@ -663,14 +663,14 @@ pub fn meetings(command: &MeetingsCommand) -> Result<()> {
             )?;
             Ok(())
         }
-        // `main` sends these to the running Hex.
+        // `main` sends these to the running Superhex.
         MeetingsCommand::Record { .. }
         | MeetingsCommand::Stop { .. }
-        | MeetingsCommand::CopyLast { .. } => Err(eyre!("this command needs the running Hex")),
+        | MeetingsCommand::CopyLast { .. } => Err(eyre!("this command needs the running Superhex")),
     }
 }
 
-/// A timed subtitle format for `hex meetings show --srt|--vtt`.
+/// A timed subtitle format for `superhex meetings show --srt|--vtt`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SubtitleFormat {
     Srt,
@@ -694,7 +694,7 @@ fn require_subtitle_export(on: bool) -> Result<()> {
         Ok(())
     } else {
         Err(eyre!(
-            "Subtitle export is a Labs feature and is off. Turn it on with `hex labs on subtitle-export` or in Settings › Labs."
+            "Subtitle export is a Labs feature and is off. Turn it on with `superhex labs on subtitle-export` or in Settings › Labs."
         ))
     }
 }

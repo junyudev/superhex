@@ -1,4 +1,7 @@
-# Install The Linux Beta
+# Superhex on Linux
+
+Install this fork with [Install From Source](#install-from-source). The published
+build recipes in this inherited guide refer to upstream Hex, not Superhex.
 
 The Linux beta targets x86_64 and ARM64 (aarch64) Linux: i3/X11 and compatible wlroots-based Wayland
 compositors such as Hyprland or Sway. Audio uses ALSA, including PipeWire systems
@@ -268,25 +271,21 @@ sudo pacman -S --needed base-devel git rustup python alsa-lib curl jq openssl xx
 rustup default stable
 ```
 
-Build and install Hex as your desktop user:
+Build and install the current HEAD of `junyudev/superhex` as your desktop user:
 
 ```sh
-git clone https://github.com/anomalyco/hex.git
-cd hex
-./scripts/install-linux.sh
-~/.local/bin/hex model install
-~/.local/bin/hex
+curl -fsSL https://raw.githubusercontent.com/junyudev/superhex/HEAD/scripts/install-linux.sh | bash
+~/.local/bin/superhex model install
+~/.local/bin/superhex
 ```
 
-Do not run the installer as root. It installs a user-local binary, desktop
-launcher, and autostart entry in the same layout as published builds, and
-marks the version as a source build (`source-build` beside the executable).
-The in-app updater never replaces a source build; Settings shows "Updated from
-your source checkout", and you update by pulling and running the installer
-again. Installing a published release over it switches back to signed
-updates. With a custom
-`HEX_APPLICATION_SUPPORT_DIR`, `cargo run --release` runs an
-unmanaged development Hex instead; without one it forwards to the installed Hex.
+To install this checkout, run `scripts/install-linux.sh --local` instead.
+The source installer keeps builds in `~/.local/share/superhex/versions`, adds
+`~/.local/bin/superhex` and the Superhex application launcher, and uses the
+fork's own icons and app ID. It does not start the app or add an autostart entry.
+Enable Launch at login in Settings if needed. Source builds keep automatic
+updates off; rerun the installer to update to the current remote HEAD.
+
 
 ## Dictate
 

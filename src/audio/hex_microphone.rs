@@ -10,10 +10,10 @@ use crate::audio::voice_filter::{
     DictationSpan, HexMicEngine, ModeSpec, StageSpec, VoiceFilterMode,
 };
 
-const HEX_MICROPHONE_NAME: &str = "Hex Microphone";
-const HEX_MICROPHONE_UID: &str = "anomaly.hex.microphone";
-const HEX_MICROPHONE_SINK_NAME: &str = "Hex Microphone (Internal Sink)";
-const HEX_MICROPHONE_SINK_UID: &str = "anomaly.hex.microphone.sink";
+const HEX_MICROPHONE_NAME: &str = "Superhex Microphone";
+const HEX_MICROPHONE_UID: &str = "io.github.junyudev.superhex.microphone";
+const HEX_MICROPHONE_SINK_NAME: &str = "Superhex Microphone (Internal Sink)";
+const HEX_MICROPHONE_SINK_UID: &str = "io.github.junyudev.superhex.microphone.sink";
 const HEX_MICROPHONE_SAMPLE_RATE: u32 = 48_000;
 
 /// Capacity of the lock-free capture-to-sink ring buffer in 48 kHz mono samples (~341 ms).
@@ -364,7 +364,7 @@ impl Drop for Dictation {
     }
 }
 
-/// Fills `out` with the next Hex Microphone audio, from the sink's
+/// Fills `out` with the next Superhex Microphone audio, from the sink's
 /// real-time callback: adopts a retuned engine, follows the dictation, and
 /// filters the microphone audio queued in the ring.
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -383,7 +383,7 @@ fn render(engine: &mut HexMicEngine, out: &mut [f32]) {
     engine.process_in_place(out);
 }
 
-/// One microphone stream's connection to Hex Microphone. Every capture stream
+/// One microphone stream's connection to Superhex Microphone. Every capture stream
 /// has one, but only the dictation listener's current stream switches it on
 /// (`CaptureFeedSwitch`): the ring has a single producer, and a second stream
 /// on the same microphone, such as a meeting recording's, would interleave a
@@ -541,8 +541,8 @@ impl LinearResampler {
 
 // ── Status, Bundled Driver Discovery, and Privileged Install/Uninstall ──────
 
-const INSTALLED_DRIVER_PATH: &str = "/Library/Audio/Plug-Ins/HAL/HexMicrophone.driver";
-const EXPECTED_DRIVER_BUNDLE_ID: &str = "anomaly.hex.microphone.driver";
+const INSTALLED_DRIVER_PATH: &str = "/Library/Audio/Plug-Ins/HAL/SuperhexMicrophone.driver";
+const EXPECTED_DRIVER_BUNDLE_ID: &str = "io.github.junyudev.superhex.microphone.driver";
 
 /// Fixed AppleScript for driver installation. No user input is ever interpolated
 /// into this script; `osascript` receives the verified bundled `.driver` path
@@ -551,15 +551,15 @@ const EXPECTED_DRIVER_BUNDLE_ID: &str = "anomaly.hex.microphone.driver";
 const INSTALL_DRIVER_APPLESCRIPT: &str = r#"on run argv
     set srcPath to quoted form of (item 1 of argv)
     set dstDir to "'/Library/Audio/Plug-Ins/HAL'"
-    set dstPath to "'/Library/Audio/Plug-Ins/HAL/HexMicrophone.driver'"
-    set tmpPath to "'/Library/Audio/Plug-Ins/HAL/.HexMicrophone.driver.staging'"
+    set dstPath to "'/Library/Audio/Plug-Ins/HAL/SuperhexMicrophone.driver'"
+    set tmpPath to "'/Library/Audio/Plug-Ins/HAL/.SuperhexMicrophone.driver.staging'"
     do shell script "/bin/mkdir -p " & dstDir & " && /bin/rm -rf " & tmpPath & " && /usr/bin/ditto " & srcPath & " " & tmpPath & " && /usr/sbin/chown -R root:wheel " & tmpPath & " && /bin/chmod -R a+rX " & tmpPath & " && /bin/rm -rf " & dstPath & " && /bin/mv " & tmpPath & " " & dstPath & " && (/bin/launchctl kickstart -k system/com.apple.audio.coreaudiod || /usr/bin/killall coreaudiod)" with administrator privileges
 end run"#;
 
 /// Fixed AppleScript for driver removal. Takes no arguments and touches only
-/// `/Library/Audio/Plug-Ins/HAL/HexMicrophone.driver`.
+/// `/Library/Audio/Plug-Ins/HAL/SuperhexMicrophone.driver`.
 #[cfg(target_os = "macos")]
-const UNINSTALL_DRIVER_APPLESCRIPT: &str = r#"do shell script "/bin/rm -rf '/Library/Audio/Plug-Ins/HAL/HexMicrophone.driver' '/Library/Audio/Plug-Ins/HAL/.HexMicrophone.driver.staging' && (/bin/launchctl kickstart -k system/com.apple.audio.coreaudiod || /usr/bin/killall coreaudiod)" with administrator privileges"#;
+const UNINSTALL_DRIVER_APPLESCRIPT: &str = r#"do shell script "/bin/rm -rf '/Library/Audio/Plug-Ins/HAL/SuperhexMicrophone.driver' '/Library/Audio/Plug-Ins/HAL/.SuperhexMicrophone.driver.staging' && (/bin/launchctl kickstart -k system/com.apple.audio.coreaudiod || /usr/bin/killall coreaudiod)" with administrator privileges"#;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DriverActionState {
@@ -600,7 +600,7 @@ fn driver_action_in_progress() -> bool {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HexMicrophoneStatus {
+pub struct SuperhexMicrophoneStatus {
     pub driver_bundle_installed: bool,
     pub driver_loaded: bool,
     pub installed_version: Option<String>,
@@ -611,7 +611,7 @@ pub struct HexMicrophoneStatus {
     pub action_state: DriverActionState,
 }
 
-impl HexMicrophoneStatus {
+impl SuperhexMicrophoneStatus {
     pub fn needs_update(&self) -> bool {
         self.driver_bundle_installed
             && self.installed_version.as_deref() != Some(self.bundled_version.as_str())
@@ -648,10 +648,10 @@ fn read_driver_bundle_version(bundle_dir: &std::path::Path) -> Option<String> {
 }
 
 fn validate_driver_bundle(bundle_dir: &std::path::Path) -> Result<String, String> {
-    if bundle_dir.file_name().and_then(|s| s.to_str()) != Some("HexMicrophone.driver") {
+    if bundle_dir.file_name().and_then(|s| s.to_str()) != Some("SuperhexMicrophone.driver") {
         return Err("Invalid driver bundle name".into());
     }
-    let binary = bundle_dir.join("Contents/MacOS/HexMicrophoneDriver");
+    let binary = bundle_dir.join("Contents/MacOS/SuperhexMicrophoneDriver");
     if !binary.is_file() {
         return Err("Driver executable is missing from bundle".into());
     }
@@ -664,14 +664,14 @@ fn bundled_driver_path() -> Option<PathBuf> {
     if let Ok(exe) = std::env::current_exe()
         && let Some(contents_dir) = exe.parent().and_then(|p| p.parent())
     {
-        candidates.push(contents_dir.join("Library/HexMicrophone.driver"));
-        candidates.push(contents_dir.join("Resources/HexMicrophone.driver"));
+        candidates.push(contents_dir.join("Library/SuperhexMicrophone.driver"));
+        candidates.push(contents_dir.join("Resources/SuperhexMicrophone.driver"));
     }
     if let Some(home) = dirs::home_dir() {
-        candidates.push(home.join("Library/Caches/hex-mic/HexMicrophone.driver"));
+        candidates.push(home.join("Library/Caches/superhex-mic/SuperhexMicrophone.driver"));
     }
     candidates.push(PathBuf::from(
-        "/Applications/Hex.app/Contents/Library/HexMicrophone.driver",
+        "/Applications/Superhex.app/Contents/Library/SuperhexMicrophone.driver",
     ));
     candidates
         .into_iter()
@@ -719,7 +719,7 @@ fn classify_osascript_failure(stderr: &str, stdout: &str) -> DriverActionState {
 fn run_driver_osascript(
     script: &str,
     arg: Option<&std::path::Path>,
-    settled: impl Fn(&HexMicrophoneStatus) -> bool,
+    settled: impl Fn(&SuperhexMicrophoneStatus) -> bool,
     done: impl FnOnce() -> DriverActionState,
 ) -> DriverActionState {
     let mut command = std::process::Command::new("/usr/bin/osascript");
@@ -760,7 +760,7 @@ pub fn install_driver_async() {
             .spawn(|| {
                 let Some(src_bundle) = bundled_driver_path() else {
                     set_driver_action_state(DriverActionState::Failed(
-                        "Bundled HexMicrophone.driver was not found in Hex.app".into(),
+                        "Bundled SuperhexMicrophone.driver was not found in Superhex.app".into(),
                     ));
                     return;
                 };
@@ -810,7 +810,7 @@ pub fn uninstall_driver_async() {
 }
 
 #[cfg(target_os = "macos")]
-pub fn status() -> HexMicrophoneStatus {
+pub fn status() -> SuperhexMicrophoneStatus {
     let mic_id = macos_hal::translate_uid_to_device(HEX_MICROPHONE_UID);
     let sink_id = macos_hal::translate_uid_to_device(HEX_MICROPHONE_SINK_UID);
     let driver_loaded = mic_id.is_some() && sink_id.is_some();
@@ -823,7 +823,7 @@ pub fn status() -> HexMicrophoneStatus {
         .map(|proc| proc.name)
         .collect();
 
-    HexMicrophoneStatus {
+    SuperhexMicrophoneStatus {
         driver_bundle_installed: driver_bundle_installed(),
         driver_loaded,
         installed_version: installed_driver_version(),
@@ -835,12 +835,12 @@ pub fn status() -> HexMicrophoneStatus {
     }
 }
 
-/// Linux has no driver: Hex Microphone exists while the Voice Filter runs
+/// Linux has no driver: Superhex Microphone exists while the Voice Filter runs
 /// (`pipewire_source`).
 #[cfg(target_os = "linux")]
-pub fn status() -> HexMicrophoneStatus {
+pub fn status() -> SuperhexMicrophoneStatus {
     let streaming = SINK_STREAMING.load(Ordering::Acquire);
-    HexMicrophoneStatus {
+    SuperhexMicrophoneStatus {
         driver_bundle_installed: false,
         driver_loaded: streaming,
         installed_version: None,
@@ -853,8 +853,8 @@ pub fn status() -> HexMicrophoneStatus {
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-pub fn status() -> HexMicrophoneStatus {
-    HexMicrophoneStatus {
+pub fn status() -> SuperhexMicrophoneStatus {
+    SuperhexMicrophoneStatus {
         driver_bundle_installed: false,
         driver_loaded: false,
         installed_version: None,
@@ -866,7 +866,7 @@ pub fn status() -> HexMicrophoneStatus {
     }
 }
 
-/// Makes this process the Hex Microphone host, starting the sink whenever
+/// Makes this process the Superhex Microphone host, starting the sink whenever
 /// the Voice Filter is on (`app_settings::hex_microphone_enabled`). Only the listener hosts it, so CLI commands that load
 /// settings never start the pipeline.
 pub fn host_service() {
@@ -1571,8 +1571,10 @@ mod tests {
 
     #[test]
     fn virtual_device_names_are_excluded_from_self_capture() {
-        assert!(is_hex_virtual_device_name("Hex Microphone"));
-        assert!(is_hex_virtual_device_name("Hex Microphone (Internal Sink)"));
+        assert!(is_hex_virtual_device_name("Superhex Microphone"));
+        assert!(is_hex_virtual_device_name(
+            "Superhex Microphone (Internal Sink)"
+        ));
         assert!(is_hex_virtual_device_name("hex microphone"));
         assert!(!is_hex_virtual_device_name("MacBook Pro Microphone"));
         assert!(!is_hex_virtual_device_name("Shure MV7"));
@@ -1590,7 +1592,7 @@ mod tests {
 
     #[test]
     fn driver_plist_version_and_status_mismatch_are_detected() {
-        let plist = include_str!("../../macos/HexMicrophoneDriver/Info.plist");
+        let plist = include_str!("../../macos/SuperhexMicrophoneDriver/Info.plist");
         assert_eq!(
             plist_string_value(plist, "CFBundleIdentifier").as_deref(),
             Some(EXPECTED_DRIVER_BUNDLE_ID)
@@ -1598,7 +1600,7 @@ mod tests {
         // The build script stamps the version, so the source plist's value
         // never ships; `driver_plugin_loopback_*` checks the built bundle.
 
-        let mismatch_status = HexMicrophoneStatus {
+        let mismatch_status = SuperhexMicrophoneStatus {
             driver_bundle_installed: true,
             driver_loaded: true,
             installed_version: Some("1.0.0".into()),
@@ -1611,7 +1613,7 @@ mod tests {
         assert!(mismatch_status.needs_update());
         assert!(!mismatch_status.is_up_to_date());
 
-        let current_status = HexMicrophoneStatus {
+        let current_status = SuperhexMicrophoneStatus {
             installed_version: Some(env!("CARGO_PKG_VERSION").into()),
             ..mismatch_status
         };
@@ -1650,10 +1652,11 @@ mod tests {
             .expect("run build-hex-microphone-driver.sh");
         assert!(status.success(), "driver build script must succeed");
 
-        let dylib_path = out_dir.join("HexMicrophone.driver/Contents/MacOS/HexMicrophoneDriver");
+        let dylib_path =
+            out_dir.join("SuperhexMicrophone.driver/Contents/MacOS/SuperhexMicrophoneDriver");
         assert!(dylib_path.exists(), "built driver binary must exist");
         assert_eq!(
-            read_driver_bundle_version(&out_dir.join("HexMicrophone.driver")).as_deref(),
+            read_driver_bundle_version(&out_dir.join("SuperhexMicrophone.driver")).as_deref(),
             Some(env!("CARGO_PKG_VERSION")),
             "the build script stamps the crate version into the driver"
         );
@@ -1697,13 +1700,13 @@ mod tests {
 
         let c_path = CString::new(dylib_path.to_str().unwrap()).unwrap();
         let handle = unsafe { libc::dlopen(c_path.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL) };
-        assert!(!handle.is_null(), "dlopen HexMicrophone must succeed");
+        assert!(!handle.is_null(), "dlopen SuperhexMicrophone must succeed");
 
-        let sym_name = CString::new("HexMicrophoneDriverCreate").unwrap();
+        let sym_name = CString::new("SuperhexMicrophoneDriverCreate").unwrap();
         let sym = unsafe { libc::dlsym(handle, sym_name.as_ptr()) };
         assert!(
             !sym.is_null(),
-            "HexMicrophoneDriverCreate symbol must exist"
+            "SuperhexMicrophoneDriverCreate symbol must exist"
         );
 
         // StartIO on Sink (4) and Mic (2), write 256 frames (5.33 ms at 48 kHz), read 256 frames.

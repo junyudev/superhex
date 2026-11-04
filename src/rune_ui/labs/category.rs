@@ -29,7 +29,7 @@ impl Category {
         Self::App,
     ];
 
-    /// Its id in `hex://labs?category=<id>`.
+    /// Its id in `superhex://labs?category=<id>`.
     pub(in crate::rune_ui) const fn id(self) -> &'static str {
         match self {
             Self::Dictation => "dictation",

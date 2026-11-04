@@ -2135,9 +2135,9 @@ mod tests {
         // No screen recorded: the summary says why and asks for no images.
         let mut blind = bundle.clone();
         blind.keyframes.clear();
-        blind.no_screen = Some("Screen Recording is off for Hex".into());
+        blind.no_screen = Some("Screen Recording is off for Superhex".into());
         let summary = summary_markdown(&blind, std::path::Path::new("/recordings/test"));
-        assert!(summary.contains("No screen: Screen Recording is off for Hex."));
+        assert!(summary.contains("No screen: Screen Recording is off for Superhex."));
         assert!(!summary.contains(LOOK_AT_IMAGES));
 
         // A phone bundle: device header, a flagged keyframe, and app events under the keyframe

@@ -269,7 +269,7 @@ pub(super) fn run_sink_supervisor() {
         if create_status != 0 || proc_id.is_null() {
             tracing::warn!(
                 status = create_status,
-                "failed to create Hex Microphone sink IOProc; retrying"
+                "failed to create Superhex Microphone sink IOProc; retrying"
             );
             thread::sleep(Duration::from_millis(500));
             continue;
@@ -280,7 +280,7 @@ pub(super) fn run_sink_supervisor() {
             let _ = unsafe { AudioDeviceDestroyIOProcID(sink_id, proc_id) };
             tracing::warn!(
                 status = start_status,
-                "failed to start Hex Microphone sink IOProc; retrying"
+                "failed to start Superhex Microphone sink IOProc; retrying"
             );
             thread::sleep(Duration::from_millis(500));
             continue;
@@ -290,7 +290,7 @@ pub(super) fn run_sink_supervisor() {
         tracing::info!(
             device_id = sink_id,
             mode = cfg.mode.id(),
-            "Hex Microphone virtual sink streaming started"
+            "Superhex Microphone virtual sink streaming started"
         );
 
         let started = CAPTURE_RING.counters();
@@ -304,7 +304,7 @@ pub(super) fn run_sink_supervisor() {
             if last_report.elapsed() >= RING_REPORT_INTERVAL {
                 last_report = Instant::now();
                 let now = CAPTURE_RING.counters();
-                // Only while an app reads Hex Microphone: an idle released
+                // Only while an app reads Superhex Microphone: an idle released
                 // microphone underflows on every callback by design.
                 let in_use = translate_uid_to_device(HEX_MICROPHONE_UID)
                     .is_some_and(device_is_running_somewhere);
@@ -313,7 +313,7 @@ pub(super) fn run_sink_supervisor() {
                         underflows = now.0 - reported.0,
                         overflows = now.1 - reported.1,
                         interval_s = RING_REPORT_INTERVAL.as_secs(),
-                        "Hex Microphone ring glitched"
+                        "Superhex Microphone ring glitched"
                     );
                 }
                 reported = now;
@@ -329,7 +329,7 @@ pub(super) fn run_sink_supervisor() {
             device_id = sink_id,
             underflows = stopped.0 - started.0,
             overflows = stopped.1 - started.1,
-            "Hex Microphone virtual sink stopped"
+            "Superhex Microphone virtual sink stopped"
         );
     }
 }

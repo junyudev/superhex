@@ -1,9 +1,9 @@
 //! The desktop's Background portal (`org.freedesktop.portal.Background`,
-//! #812): Hex tells the desktop it runs in the background, and where the
+//! #812): Superhex tells the desktop it runs in the background, and where the
 //! portal exists it owns Launch at login. Asked to, the portal writes or
-//! removes `~/.config/autostart/anomaly.hex.desktop` itself, the entry
+//! removes `~/.config/autostart/io.github.junyudev.superhex.desktop` itself, the entry
 //! [`crate::linux::login_item`] writes on desktops without it. Every request
-//! also sets autostart, and turning it off removes that file, so Hex asks
+//! also sets autostart, and turning it off removes that file, so Superhex asks
 //! only while the file is absent or its own.
 
 use std::collections::HashMap;
@@ -17,10 +17,10 @@ use crate::linux::portal::PortalBus;
 
 const INTERFACE: &str = "org.freedesktop.portal.Background";
 
-/// Asks the portal to let Hex run in the background, starting `launcher`
-/// at login when `autostart`. Returns whether the portal now starts Hex at
+/// Asks the portal to let Superhex run in the background, starting `launcher`
+/// at login when `autostart`. Returns whether the portal now starts Superhex at
 /// login; `None` when there is no portal, the portal predates host app
-/// registration (xdg-desktop-portal before 1.20, which may not know Hex's app
+/// registration (xdg-desktop-portal before 1.20, which may not know Superhex's app
 /// id and would name the autostart entry wrongly), or `launcher`'s path would
 /// not survive the portal's unquoted `Exec=` line.
 pub(crate) fn request(autostart: bool, launcher: &Path) -> Result<Option<bool>> {
@@ -42,7 +42,7 @@ pub(crate) fn request(autostart: bool, launcher: &Path) -> Result<Option<bool>> 
                     (
                         "reason",
                         Variant::from(
-                            "Hex keeps listening for your dictation shortcut when its window is closed",
+                            "Superhex keeps listening for your dictation shortcut when its window is closed",
                         ),
                     ),
                     ("autostart", Variant::from(autostart)),

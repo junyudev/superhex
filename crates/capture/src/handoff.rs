@@ -131,7 +131,7 @@ pub fn newest_bundle(root: &Path) -> Result<PathBuf> {
 }
 
 /// Host clipboard and paste operations. Scrawl's app uses `SystemClipboard`; an embedding host
-/// such as Hex can supply its own implementation.
+/// such as Superhex can supply its own implementation.
 pub trait Clipboard: Send + Sync {
     fn copy_bundle(&self, bundle_dir: &Path, bundle: &crate::model::ScrawlBundle) -> Result<()>;
     fn copy_text(&self, text: &str) -> Result<()>;
@@ -325,7 +325,7 @@ pub fn copy_png_to_clipboard(_png_bytes: &[u8]) -> Result<()> {
     bail!("Image and text clipboard handoff requires macOS or Windows")
 }
 
-/// Linux hosts copy through their own clipboard path (Hex: `linux_paste`).
+/// Linux hosts copy through their own clipboard path (Superhex: `linux_paste`).
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn copy_loaded_bundle_to_clipboard(
     _directory: &Path,
@@ -383,11 +383,11 @@ pub struct EngineConfig {
     /// malformed one can't reset this struct.
     #[serde(default)]
     pub transcriber: Option<String>,
-    /// The Hex model to use when `transcriber` is `"hex"` (default: the first ready one of
+    /// The Superhex model to use when `transcriber` is `"hex"` (default: the first ready one of
     /// `hex::PREFERRED_MODELS`).
     #[serde(default)]
     pub hex_model: Option<String>,
-    /// Hex language code (`"en"` by default, `"auto"` for model language detection).
+    /// Superhex language code (`"en"` by default, `"auto"` for model language detection).
     #[serde(default)]
     pub hex_language: Option<String>,
     /// Apple Speech locale (BCP-47, e.g. "zh-TW"); missing means the Mac's own language.
@@ -546,7 +546,7 @@ static SCRAWL_HOST_DEFAULTS: std::sync::atomic::AtomicBool =
 
 /// Enables Scrawl's own `~/.config/scrawl/config.json` and `~/Library/Logs/Scrawl/scrawl.log`
 /// defaults. Called only by the Scrawl CLI/app binary (`src/main.rs`). Library consumers (such as
-/// Hex) never call this, so library code never implicitly reads `~/.config/scrawl/config.json` or
+/// Superhex) never call this, so library code never implicitly reads `~/.config/scrawl/config.json` or
 /// writes under `~/Library/Application Support/scrawl`.
 pub fn enable_scrawl_host_defaults() {
     SCRAWL_HOST_DEFAULTS.store(true, std::sync::atomic::Ordering::Release);
@@ -598,7 +598,7 @@ pub fn parse_config_from<T: for<'de> Deserialize<'de> + Default>(path: &Path) ->
 }
 
 /// Pure parser for a raw `~/.config/scrawl/config.json` string into [`EngineConfig`].
-/// Never touches the filesystem; used by hosts (such as Hex) for one-time migration of Scrawl
+/// Never touches the filesystem; used by hosts (such as Superhex) for one-time migration of Scrawl
 /// capture settings into their own config store (`scrawl_router::parse_scrawl_config` parses
 /// the routing half).
 pub fn parse_scrawl_config(raw: &str) -> EngineConfig {
@@ -922,12 +922,12 @@ pub fn transcriber() -> Option<String> {
     config().transcriber
 }
 
-/// The configured Hex model id (`hexModel`), if any.
+/// The configured Superhex model id (`hexModel`), if any.
 pub fn hex_model() -> Option<String> {
     config().hex_model()
 }
 
-/// The configured Hex language, defaulting to the previous English behavior.
+/// The configured Superhex language, defaulting to the previous English behavior.
 pub fn hex_language() -> String {
     hex_language_from(&config())
 }

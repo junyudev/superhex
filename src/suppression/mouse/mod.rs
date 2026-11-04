@@ -56,7 +56,7 @@ pub(crate) fn access() -> Access {
 
 /// Call only in response to the person's explicit mouse access action.
 pub(crate) fn request_access() -> Access {
-    // SAFETY: this is the one intentional Input Monitoring prompt in Hex.
+    // SAFETY: this is the one intentional Input Monitoring prompt in Superhex.
     unsafe { ffi::IOHIDRequestAccess(1) };
     access()
 }

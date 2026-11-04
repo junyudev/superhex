@@ -1,7 +1,7 @@
 //! The running OpenCode service, reached without starting anything: its
 //! owner-only registration names a loopback URL and password, `/api/info`
 //! confirms the registered process still answers, and requests are plain
-//! authenticated HTTP over `TcpStream`. Hex never runs an OpenCode
+//! authenticated HTTP over `TcpStream`. Superhex never runs an OpenCode
 //! executable; when no service answers, OpenCode isn't running, and when
 //! one answers `/api/info` with 404 it predates the current OpenCode 2.
 
@@ -457,7 +457,7 @@ fn poll_millis(timeout: Duration) -> i32 {
     timeout.as_millis().clamp(1, i32::MAX as u128) as i32
 }
 
-/// Creates Hex's OpenCode workspace on first use and returns the path
+/// Creates Superhex's OpenCode workspace on first use and returns the path
 /// OpenCode should see.
 fn workspace(directory: &Path) -> Result<String> {
     fs::create_dir_all(directory).wrap_err_with(|| {

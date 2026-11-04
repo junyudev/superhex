@@ -9,7 +9,7 @@
 //! to another corner with them. Stop finishes the call: the last pass, the
 //! boundary pass, then the final title and summary. Nothing here touches a real meeting; it is for
 //! working out how live notes should look on screen
-//! (`hex://story/prototypes/meetings/live-notes?play=1`).
+//! (`superhex://story/prototypes/meetings/live-notes?play=1`).
 
 mod copy;
 mod notes;
@@ -337,15 +337,18 @@ mod tests {
 
     use super::super::{WINDOW_SIZE, playground, spec};
 
-    /// `hex://story/prototypes/meetings/live-notes` opens the story on each
+    /// `superhex://story/prototypes/meetings/live-notes` opens the story on each
     /// variant.
     #[test]
     fn its_story_link_opens_each_variant() {
         let slug = "prototypes-meetings-live-notes";
         #[cfg(target_os = "macos")]
         assert_eq!(
-            super::super::story_link::parse("hex://story/prototypes/meetings/live-notes", "hex")
-                .map(|link| link.story),
+            super::super::story_link::parse(
+                "superhex://story/prototypes/meetings/live-notes",
+                "superhex"
+            )
+            .map(|link| link.story),
             Ok(slug.to_owned())
         );
         let app = playground::attach(App::new(playground::spec(spec())));

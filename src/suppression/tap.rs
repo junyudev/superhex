@@ -145,7 +145,7 @@ pub(super) fn input_is_down(state: u32, code: u16) -> bool {
 /// Whether a key or mouse button the shortcut machine tracks still reads as
 /// held. Combined-session state can keep a key down for good after a system
 /// shortcut swallows its release (Tab after Command-Tab, Q after Command-Q;
-/// #612), which blocked every shortcut press until Hex restarted, so a
+/// #612), which blocked every shortcut press until Superhex restarted, so a
 /// keyboard key also needs HID state, the physical keyboard, to agree.
 pub(super) fn input_is_held(code: u16) -> bool {
     reads_held(code, input_is_down)
@@ -483,7 +483,7 @@ unsafe extern "C" fn check_tap_health(_timer: *mut c_void, info: *mut c_void) {
     unsafe { &mut *info.cast::<TapSet>() }.check();
 }
 
-/// Keeps App Nap from throttling the event-tap thread while Hex sits idle in
+/// Keeps App Nap from throttling the event-tap thread while Superhex sits idle in
 /// the background: a napped callback can miss its deadline, and its health
 /// timer would stretch. Idle system sleep stays allowed.
 pub(super) struct AppNapOptOut(
@@ -495,7 +495,7 @@ impl AppNapOptOut {
         use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
         let activity = NSProcessInfo::processInfo().beginActivityWithOptions_reason(
             NSActivityOptions::UserInitiatedAllowingIdleSystemSleep,
-            &NSString::from_str("Hex listens for its dictation shortcut"),
+            &NSString::from_str("Superhex listens for its dictation shortcut"),
         );
         Self(activity)
     }

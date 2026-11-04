@@ -1,4 +1,4 @@
-//! Main-thread-only TIS observation, independent of keyboard shortcuts. Hex
+//! Main-thread-only TIS observation, independent of keyboard shortcuts. Superhex
 //! reads input sources only while keyboard model switching is on.
 
 use std::cell::RefCell;
@@ -170,7 +170,7 @@ impl Watcher {
             mtm,
         };
         // SAFETY: the boxed flag has a stable address and outlives registration.
-        // 4 = DeliverImmediately, including when Hex is in the background.
+        // 4 = DeliverImmediately, including when Superhex is in the background.
         unsafe {
             CFNotificationCenterAddObserver(
                 CFNotificationCenterGetDistributedCenter(),

@@ -68,17 +68,20 @@ mod tests {
     #[test]
     fn gsettings_string_lists_round_trip() {
         assert_eq!(
-            string_list("['hex', 'anomaly.hex']"),
-            ["hex", "anomaly.hex"]
+            string_list("['hex', 'io.github.junyudev.superhex']"),
+            ["hex", "io.github.junyudev.superhex"]
         );
         assert!(string_list("@as []").is_empty());
-        assert_eq!(string_list_text(&["anomaly.hex"]), "['anomaly.hex']");
+        assert_eq!(
+            string_list_text(&["io.github.junyudev.superhex"]),
+            "['io.github.junyudev.superhex']"
+        );
         assert_eq!(string_list_text(&[]), "@as []");
     }
 
     #[test]
     fn strings_quote_for_gsettings() {
-        assert_eq!(string_text("Hex"), "'Hex'");
+        assert_eq!(string_text("Superhex"), "'Superhex'");
         assert_eq!(string_text("it's \\ ok"), "'it\\'s \\\\ ok'");
     }
 }

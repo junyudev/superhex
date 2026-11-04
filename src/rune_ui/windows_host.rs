@@ -26,7 +26,7 @@ pub(super) const RECORDS_KEY_EVENTS: bool = false;
 /// Windows' Terminal paste (Ctrl+Shift+V) is a Labs feature, not a row in
 /// General.
 pub(super) const TERMINAL_PASTE: bool = false;
-/// The window offers Quit Hex beside the tray's.
+/// The window offers Quit Superhex beside the tray's.
 pub(super) const QUIT_IN_WINDOW: bool = true;
 
 /// How often shortcut capture samples the keyboard.
@@ -69,7 +69,7 @@ impl Backend {
             }
             request => match &self.runtime {
                 Some(runtime) => runtime.send(request),
-                None => Err(color_eyre::eyre::eyre!("Hex's runtime is not running")),
+                None => Err(color_eyre::eyre::eyre!("Superhex's runtime is not running")),
             },
         }
     }
@@ -81,10 +81,10 @@ impl Backend {
     }
 
     /// Asks the runtime to stop the listener and end the app, as the
-    /// tray's Quit Hex does.
+    /// tray's Quit Superhex does.
     pub(super) fn quit(&mut self) {
         if let Err(error) = self.send(Request::Quit) {
-            tracing::warn!(%error, "could not quit Hex");
+            tracing::warn!(%error, "could not quit Superhex");
         }
     }
 
@@ -98,7 +98,7 @@ impl Backend {
     pub(super) fn error(&self) -> Option<String> {
         self.runtime
             .is_none()
-            .then(|| "Hex's runtime is not running".into())
+            .then(|| "Superhex's runtime is not running".into())
     }
 
     pub(super) fn state(&self) -> Option<HostState> {
@@ -219,7 +219,7 @@ pub(super) fn validate_hotkey(
     if target != ShortcutTarget::Dictation && binding.key.is_none() {
         return Err(tr("Add a key"));
     }
-    // Hex takes the cancel key only while a recording runs, so a key alone,
+    // Superhex takes the cancel key only while a recording runs, so a key alone,
     // such as Escape, never keeps it from other apps.
     if target == ShortcutTarget::Cancel {
         return WindowsHotkey::from(binding)
