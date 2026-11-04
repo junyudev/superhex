@@ -13,10 +13,23 @@
 use std::fmt;
 use std::sync::Arc;
 
+mod codec;
+mod config;
+mod crypto;
+mod network;
+mod session;
+mod wire;
+
+#[cfg(test)]
+mod tests;
+
+pub use session::{Canceller, Pending, Session};
+
 /// A validated service configuration: what `context.json` holds.
 #[derive(Clone)]
 pub struct Config {
-    _private: (),
+    durable: serde_json::Map<String, serde_json::Value>,
+    options: Options,
 }
 
 impl fmt::Debug for Config {
@@ -41,23 +54,23 @@ impl std::error::Error for ConfigError {}
 impl Config {
     /// Parses and strictly validates `context.json` bytes (bounded, unknown
     /// keys ignored, `uin` as a string or number).
-    pub fn parse(_bytes: &[u8]) -> Result<Self, ConfigError> {
-        Err(ConfigError("not implemented".into()))
+    pub fn parse(bytes: &[u8]) -> Result<Self, ConfigError> {
+        config::parse(bytes)
     }
 
     /// The durable fields as JSON, for the caller to store privately.
     pub fn to_json(&self) -> Vec<u8> {
-        Vec::new()
+        serde_json::to_vec(&self.durable).unwrap_or_default()
     }
 
     /// The service host, to tell the person where their audio goes.
     pub fn host(&self) -> &str {
-        ""
+        self.text("host")
     }
 
     /// The voice options the file carried, or the defaults.
     pub fn options(&self) -> Options {
-        Options::default()
+        self.options
     }
 }
 
@@ -90,7 +103,7 @@ impl Default for Options {
 }
 
 /// The text so far. Provisional until the session's final text.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Update {
     pub text: String,
     /// The audio has ended and the service is polishing the text.
@@ -137,101 +150,43 @@ impl std::error::Error for Failure {}
 
 /// A finished session without its final text, and the last text it had
 /// shown, which a caller may offer instead.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Failed {
     pub failure: Failure,
     pub heard: String,
 }
 
-/// Cancels the session it came from, from any thread, at any stage.
-#[derive(Clone)]
-pub struct Canceller {
-    _private: Arc<()>,
-}
-
-impl Canceller {
-    pub fn cancel(&self) {}
-}
-
-/// One recording's session. Start it, [`Self::feed`] it 16 kHz mono audio in
-/// order, then [`Self::finish`] it, or drop it to cancel.
-pub struct Session {
-    _private: (),
-}
-
-impl Session {
-    /// Connects on the session's own thread and returns at once.
-    pub fn start(_config: Arc<Config>, _options: Options) -> Self {
-        Self { _private: () }
-    }
-
-    /// A session that replays `updates` and ends with `result`, without a
-    /// thread or the network.
-    #[cfg(feature = "testing")]
-    pub fn scripted(_updates: Vec<Update>, _result: Result<String, Failed>) -> Self {
-        Self { _private: () }
-    }
-
-    /// Queues normalized samples. Never blocks. A session that can't keep up
-    /// fails rather than stalling its caller.
-    pub fn feed(&mut self, _samples: &[f32]) {}
-
-    /// The latest text, when it changed since the last call.
-    pub fn take_update(&mut self) -> Option<Update> {
-        None
-    }
-
-    /// Why the session has already failed, while the caller goes on recording.
-    pub fn failure(&self) -> Option<Failure> {
-        None
-    }
-
-    /// Ends the audio.
-    pub fn finish(self) -> Pending {
-        Pending { _private: () }
-    }
-}
-
-/// A session whose audio has ended.
-pub struct Pending {
-    _private: (),
-}
-
-impl Pending {
-    pub fn canceller(&self) -> Canceller {
-        Canceller {
-            _private: Arc::new(()),
-        }
-    }
-
-    /// Blocks for the final text, bounded by the options' deadlines, calling
-    /// `on_update` with each change until then. Cancelling answers
-    /// `Failure::Internal("cancelled")`.
-    pub fn wait(self, _on_update: impl FnMut(&Update)) -> Result<String, Failed> {
-        Err(Failed {
-            failure: Failure::Internal("not implemented".into()),
-            heard: String::new(),
-        })
-    }
-}
-
-/// Sends a whole clip through a new session, on the caller's thread: a retry
-/// of a failed recording, or a capture that wasn't streamed.
+/// Sends a whole clip through a fresh session. Uses the fastest upload pace
+/// verified against the speech service; cancellation is checked throughout.
 pub fn transcribe(
-    _config: Arc<Config>,
-    _options: Options,
-    _samples: &[f32],
-    _cancel: Option<&Canceller>,
-    _on_update: impl FnMut(&Update),
+    config: Arc<Config>,
+    options: Options,
+    samples: &[f32],
+    cancel: Option<&Canceller>,
+    on_update: impl FnMut(&Update),
 ) -> Result<String, Failed> {
-    Err(Failed {
-        failure: Failure::Internal("not implemented".into()),
-        heard: String::new(),
-    })
+    session::transcribe(config, options, samples, cancel, on_update)
 }
 
 /// Connects and completes the key exchange without sending audio, to check a
 /// configuration during setup.
-pub fn check(_config: &Config) -> Result<(), Failure> {
-    Err(Failure::Internal("not implemented".into()))
+pub fn check(config: &Config) -> Result<(), Failure> {
+    session::check(config)
+}
+
+impl fmt::Debug for Update {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Update")
+            .field("text", &"redacted")
+            .field("polishing", &self.polishing)
+            .finish()
+    }
+}
+impl fmt::Debug for Failed {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Failed")
+            .field("failure", &self.failure)
+            .field("heard", &"redacted")
+            .finish()
+    }
 }

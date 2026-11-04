@@ -1,0 +1,17 @@
+{
+let key="0123456789ABCDEF";
+let expected=hex::decode("7b8789eb5393c771e931c4aef1fd95f9a72f0e40aa96103d339efde7586cda44").unwrap();
+let body=b"example payload\x00\xff";
+assert_eq!(crypto::encrypt(body,key).unwrap(),expected);
+assert_eq!(crypto::decrypt(&expected,key).unwrap(),body);
+let key="0123456789ABCDEFGHIJKLMN";
+let expected=hex::decode("eb218fe4805dee0f7c2200ef59d46c9d4ba747a08a12bf72480e40d42ff6b94d").unwrap();
+let body=b"example payload\x00\xff";
+assert_eq!(crypto::encrypt(body,key).unwrap(),expected);
+assert_eq!(crypto::decrypt(&expected,key).unwrap(),body);
+let key="0123456789ABCDEFGHIJKLMNOPQRSTUV";
+let expected=hex::decode("8b63217f09d221879aa82b4d7554d8d47c1274a412898950b08ac4459e42a32a").unwrap();
+let body=b"example payload\x00\xff";
+assert_eq!(crypto::encrypt(body,key).unwrap(),expected);
+assert_eq!(crypto::decrypt(&expected,key).unwrap(),body);
+}
