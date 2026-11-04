@@ -825,13 +825,17 @@ macOS dictation backend                    // dictate.voice-buddy
 │   └── Release -> Publisher travels with clip -> Finishing -> Polishing -> text
 └── Otherwise -> selected local model, with the existing local stream/fallback
 
-Explicit configuration import              // dictate.voice-buddy-setup
-├── Validate bounded regular file, not itself a symlink -> durable fields only
+Explicit setup, three ways                 // dictate.voice-buddy-setup
+├── Set up -> register this installation's own identity with the service
+│   ├── Secure-random device code; reads no hardware identifier
+│   └── Proves the new identity with a second handshake before saving it
+├── Use it -> the MouseVoice app's context.json, read only while setup shows
+├── Choose file… -> any configuration file the person picks
+├── All three -> validate bounded regular file, not itself a symlink
 │   ├── <support>/voice-buddy.json: 0600; parent: 0700
-│   └── Copy voice options into settings once; leave source alone
-├── Explicit discovery only -> the MouseVoice app's context.json
-│   └── Never copy automatically, scan other apps, create an identity, or use Keychain
-└── Service Rejected -> Broken; import another valid configuration to recover
+│   └── Copy voice options into settings once; leave the source alone
+├── Nothing happens at launch, on a settings reload, or while recording
+└── Service Rejected -> Broken; set up again or import another to recover
 ```
 
 ```ts
@@ -841,15 +845,15 @@ General > Speech: VoiceBuddy | Local model          // dictate.voice-buddy-windo
 │   └── Options sheet: polish, remove repetition, paragraphs, Traditional Chinese,
 │       Test connection, Replace…, Remove… (two presses)
 ├── Not set up -> what Hex uses until then, and:
-│   ├── VoiceBuddy's file found -> Use it, or Choose file…
-│   └── Nothing found -> Choose file…
-└── Refused or unreadable -> "VoiceBuddy can't run" -> Choose file…
+│   ├── A configuration found on this Mac -> Use it, or Set up
+│   └── Nothing found -> Set up, or Choose file…
+└── Refused or unreadable -> "VoiceBuddy can't run" -> the same actions
 
 First run on macOS -> "Choose how Hex hears you"    // dictate.voice-buddy-first-run
 ├── VoiceBuddy first, recommended, selected; its row says where the voice goes
 ├── Nothing downloads until a pick
-├── Continue -> saved: use it; found: import it; neither: the file dialog
-│   └── Dialog cancelled or file refused -> The list asks again
+├── Continue -> saved: use it; found: import it; neither: set it up
+│   └── Setting up failed or a chosen file refused -> The list asks again
 └── A local row -> Chooses Local and prepares that model
 
 The live text plate, with no Labs toggle            // dictate.voice-buddy-live
@@ -901,6 +905,18 @@ release-gate run was observed. Meetings, Annotate and host-audio checks use
 synthetic adapters; their physical/native paths remain unverified here. Both
 client commits through `f36cf405` are integrated; none of these paths use the
 stub client.
+
+**Observed November 4, 2026, Apple Silicon, debug build, the real speech
+service, a clean temporary data folder with no configuration and no local
+model:** Set up's path (`create_identity`, the ignored
+`create_identity_saves_a_usable_configuration`) registered one identity, which
+the crate had already accepted live (registration 639 ms, `check()` 294 ms).
+Hex then started on that identity alone, reported `voice_buddy_setup: ready`
+with no local model installed, and two dictations through
+`HEX_AUDIO_FIXTURE` returned their polished text 0.81 and 0.89 s after stop
+(`source="voice-buddy"`, 433 and 541 ms of service time). No audio reached the
+disk and nothing errored. Not observed: Set up pressed in the window itself,
+the first run's own Set up path, or a second registration.
 
 **Observed November 4, 2026, Apple Silicon, debug build, the real speech service,
 a real imported configuration in a private temporary data folder, and a

@@ -107,3 +107,18 @@ fn a_rejected_session_marks_saved_setup_broken_without_retrying_and_import_clear
     *lock(store()) = previous;
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+/// Registers one real identity through the app's own path and saves it, so a
+/// dictation can then run on it. Run by hand; it creates an identity with the
+/// speech service and prints only where the configuration was written.
+#[test]
+#[ignore = "registers a real identity with the speech service"]
+fn create_identity_saves_a_usable_configuration() {
+    let setup = super::create_identity().expect("the service set up an identity");
+    assert!(matches!(setup, Setup::Ready { .. }), "{setup:?}");
+    assert!(
+        super::config().is_some(),
+        "the saved configuration is usable"
+    );
+    println!("wrote {}", super::store_path().display());
+}

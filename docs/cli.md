@@ -359,9 +359,9 @@ observed for the VoiceBuddy backend.
 
 The settings keys `dictation_backend` (`voice_buddy` or `local`) and
 `voice_buddy.polish`, `.traditional`, `.paragraph`, `.reduce_redundancy` control
-macOS dictation. Choosing VoiceBuddy never imports configuration or creates an
-identity. The person must import a usable configuration before audio is sent;
-otherwise Hex uses Local. `model use` and choosing a local model select Local.
+macOS dictation. Choosing VoiceBuddy registers, imports and scans nothing: the
+window's Set up, Use it, or Choose file… does that, and until one of them has
+run Hex uses Local. `model use` and choosing a local model select Local.
 Meetings, Annotate, host audio, benchmarks and retranscription remain local.
 
 `memory_footprint_bytes` is the physical footprint Activity Monitor shows.

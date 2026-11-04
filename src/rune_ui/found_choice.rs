@@ -114,7 +114,7 @@ fn voice_buddy_line(ui: &Ui) -> String {
         (Setup::Ready { host }, _) => tr_fill("Your voice goes to {}", host),
         (Setup::Broken { reason }, _) => reason.clone(),
         (Setup::Missing, Some(found)) => tr_fill("Your voice goes to {}", &found.host),
-        (Setup::Missing, None) => tr("Choose its context.json next").to_owned(),
+        (Setup::Missing, None) => tr("Hex sets it up next").to_owned(),
     }
 }
 
@@ -289,10 +289,10 @@ mod tests {
     }
 
     #[test]
-    fn without_a_configuration_the_row_says_one_comes_next() {
+    fn without_a_configuration_the_row_says_hex_sets_it_up() {
         let ui = new_mac(false);
         let rows = rows(&ui, ItemStatus::Todo);
-        assert!(rows[0].line.contains("context.json"), "{}", rows[0].line);
+        assert_eq!(rows[0].line, "Hex sets it up next");
     }
 
     #[test]

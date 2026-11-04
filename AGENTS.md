@@ -807,11 +807,18 @@ CoreAudio formats, AppleScript details, or event serialization.
   VoiceBuddy in effect, startup leaves the local engine empty; local consumers
   activate through their existing paths. A local-model menu choice also chooses
   Local. Keyboard-language switching applies only while Local is in effect.
-- Import is consent to send audio. Store only validated durable fields in
+- Setting up is consent to send audio, so only the person's own action does
+  it: Set up (which asks the service for this installation's own identity),
+  Use it (the configuration found on this Mac), or Choose file…. Nothing
+  registers, imports, or scans at launch, on a settings reload, or while
+  recording. Store only validated durable fields in
   `<support>/voice-buddy.json` (0600; folder 0700), through `app_paths` and
   `durable`; imports are bounded and refuse a file that is itself a symlink.
-  Only explicit discovery reads `~/Library/Application Support/MouseVoice/context.json` No automatic import,
-  identity creation, keychain access, or other-app scan. Rejected credentials
+  Only explicit discovery reads
+  `~/Library/Application Support/MouseVoice/context.json`, and no keychain or
+  other-app scan. A registered identity belongs to this installation, comes
+  from secure random data, and reads no hardware identifier. Rejected
+  credentials
   mark setup Broken in memory immediately; the finishing job persists that
   refusal. A successful import clears it. Diagnostics omit service words and
   configuration values; successful service output omits words from event logs.

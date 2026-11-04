@@ -7,8 +7,8 @@ pastes.
 
 - hold the shortcut, speak, then let go
 - Hex pastes the text into whatever app you're in
-- on a Mac, Hex uses the VoiceBuddy speech service once you give it a configuration,
-  which sends your voice to that service while you dictate
+- on a Mac, Hex uses the VoiceBuddy speech service once you set it up in General ›
+  Speech, which sends your voice to that service while you dictate
 - with General › Speech set to Local model, and on Windows and Linux, Hex transcribes
   on your device: the first run downloads a speech model, and after that nothing
   leaves your machine

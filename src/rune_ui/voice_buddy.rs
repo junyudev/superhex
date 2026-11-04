@@ -70,6 +70,8 @@ pub(super) struct VoiceBuddyPane {
     found_read: bool,
     chooser: Option<Pending>,
     importing: Option<Receiver<Result<Setup, String>>>,
+    /// Asking the service for this installation's own identity.
+    registering: Option<Receiver<Result<Setup, String>>>,
     pub(super) error: Option<String>,
     check: Check,
     /// Remove… was pressed once; the next press forgets the configuration.
@@ -78,9 +80,9 @@ pub(super) struct VoiceBuddyPane {
 }
 
 impl VoiceBuddyPane {
-    /// A file is being chosen or imported.
+    /// Setting up: a file is being chosen or imported, or an identity asked for.
     pub(super) fn busy(&self) -> bool {
-        self.chooser.is_some() || self.importing.is_some()
+        self.chooser.is_some() || self.importing.is_some() || self.registering.is_some()
     }
 }
 
@@ -136,6 +138,7 @@ pub(super) fn poll(ui: &mut Ui) -> bool {
     }
     changed |= poll_chooser(ui);
     changed |= poll_import(ui);
+    changed |= poll_registration(ui);
     changed |= poll_check(ui);
     changed
 }
@@ -158,6 +161,17 @@ fn poll_chooser(ui: &mut Ui) -> bool {
     true
 }
 
+fn poll_registration(ui: &mut Ui) -> bool {
+    let result = match ui.voice_buddy.registering.as_ref().map(Receiver::try_recv) {
+        Some(Ok(result)) => result,
+        Some(Err(TryRecvError::Disconnected)) => Err(tr("Setting up stopped.").to_owned()),
+        Some(Err(TryRecvError::Empty)) | None => return false,
+    };
+    ui.voice_buddy.registering = None;
+    settled(ui, result, || tr("Could not set up VoiceBuddy").to_owned());
+    true
+}
+
 fn poll_import(ui: &mut Ui) -> bool {
     let result = match ui.voice_buddy.importing.as_ref().map(Receiver::try_recv) {
         Some(Ok(result)) => result,
@@ -165,12 +179,21 @@ fn poll_import(ui: &mut Ui) -> bool {
         Some(Err(TryRecvError::Empty)) | None => return false,
     };
     ui.voice_buddy.importing = None;
+    settled(ui, result, || {
+        tr("That file isn't a usable VoiceBuddy configuration").to_owned()
+    });
+    true
+}
+
+/// Takes a new configuration into use, or says why it couldn't be. The reason
+/// names fields and failures, never their values.
+fn settled(ui: &mut Ui, result: Result<Setup, String>, refused: impl FnOnce() -> String) {
     match result {
         Ok(setup) => {
             ui.voice_buddy.setup = setup;
             ui.voice_buddy.error = None;
             ui.voice_buddy.check = Check::Idle;
-            // The import filled in the file's voice options on disk.
+            // Setting up filled in the service's voice options on disk.
             let voice =
                 AppSettings::read().map_or(ui.settings.voice_buddy, |saved| saved.voice_buddy);
             ui.update(|settings| {
@@ -179,13 +202,10 @@ fn poll_import(ui: &mut Ui) -> bool {
             });
         }
         Err(error) => {
-            // The reason names fields, never their values.
-            tracing::warn!(%error, "could not import a VoiceBuddy configuration");
-            ui.voice_buddy.error =
-                Some(tr("That file isn't a usable VoiceBuddy configuration").to_owned());
+            tracing::warn!(%error, "could not set up VoiceBuddy");
+            ui.voice_buddy.error = Some(refused());
         }
     }
-    true
 }
 
 fn poll_check(ui: &mut Ui) -> bool {
@@ -234,26 +254,51 @@ pub(super) fn choose_file(ui: &mut Ui) {
     ));
 }
 
+/// Asks the service for this installation's own identity, off the window's
+/// thread. The person's press is consent to send audio.
+pub(super) fn start_setup(ui: &mut Ui) {
+    if !ui.live() || ui.voice_buddy.busy() {
+        return;
+    }
+    ui.voice_buddy.error = None;
+    ui.voice_buddy.registering = Some(worker("hex-voice-buddy-setup", ui, host::create_identity));
+}
+
 /// Validates and saves a private copy of the file at `path`, off the window's
 /// thread.
 pub(super) fn start_import(ui: &mut Ui, path: std::path::PathBuf) {
-    if !ui.live() || ui.voice_buddy.importing.is_some() {
+    if !ui.live() || ui.voice_buddy.busy() {
         return;
     }
+    ui.voice_buddy.error = None;
+    ui.voice_buddy.importing = Some(worker("hex-voice-buddy-import", ui, move || {
+        host::import(&path)
+    }));
+}
+
+/// Runs `work` on its own thread and wakes the window with its answer. A
+/// thread that cannot start answers at once, so nothing waits forever.
+fn worker<T: Send + 'static>(
+    name: &str,
+    ui: &Ui,
+    work: impl FnOnce() -> Result<T, String> + Send + 'static,
+) -> Receiver<Result<T, String>> {
     let (sender, receiver) = channel();
     let waker = ui.modes.waker.clone();
     let started = std::thread::Builder::new()
-        .name("hex-voice-buddy-import".into())
+        .name(name.into())
         .spawn(move || {
-            let _ = sender.send(host::import(&path));
+            let _ = sender.send(work());
             if let Some(waker) = &waker {
                 waker();
             }
         });
-    match started {
-        Ok(_) => ui.voice_buddy.importing = Some(receiver),
-        Err(error) => ui.voice_buddy.error = Some(error.to_string()),
+    if let Err(error) = started {
+        let (sender, receiver) = channel();
+        let _ = sender.send(Err(error.to_string()));
+        return receiver;
     }
+    receiver
 }
 
 fn start_check(ui: &mut Ui) {
@@ -358,10 +403,12 @@ fn setup_copy(ui: &Ui) -> String {
     }
     let lead = match ui.voice_buddy.found.first() {
         Some(found) => tr_fill(
-            "Found VoiceBuddy's configuration on this Mac. Your voice goes to {}.",
+            "Use the configuration already on this Mac, or set up a new one. Your voice goes to {}.",
             &found.host,
         ),
-        None => tr("Choose a context.json. Your voice goes to the service it names.").to_owned(),
+        None => {
+            tr("Setting up sends your voice to the speech service while you dictate.").to_owned()
+        }
     };
     let meanwhile = if ui.picker.selected_installed(&ui.settings) {
         tr_fill(
@@ -374,45 +421,62 @@ fn setup_copy(ui: &Ui) -> String {
     format!("{lead} {meanwhile}")
 }
 
-fn setup_row(ui: &Ui, p: Paint) -> El {
+/// Sets up VoiceBuddy: its own identity, the configuration found on this Mac,
+/// or a file. Only one of them carries the accent.
+fn setup_controls(ui: &Ui, p: Paint) -> El {
     let found = ui.voice_buddy.found.first().cloned();
-    let color = if ui.voice_buddy.error.is_some() {
-        p.danger()
-    } else {
-        p.muted()
-    };
-    let choose = button(
+    let setting_up = ui.voice_buddy.busy();
+    let set_up = button(
         p,
-        "voice-buddy-choose",
-        tr("Choose file…"),
+        "voice-buddy-set-up",
+        if setting_up {
+            tr("Setting up…")
+        } else {
+            tr("Set up")
+        },
         if found.is_some() {
             ButtonKind::Secondary
         } else {
             ButtonKind::Primary
         },
-        |ui: &mut Ui, _| choose_file(ui),
+        |ui: &mut Ui, _| start_setup(ui),
     );
-    let controls = row()
-        .key("voice-buddy-controls")
-        .gap(8.0)
-        .center_y()
-        .child(choose)
-        .children(found.map(|found| {
-            button(
+    let controls = row().key("voice-buddy-controls").gap(8.0).center_y();
+    // With one on this Mac already, using it is the better answer, and
+    // choosing another file is the rare one.
+    match found {
+        Some(found) => controls.child(set_up).child(button(
+            p,
+            "voice-buddy-use",
+            tr("Use it"),
+            ButtonKind::Primary,
+            move |ui: &mut Ui, _| start_import(ui, found.path.clone()),
+        )),
+        None => controls
+            .child(button(
                 p,
-                "voice-buddy-use",
-                tr("Use it"),
-                ButtonKind::Primary,
-                move |ui: &mut Ui, _| start_import(ui, found.path.clone()),
-            )
-        }));
+                "voice-buddy-choose",
+                tr("Choose file…"),
+                ButtonKind::Secondary,
+                |ui: &mut Ui, _| choose_file(ui),
+            ))
+            .child(set_up),
+    }
+}
+
+fn setup_row(ui: &Ui, p: Paint) -> El {
+    let color = if ui.voice_buddy.error.is_some() {
+        p.danger()
+    } else {
+        p.muted()
+    };
     icon_described_row(
         p,
         "voice-buddy",
         &CLOUD,
         tr("Set up VoiceBuddy"),
         Some((setup_copy(ui), color)),
-        controls,
+        setup_controls(ui, p),
     )
 }
 
@@ -424,13 +488,7 @@ fn broken_row(ui: &Ui, p: Paint, reason: &str) -> El {
         &CLOUD,
         tr("VoiceBuddy can't run"),
         Some((reason.to_owned(), p.danger())),
-        button(
-            p,
-            "voice-buddy-choose",
-            tr("Choose file…"),
-            ButtonKind::Primary,
-            |ui: &mut Ui, _| choose_file(ui),
-        ),
+        setup_controls(ui, p),
     )
 }
 

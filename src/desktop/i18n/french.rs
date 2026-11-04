@@ -1071,7 +1071,6 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Options", "Options"),
     ("Your voice goes to {} while you dictate", "Pendant la dictée, votre voix est envoyée à {}"),
     ("Your voice goes to {}", "Votre voix est envoyée à {}"),
-    ("Choose a context.json. Your voice goes to the service it names.", "Choisissez un context.json. Votre voix est envoyée au service qu'il indique."),
     ("Until then, Hex uses {}.", "D'ici là, Hex utilise {}."),
     ("Until then, Hex can't listen.", "D'ici là, Hex ne peut pas écouter."),
     ("Set up VoiceBuddy", "Configurer VoiceBuddy"),
@@ -1104,7 +1103,6 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Paste heard text", "Coller le texte entendu"),
     ("Recording kept for 10 minutes", "Enregistrement conservé 10 minutes"),
     ("{} recordings kept for 10 minutes", "{} enregistrements conservés 10 minutes"),
-    ("Choose its context.json next", "Choisissez ensuite son context.json"),
     ("Choose how Hex hears you", "Choisissez comment Hex vous entend"),
     ("VoiceBuddy streams your voice to its service. A local model stays on this Mac.", "VoiceBuddy diffuse votre voix vers son service. Un modèle local reste sur ce Mac."),
     ("Side button not detected?", "Bouton latéral non détecté ?"),
@@ -1112,8 +1110,13 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("This mouse button needs Input Monitoring", "Ce bouton de souris nécessite la surveillance de la saisie"),
     ("Hex reads it directly from the mouse, and macOS no longer allows that", "Hex le lit directement depuis la souris, et macOS ne l'autorise plus"),
     ("Allow…", "Autoriser…"),
-    ("Found VoiceBuddy's configuration on this Mac. Your voice goes to {}.", "Configuration de VoiceBuddy trouvée sur ce Mac. Votre voix est envoyée à {}."),
     ("That file isn't a usable VoiceBuddy configuration", "Ce fichier n'est pas une configuration VoiceBuddy utilisable"),
+    ("Setting up…", "Configuration…"),
+    ("Setting up stopped.", "La configuration s'est interrompue."),
+    ("Could not set up VoiceBuddy", "Impossible de configurer VoiceBuddy"),
+    ("Setting up sends your voice to the speech service while you dictate.", "Une fois configuré, votre voix est envoyée au service de reconnaissance vocale pendant la dictée."),
+    ("Use the configuration already on this Mac, or set up a new one. Your voice goes to {}.", "Utilisez la configuration déjà présente sur ce Mac, ou configurez-en une nouvelle. Votre voix est envoyée à {}."),
+    ("Hex sets it up next", "Hex le configure ensuite"),
 ];
 
 #[cfg(test)]

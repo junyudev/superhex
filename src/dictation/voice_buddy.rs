@@ -40,7 +40,7 @@ fn store_path() -> std::path::PathBuf {
     // Caller tests never read imported credentials, even if their shell has
     // HEX_APPLICATION_SUPPORT_DIR set. Tests install synthetic stores explicitly.
     std::env::temp_dir()
-        .join(format!("hex-mouse-runtime-{}", std::process::id()))
+        .join(format!("hex-voice-buddy-runtime-{}", std::process::id()))
         .join("voice-buddy.json")
 }
 
@@ -97,11 +97,30 @@ pub(crate) fn found() -> Vec<FoundConfig> {
         .unwrap_or_default()
 }
 
+/// Creates this installation's own identity with the service and saves it.
+/// Asking for one is the person's consent to send audio, so nothing here runs
+/// unasked. Blocks; call it off the window's thread.
+pub(crate) fn create_identity() -> Result<Setup, String> {
+    let config = voice_buddy::register(None).map_err(|error| match error {
+        voice_buddy::Failure::Rejected(_) => "The speech service refused to set up an identity",
+        voice_buddy::Failure::Connection(_) => "Could not reach the speech service",
+        voice_buddy::Failure::TimedOut => "The speech service did not answer in time",
+        _ => "Could not set up the speech service",
+    })?;
+    save_imported(config)
+}
+
 /// Failed validation or saving preserves the last usable configuration.
 pub(crate) fn import(path: &Path) -> Result<Setup, String> {
+    let (config, _) = store::read_config(path)?;
+    save_imported(config)
+}
+
+/// Saves `config` as the one in use, adopting its voice options once. A failed
+/// save leaves the last usable configuration and its options alone.
+fn save_imported(config: Config) -> Result<Setup, String> {
     let _write = lock(&STORE_WRITES);
     let previous_backend = current_backend();
-    let (config, _) = store::read_config(path)?;
     let options = config.options();
     let previous = AppSettings::load().map_err(|_| "Could not read settings")?;
     let mut settings = previous.clone();
