@@ -16,9 +16,9 @@ use super::general::value_button;
 use super::icons::{CLOUD, WAVE};
 use crate::app_settings::AppSettings;
 use crate::desktop::file_dialog::{Dialog, Filter, Pending, Target};
-use crate::desktop::i18n::{tr, tr_fill, tr_named};
+use crate::desktop::i18n::{tr, tr_fill};
 use crate::dictation::backend::{
-    ConfigSource, DictationBackend, FailureReason, FoundConfig, MouseVoicePreferences, Setup,
+    DictationBackend, FailureReason, FoundConfig, MouseVoicePreferences, Setup,
 };
 #[cfg(target_os = "macos")]
 use crate::dictation::mouse_voice as host;
@@ -170,9 +170,20 @@ fn poll_import(ui: &mut Ui) -> bool {
             ui.mouse_voice.setup = setup;
             ui.mouse_voice.error = None;
             ui.mouse_voice.check = Check::Idle;
-            ui.update(|settings| settings.dictation_backend = DictationBackend::MouseVoice);
+            // The import filled in the file's voice options on disk.
+            let voice =
+                AppSettings::read().map_or(ui.settings.mouse_voice, |saved| saved.mouse_voice);
+            ui.update(|settings| {
+                settings.dictation_backend = DictationBackend::MouseVoice;
+                settings.mouse_voice = voice;
+            });
         }
-        Err(error) => ui.mouse_voice.error = Some(error),
+        Err(error) => {
+            // The reason names fields, never their values.
+            tracing::warn!(%error, "could not import a MouseVoice configuration");
+            ui.mouse_voice.error =
+                Some(tr("That file isn't a usable MouseVoice configuration").to_owned());
+        }
     }
     true
 }
@@ -346,9 +357,9 @@ fn setup_copy(ui: &Ui) -> String {
         return error.clone();
     }
     let lead = match ui.mouse_voice.found.first() {
-        Some(found) => tr_named(
-            "Found {app}'s configuration on this Mac. Your voice goes to {host}.",
-            &[("app", source_name(found.source)), ("host", &found.host)],
+        Some(found) => tr_fill(
+            "Found MouseVoice's configuration on this Mac. Your voice goes to {}.",
+            &found.host,
         ),
         None => tr("Choose a context.json. Your voice goes to the service it names.").to_owned(),
     };
@@ -361,13 +372,6 @@ fn setup_copy(ui: &Ui) -> String {
         tr("Until then, Hex can't listen.").to_owned()
     };
     format!("{lead} {meanwhile}")
-}
-
-fn source_name(source: ConfigSource) -> &'static str {
-    match source {
-        ConfigSource::MouseVoice => tr("MouseVoice"),
-        ConfigSource::Iris => "Iris",
-    }
 }
 
 fn setup_row(ui: &Ui, p: Paint) -> El {
@@ -413,7 +417,7 @@ fn setup_row(ui: &Ui, p: Paint) -> El {
 }
 
 fn broken_row(ui: &Ui, p: Paint, reason: &str) -> El {
-    let reason = ui.mouse_voice.error.as_deref().unwrap_or(reason);
+    let reason = ui.mouse_voice.error.as_deref().unwrap_or(tr(reason));
     icon_described_row(
         p,
         "mouse-voice",
@@ -659,12 +663,11 @@ pub(super) fn modal(ui: &Ui, p: Paint) -> Option<[El; 2]> {
 }
 
 /// A fixture's configuration, so scenes never read this computer's.
-pub(super) fn fixture(ui: &mut Ui, setup: Setup, found: Option<ConfigSource>) {
+pub(super) fn fixture(ui: &mut Ui, setup: Setup, found: bool) {
     ui.settings.dictation_backend = DictationBackend::MouseVoice;
     ui.mouse_voice.setup = setup;
     ui.mouse_voice.found = found
-        .map(|source| FoundConfig {
-            source,
+        .then(|| FoundConfig {
             path: "/fixture/context.json".into(),
             host: FIXTURE_HOST.into(),
         })
@@ -697,18 +700,18 @@ mod tests {
     #[test]
     fn it_takes_the_choice_and_a_configuration_to_be_in_effect() {
         let mut ui = mac_fixture();
-        fixture(&mut ui, ready(), None);
+        fixture(&mut ui, ready(), false);
         assert!(in_effect(&ui));
         ui.settings.dictation_backend = DictationBackend::Local;
         assert!(!in_effect(&ui));
-        fixture(&mut ui, Setup::Missing, None);
+        fixture(&mut ui, Setup::Missing, false);
         assert!(chosen(&ui) && !in_effect(&ui));
     }
 
     #[test]
     fn removing_the_configuration_takes_a_second_press() {
         let mut ui = mac_fixture();
-        fixture(&mut ui, ready(), None);
+        fixture(&mut ui, ready(), false);
         open(&mut ui);
         forget(&mut ui);
         assert_eq!(ui.mouse_voice.setup, ready());
@@ -721,7 +724,7 @@ mod tests {
     #[test]
     fn setup_says_where_the_voice_goes_and_what_runs_meanwhile() {
         let mut ui = mac_fixture();
-        fixture(&mut ui, Setup::Missing, Some(ConfigSource::MouseVoice));
+        fixture(&mut ui, Setup::Missing, true);
         let copy = setup_copy(&ui);
         assert!(copy.contains(FIXTURE_HOST), "{copy}");
         assert!(copy.contains("Until then"), "{copy}");

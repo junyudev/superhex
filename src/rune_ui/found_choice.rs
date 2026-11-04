@@ -269,15 +269,10 @@ mod tests {
     use super::super::mouse_voice::{FIXTURE_HOST, fixture};
     use super::super::scenes::mac_fixture;
     use super::*;
-    use crate::dictation::backend::ConfigSource;
 
     fn new_mac(found: bool) -> Ui {
         let mut ui = mac_fixture();
-        fixture(
-            &mut ui,
-            Setup::Missing,
-            found.then_some(ConfigSource::MouseVoice),
-        );
+        fixture(&mut ui, Setup::Missing, found);
         ui
     }
 

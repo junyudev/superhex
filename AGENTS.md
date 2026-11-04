@@ -810,8 +810,7 @@ CoreAudio formats, AppleScript details, or event serialization.
 - Import is consent to send audio. Store only validated durable fields in
   `<support>/mouse-voice.json` (0600; folder 0700), through `app_paths` and
   `durable`; imports are bounded and reject symlinks in any path component.
-  Only explicit discovery reads `~/Library/Application Support/MouseVoice/context.json`
-  and `~/Library/Application Support/Iris/wetype.json`. No automatic import,
+  Only explicit discovery reads `~/Library/Application Support/MouseVoice/context.json` No automatic import,
   identity creation, keychain access, or other-app scan. Rejected credentials
   mark setup Broken in memory immediately; the finishing job persists that
   refusal. A successful import clears it. Diagnostics omit service words and

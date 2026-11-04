@@ -1068,7 +1068,6 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("Options", "Opções"),
     ("Your voice goes to {} while you dictate", "Enquanto você dita, sua voz vai para {}"),
     ("Your voice goes to {}", "Sua voz vai para {}"),
-    ("Found {app}'s configuration on this Mac. Your voice goes to {host}.", "Configuração de {app} encontrada neste Mac. Sua voz vai para {host}."),
     ("Choose a context.json. Your voice goes to the service it names.", "Escolha um context.json. Sua voz vai para o serviço indicado nele."),
     ("Until then, Hex uses {}.", "Até lá, o Hex usa {}."),
     ("Until then, Hex can't listen.", "Até lá, o Hex não pode ouvir."),
@@ -1110,6 +1109,8 @@ const TRANSLATIONS: &[(&str, &str)] = &[
     ("This mouse button needs Input Monitoring", "Este botão do mouse precisa do Monitoramento de Entrada"),
     ("Hex reads it directly from the mouse, and macOS no longer allows that", "O Hex o lê diretamente do mouse, e o macOS não permite mais isso"),
     ("Allow…", "Permitir…"),
+    ("Found MouseVoice's configuration on this Mac. Your voice goes to {}.", "Configuração do MouseVoice encontrada neste Mac. Sua voz vai para {}."),
+    ("That file isn't a usable MouseVoice configuration", "Esse arquivo não é uma configuração utilizável do MouseVoice"),
 ];
 
 #[cfg(test)]

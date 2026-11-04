@@ -19,21 +19,25 @@ pub(crate) struct Capture {
 struct Display {
     publisher: Publisher,
     heard: String,
+    /// The service said it is polishing; later updates don't take that back.
+    polishing: bool,
 }
 
 impl Display {
     fn show(&self, phase: Phase) {
         self.publisher.show_line(Line {
+            // The plate keeps the newest of its stable words in view.
             partial: Partial {
-                stable: String::new(),
-                tentative: self.heard.clone(),
+                stable: self.heard.clone(),
+                tentative: String::new(),
             },
             phase,
         });
     }
     fn update(&mut self, update: &Update, finishing: bool) {
         self.heard.clone_from(&update.text);
-        self.show(if update.polishing {
+        self.polishing |= update.polishing;
+        self.show(if self.polishing {
             Phase::Polishing
         } else if finishing {
             Phase::Finishing
@@ -54,6 +58,7 @@ impl Capture {
         let display = Display {
             publisher: Publisher::new(),
             heard: String::new(),
+            polishing: false,
         };
         display.show(Phase::Hearing);
         Self {
@@ -135,6 +140,7 @@ impl Pending {
         let display = Display {
             publisher: Publisher::new(),
             heard: String::new(),
+            polishing: false,
         };
         display.show(Phase::Finishing);
         Some(Self {
@@ -291,7 +297,7 @@ mod session_tests {
         let mut capture = Capture::new(session, config, Options::default());
         capture.feed(&[0.1; 320]);
         capture.report();
-        assert_eq!(live_text::current().unwrap().tentative, "heard");
+        assert_eq!(live_text::current().unwrap().stable, "heard");
         let pending = capture.finish(&[0.1; 640]);
         assert!(
             live_text::current().is_some(),
@@ -358,5 +364,27 @@ mod session_tests {
             pending.session.is_none(),
             "the job must transcribe the exact whole clip instead"
         );
+    }
+
+    #[test]
+    fn polishing_is_not_taken_back_by_a_later_update() {
+        let phases = Arc::new(Mutex::new(Vec::new()));
+        let log = phases.clone();
+        live_text::watch(move |line| log.lock().unwrap().push(line.map(|line| line.phase)));
+        let update = |polishing| Update {
+            text: "heard".into(),
+            polishing,
+        };
+        let session = Session::scripted(vec![update(true), update(false)], Ok("final".into()));
+        let capture = Capture::new(
+            session,
+            super::super::tests::configuration(),
+            Options::default(),
+        );
+        let pending = capture.finish(&[]);
+        let cancel = pending.canceller();
+        pending.wait(&[], &cancel, || false).unwrap();
+        let phases = phases.lock().unwrap();
+        assert_eq!(phases[phases.len() - 2], Some(Phase::Polishing));
     }
 }

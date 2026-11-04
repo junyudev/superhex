@@ -63,18 +63,10 @@ pub enum Setup {
     Broken { reason: String },
 }
 
-/// Which app a configuration found on this computer belongs to.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ConfigSource {
-    MouseVoice,
-    Iris,
-}
-
-/// A valid configuration another of the person's apps saved. Offering it reads
-/// that app's file; only the person's choice copies it.
+/// A valid configuration the MouseVoice app saved. Offering it reads that app's
+/// file; only the person's choice copies it.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FoundConfig {
-    pub source: ConfigSource,
     pub path: std::path::PathBuf,
     pub host: String,
 }

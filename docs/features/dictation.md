@@ -829,7 +829,7 @@ Explicit configuration import              // dictate.mouse-voice-setup
 ├── Validate bounded regular file, no symlinks -> durable fields only
 │   ├── <support>/mouse-voice.json: 0600; parent: 0700
 │   └── Copy voice options into settings once; leave source alone
-├── Explicit discovery only -> MouseVoice/context.json or Iris/wetype.json
+├── Explicit discovery only -> MouseVoice/context.json
 │   └── Never copy automatically, scan other apps, create an identity, or use Keychain
 └── Service Rejected -> Broken; import another valid configuration to recover
 ```

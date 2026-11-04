@@ -455,7 +455,7 @@ mod tests {
         let released = Mutex::new(released);
         live_text::watch(move |line| {
             if line.is_some_and(|line| {
-                line.phase == Phase::Polishing && line.partial.tentative == "older"
+                line.phase == Phase::Polishing && line.partial.stable == "older"
             }) {
                 entered.send(()).unwrap();
                 released.lock().unwrap().recv().unwrap();

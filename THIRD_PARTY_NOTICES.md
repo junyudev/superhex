@@ -4,6 +4,12 @@ Hex's own source is covered by the root `LICENSE`. The following notices cover
 vendored icon assets and the speech models Hex downloads under their own
 licences. Dependencies retain their respective upstream licenses.
 
+## Opus
+
+The macOS build links libopus statically for the MouseVoice speech client
+(`crates/mouse-voice`). Its three-clause BSD license and copyright notices are
+in [`crates/mouse-voice/OPUS-COPYING`](crates/mouse-voice/OPUS-COPYING).
+
 ## Parakeet Ultra
 
 Parakeet Ultra by Moondream, based on NVIDIA Parakeet TDT 0.6B v3. GGUF

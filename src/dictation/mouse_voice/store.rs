@@ -7,10 +7,10 @@ use std::sync::Arc;
 
 use mouse_voice::Config;
 
-use super::super::backend::{ConfigSource, FoundConfig, Setup};
+use super::super::backend::{FoundConfig, Setup};
 
 const MAX_CONFIG_BYTES: u64 = 1024 * 1024;
-const REJECTED: &str = "The speech service refused this configuration";
+const REJECTED: &str = "MouseVoice refused this configuration";
 
 #[derive(Clone)]
 pub(super) struct Store {
@@ -163,24 +163,12 @@ pub(super) fn read_config(path: &Path) -> Result<(Config, bool), String> {
 }
 
 pub(super) fn found_in(home: &Path) -> Vec<FoundConfig> {
-    let support = home.join("Library/Application Support");
-    [
-        (
-            ConfigSource::MouseVoice,
-            support.join("MouseVoice/context.json"),
-        ),
-        (ConfigSource::Iris, support.join("Iris/wetype.json")),
-    ]
-    .into_iter()
-    .filter_map(|(source, path)| {
-        let (config, _) = read_config(&path).ok()?;
-        Some(FoundConfig {
-            source,
-            path,
-            host: config.host().into(),
-        })
-    })
-    .collect()
+    let path = home.join("Library/Application Support/MouseVoice/context.json");
+    let Ok((config, _)) = read_config(&path) else {
+        return Vec::new();
+    };
+    let host = config.host().into();
+    vec![FoundConfig { path, host }]
 }
 
 #[cfg(test)]

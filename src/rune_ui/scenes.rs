@@ -275,24 +275,20 @@ pub(super) const SCENES: &[Scene] = &[
     // file, refused, and ready, with its options; and the local model chosen.
     ("mac-mouse-voice-found", |ui| {
         *ui = mac_fixture();
-        mouse_voice::fixture(
-            ui,
-            Setup::Missing,
-            Some(crate::dictation::backend::ConfigSource::MouseVoice),
-        );
+        mouse_voice::fixture(ui, Setup::Missing, true);
     }),
     ("mac-mouse-voice-missing", |ui| {
         *ui = mac_fixture();
-        mouse_voice::fixture(ui, Setup::Missing, None);
+        mouse_voice::fixture(ui, Setup::Missing, false);
     }),
     ("mac-mouse-voice-broken", |ui| {
         *ui = mac_fixture();
         mouse_voice::fixture(
             ui,
             Setup::Broken {
-                reason: "The service refused this configuration. Import another.".into(),
+                reason: "MouseVoice refused this configuration".into(),
             },
-            None,
+            false,
         );
     }),
     ("mac-mouse-voice-options", |ui| {
@@ -707,11 +703,7 @@ pub(super) const SCENES: &[Scene] = &[
     // The speech step with MouseVoice's configuration found on this Mac.
     ("mac-onboarding-mouse-voice-found", |ui| {
         *ui = mac_fixture();
-        mouse_voice::fixture(
-            ui,
-            Setup::Missing,
-            Some(crate::dictation::backend::ConfigSource::MouseVoice),
-        );
+        mouse_voice::fixture(ui, Setup::Missing, true);
         onboarding::mac_fixture(ui, onboarding::MacStep::Setup);
         onboarding_kit::live::fixture(ui, Page::Download);
     }),
@@ -785,7 +777,7 @@ fn mac_first_run(ui: &mut Ui, step: onboarding::MacStep, page: Page) {
     // A new Mac starts at the speech step; the pages after it have MouseVoice
     // set up.
     if page == Page::Download {
-        mouse_voice::fixture(ui, Setup::Missing, None);
+        mouse_voice::fixture(ui, Setup::Missing, false);
     }
     onboarding::mac_fixture(ui, step);
     onboarding_kit::live::fixture(ui, page);
@@ -813,7 +805,7 @@ pub(super) fn mac_fixture() -> Ui {
         Setup::Ready {
             host: mouse_voice::FIXTURE_HOST.into(),
         },
-        None,
+        false,
     );
     ui.settings.dictation_hotkey = AppSettings::default().dictation_hotkey;
     ui.settings.paste_with_shift = false;
