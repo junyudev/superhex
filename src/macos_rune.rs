@@ -56,6 +56,8 @@ use crate::transcription::models::{
 };
 use crate::transcription::preparation::TranscriptionPreparation;
 
+#[path = "dictation/backend_runtime.rs"]
+mod backend_runtime;
 mod control;
 pub(crate) mod status_item;
 
@@ -693,11 +695,19 @@ impl Runtime {
             Request::UseInstalledSelection(selection) => {
                 self.manual_choice();
                 // `hex model use` replies "already in use" on the same test.
-                if !same_model_and_language(&selection, &self.settings.transcription) {
+                if !same_model_and_language(&selection, &self.settings.transcription)
+                    || crate::dictation::mouse_voice::chosen_backend()
+                        != crate::dictation::backend::DictationBackend::Local
+                {
                     self.preparation.start(selection, true);
                 }
             }
             Request::InputSourceChanged(source) => {
+                if crate::dictation::mouse_voice::current_backend()
+                    != crate::dictation::backend::DictationBackend::Local
+                {
+                    return;
+                }
                 if self
                     .keyboard_switcher
                     .source_changed(source, Instant::now())
@@ -720,6 +730,7 @@ impl Runtime {
     fn reload_settings(&mut self) {
         match AppSettings::load() {
             Ok(settings) => {
+                self.reconcile_backend(&settings);
                 if self
                     .keyboard_switcher
                     .configure(settings.keyboard_model_switching.clone(), Instant::now())
@@ -755,6 +766,12 @@ impl Runtime {
     }
 
     fn tick_at(&mut self, now: Instant) {
+        if crate::dictation::mouse_voice::current_backend()
+            != crate::dictation::backend::DictationBackend::Local
+        {
+            self.keyboard_switcher.manual_choice();
+            self.supersede_automatic();
+        }
         if let Some(choice) = self.keyboard_switcher.take_due(now) {
             let selection = TranscriptionSelection {
                 language: choice.language,
@@ -1094,6 +1111,7 @@ impl Pump {
         match action {
             StatusItemAction::OpenSettings => show(&self.window, Destination::Settings),
             StatusItemAction::OpenModels => show(&self.window, Destination::Models),
+            StatusItemAction::SelectMouseVoice => self.select_mouse_voice(),
             StatusItemAction::SelectModel(model) => {
                 let _ = self.runtime.send(Request::SelectInstalledModel(model));
                 self.model_menu_at = Instant::now();

@@ -11,12 +11,13 @@ use md5::Md5;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, VecDeque},
-    net::{IpAddr, SocketAddr},
+    net::{SocketAddr, ToSocketAddrs},
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::{
     net::TcpStream,
+    sync::oneshot,
     time::{Instant, timeout},
 };
 use tokio_websockets::{
@@ -31,17 +32,20 @@ const MAX_PENDING: usize = 128;
 const MAX_PENDING_BYTES: usize = 16 * 1024 * 1024;
 type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
+#[cfg(test)]
+type Lookup = Box<dyn FnOnce() -> Result<Vec<SocketAddr>, Failure> + Send>;
+
 pub(crate) struct Endpoint {
     pub url: String,
     #[cfg(test)]
-    pub dns: Option<SocketAddr>,
+    pub lookup: Option<Lookup>,
 }
 impl From<String> for Endpoint {
     fn from(url: String) -> Self {
         Self {
             url,
             #[cfg(test)]
-            dns: None,
+            lookup: None,
         }
     }
 }
@@ -78,11 +82,11 @@ enum Response {
 impl Network {
     pub async fn connect(config: Arc<Config>) -> Result<Self, Failure> {
         let endpoint = format!("wss://{}{}", config.host(), config.text("websocket_path"));
-        Self::connect_to(config, &endpoint.into()).await
+        Self::connect_to(config, endpoint.into()).await
     }
     pub(crate) async fn connect_to(
         config: Arc<Config>,
-        endpoint: &Endpoint,
+        endpoint: Endpoint,
     ) -> Result<Self, Failure> {
         let socket = timeout(CONNECT_TIMEOUT, open(endpoint))
             .await
@@ -362,7 +366,7 @@ impl Network {
     }
 }
 
-async fn open(endpoint: &Endpoint) -> Result<Socket, Failure> {
+async fn open(endpoint: Endpoint) -> Result<Socket, Failure> {
     let url = url::Url::parse(&endpoint.url).map_err(|_| connection("invalid endpoint"))?;
     let host = url
         .host_str()
@@ -371,27 +375,19 @@ async fn open(endpoint: &Endpoint) -> Result<Socket, Failure> {
     let port = url
         .port_or_known_default()
         .ok_or_else(|| connection("invalid endpoint"))?;
-    let ips = if let Ok(ip) = host.parse::<IpAddr>() {
-        vec![ip]
-    } else {
-        // No getaddrinfo/spawn_blocking: dropping this future and its current-thread
-        // runtime also stops all DNS work, even on a broken network.
-        let resolver = resolver(endpoint)?;
-        resolver
-            .lookup_ip(host)
-            .await
-            .map_err(|_| connection("DNS failed"))?
-            .iter()
-            .collect()
+    let name = host.to_owned();
+    let lookup = move || {
+        (name.as_str(), port)
+            .to_socket_addrs()
+            .map(|addresses| addresses.collect())
+            .map_err(|_| connection("DNS failed"))
     };
+    #[cfg(test)]
+    let lookup = endpoint.lookup.unwrap_or_else(|| Box::new(lookup));
+    let addresses = resolve(lookup).await?;
     let mut stream = None;
-    for ip in ips {
-        if let Ok(Ok(tcp)) = timeout(
-            Duration::from_secs(2),
-            TcpStream::connect(SocketAddr::new(ip, port)),
-        )
-        .await
-        {
+    for address in addresses {
+        if let Ok(Ok(tcp)) = timeout(Duration::from_secs(2), TcpStream::connect(address)).await {
             stream = Some(tcp);
             break;
         }
@@ -400,7 +396,7 @@ async fn open(endpoint: &Endpoint) -> Result<Socket, Failure> {
     tcp.set_nodelay(true)
         .map_err(|_| connection("socket setup failed"))?;
     let connector = if url.scheme() == "wss" {
-        tls_connector()?
+        Connector::new().map_err(|_| connection("TLS setup failed"))?
     } else {
         Connector::Plain
     };
@@ -432,46 +428,19 @@ async fn open(endpoint: &Endpoint) -> Result<Socket, Failure> {
     }
     Ok(socket)
 }
-fn resolver(_endpoint: &Endpoint) -> Result<hickory_resolver::TokioResolver, Failure> {
-    #[cfg(test)]
-    if let Some(address) = _endpoint.dns {
-        use hickory_resolver::{
-            config::{ConnectionConfig, NameServerConfig, ResolverConfig},
-            net::runtime::TokioRuntimeProvider,
-        };
-        let mut dns_connection = ConnectionConfig::udp();
-        dns_connection.port = address.port();
-        let servers = vec![NameServerConfig::new(
-            address.ip(),
-            true,
-            vec![dns_connection],
-        )];
-        return hickory_resolver::Resolver::builder_with_config(
-            ResolverConfig::from_name_servers(servers),
-            TokioRuntimeProvider::default(),
-        )
-        .build()
-        .map_err(|_| connection("DNS setup failed"));
-    }
-    hickory_resolver::Resolver::builder_tokio()
-        .map_err(|_| connection("DNS setup failed"))?
-        .build()
-        .map_err(|_| connection("DNS setup failed"))
-}
-fn tls_connector() -> Result<Connector, Failure> {
-    let mut roots = rustls::RootCertStore::empty();
-    roots.add_parsable_certificates(rustls_native_certs::load_native_certs().certs);
-    if roots.is_empty() {
-        return Err(connection("TLS trust store unavailable"));
-    }
-    let tls = rustls::ClientConfig::builder_with_provider(Arc::new(
-        rustls::crypto::ring::default_provider(),
-    ))
-    .with_safe_default_protocol_versions()
-    .map_err(|_| connection("TLS setup failed"))?
-    .with_root_certificates(roots)
-    .with_no_client_auth();
-    Ok(Connector::Rustls(Arc::new(tls).into()))
+/// Keep system DNS outside Tokio's blocking pool: cancellation may abandon a
+/// lookup without delaying runtime shutdown. The lookup captures no identity.
+async fn resolve(
+    lookup: impl FnOnce() -> Result<Vec<SocketAddr>, Failure> + Send + 'static,
+) -> Result<Vec<SocketAddr>, Failure> {
+    let (reply, result) = oneshot::channel();
+    std::thread::Builder::new()
+        .name("mouse-voice-dns".into())
+        .spawn(move || {
+            let _ = reply.send(lookup());
+        })
+        .map_err(|_| connection("DNS worker unavailable"))?;
+    result.await.map_err(|_| connection("DNS worker stopped"))?
 }
 fn encode_request(
     cfg: &Config,

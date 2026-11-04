@@ -1078,6 +1078,10 @@ pub fn apply_all(
             .unwrap_or_else(|| candidate.transcription.model.as_str().to_owned());
         let language = text("transcription.language", language)?;
         candidate.transcription = super::model_selection(&candidate, &model, language.as_deref())?;
+        #[cfg(target_os = "macos")]
+        if !values.contains_key("dictation_backend") {
+            candidate.dictation_backend = crate::dictation::backend::DictationBackend::Local;
+        }
     }
     let mut pending = Vec::new();
     for (name, value) in values {

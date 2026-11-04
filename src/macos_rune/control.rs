@@ -66,6 +66,13 @@ impl Pump {
             Err(command) => command,
         };
         match command {
+            ControlCommand::DictationRetry => {
+                Some(if crate::dictation::mouse_voice::retry_newest() {
+                    ControlReply::done("Retrying the newest failed dictation")
+                } else {
+                    ControlReply::unchanged("No failed dictation is held")
+                })
+            }
             ControlCommand::Status => {
                 let meeting = meeting_report(&self.meeting_state);
                 let window = self.window.clone();
@@ -750,6 +757,7 @@ fn wait_for_model(
     let name = crate::transcription::models::definition(selection.model).name;
     let matches = |settings: &AppSettings| {
         super::same_model_and_language(&settings.transcription, &selection)
+            && settings.dictation_backend == crate::dictation::backend::DictationBackend::Local
     };
     if load().is_ok_and(|settings| matches(&settings)) {
         return Ok(ControlReply::unchanged(format!(
@@ -888,6 +896,7 @@ fn status(
         },
         capture,
         meeting,
+        dictation: control::dictation_report(settings),
         model: ModelReport {
             id: selection.model.as_str().into(),
             name: definition.name.into(),

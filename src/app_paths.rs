@@ -90,6 +90,12 @@ pub fn local_api_discovery_file() -> Result<PathBuf> {
     Ok(support_dir()?.join("local-api.json"))
 }
 
+#[cfg(target_os = "macos")]
+#[cfg_attr(test, allow(dead_code))] // Caller tests use an isolated synthetic store.
+pub(crate) fn mouse_voice_file() -> Result<PathBuf> {
+    Ok(support_dir()?.join("mouse-voice.json"))
+}
+
 pub fn personal_commands_status_file() -> Result<PathBuf> {
     Ok(support_dir()?.join("personal-commands.json"))
 }

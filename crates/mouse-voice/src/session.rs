@@ -74,8 +74,8 @@ impl Control {
     }
 }
 
-/// Cancels its session from any thread, including during connect or final text.
-/// Dropping a cancellation handle also cancels; keep it until the work finishes.
+/// Cancels linked work from any thread, including during connect or final text.
+/// Clones share explicit cancellation state; dropping a handle does not cancel.
 #[derive(Clone)]
 pub struct Canceller {
     control: Arc<Control>,
@@ -87,7 +87,7 @@ impl Default for Canceller {
 }
 impl Canceller {
     /// Creates an independent cancellation handle for whole-clip transcription.
-    /// Clones share its state; cancelling or dropping any clone cancels linked work.
+    /// Clones share its state; call `cancel()` to cancel linked work.
     pub fn new() -> Self {
         Self {
             control: Arc::new(Control::new(None)),
@@ -95,11 +95,6 @@ impl Canceller {
     }
     pub fn cancel(&self) {
         self.control.cancel();
-    }
-}
-impl Drop for Canceller {
-    fn drop(&mut self) {
-        self.cancel();
     }
 }
 
@@ -447,7 +442,7 @@ async fn run(
         return Err(Failure::Internal("invalid session deadline".into()));
     }
     let mut network = match endpoint {
-        Some(url) => Network::connect_to(config.clone(), &url).await?,
+        Some(endpoint) => Network::connect_to(config.clone(), endpoint).await?,
         None => Network::connect(config.clone()).await?,
     };
     network.handshake().await?;

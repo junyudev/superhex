@@ -32,6 +32,7 @@ hex
 ├── dictation start|stop|toggle
 │   ├── stop --print               print the transcript instead of pasting it (below)
 │   └── start|toggle --raw         paste the transcript as heard, skipping the Output steps
+├── dictation retry                macOS: retry the newest held service failure
 ├── paste-last                     paste the last dictation (Option-Shift-V); refused while recording
 ├── meetings
 │   ├── record [--title T]         as the menu bar's Record Meeting; needs meetings.enabled
@@ -79,7 +80,14 @@ hex
 ```
 
 `dictation start` locks the recording, as a double tap would: `dictation stop`
-or the next shortcut press finishes it, and `dictation cancel` discards it.
+or the next shortcut press finishes it, and `dictation retry` (macOS) requests a new ordered job for the newest failed
+MouseVoice dictation still held in memory, pasting at the current focus. It
+accepts neither `--raw` nor `--print`; no held failure answers unchanged. The
+list holds at most eight entries for ten minutes (and 128 MiB total audio),
+never on disk or in History. A retry can fail again; `hex status` reports setup.
+Other platforms answer `unsupported`.
+
+`dictation cancel` discards it.
 A CLI start has no press to judge, so its recording counts as
 intentional at once: the start tone plays once the microphone is open, and the
 recording behavior (mute or pause media, idle-sleep prevention) and the live
@@ -250,6 +258,7 @@ Requests are flat objects tagged by `command` (kebab-case):
 
 ```ts
 status | quit {force} | restart {force}
+dictation-retry                                  macOS; newest held service failure
 dictation {action, print?}                       action: start | stop | toggle | cancel;
                                                  print (stop only) answers `transcript`
 paste-last
@@ -312,6 +321,7 @@ recording", "The window isn't open"). Setting `kind` is one of `bool`,
   "meeting": {"state": "recording", "title": "Design sync", "elapsed_seconds": 723},
   "model": {"id": "parakeet_v3", "name": "…", "language": "en", "installed": true,
             "preparing": null, "downloaded_bytes": 0, "error": null},
+  "dictation": {"backend": "mouse_voice", "mouse_voice_setup": "ready"},
   "features": {"meetings": true, "release_microphone_while_idle": false,
                "history_retention": "week"},
   "permissions": {"ready": true, "microphone": "ready", "accessibility": "ready",
@@ -333,6 +343,26 @@ permissions.*       ready | needs-request | needs-settings | needs-restart
 window.pane         settings | modes | history | meetings | …
 update              current | checking | available | unavailable
 ```
+
+`dictation.backend` reports the backend in effect (`local` or `mouse_voice`),
+not just the saved choice. `dictation.mouse_voice_setup` is `missing`, `ready`,
+`broken`, or `unsupported` off macOS; it exposes no credentials. `model` still
+reports the independent local selection. With usable MouseVoice selected,
+`permissions.transcription_model` means the speech step is ready even without a
+local model. These fields and `dictation-retry` are additive within control
+version 4: older status replies deserialize with Local/unsupported defaults;
+existing request and response shapes remain compatible. The retry command,
+flag restrictions and older-status defaults have unit checks in
+`control/cli/dictation.rs` and `control/cli.rs`; these passed on macOS ARM64
+with Rust 1.99.1 on November 4, 2026. No native CLI-to-listener/paste run was
+observed for the MouseVoice backend.
+
+The settings keys `dictation_backend` (`mouse_voice` or `local`) and
+`mouse_voice.polish`, `.traditional`, `.paragraph`, `.reduce_redundancy` control
+macOS dictation. Choosing MouseVoice never imports configuration or creates an
+identity. The person must import a usable configuration before audio is sent;
+otherwise Hex uses Local. `model use` and choosing a local model select Local.
+Meetings, Annotate, host audio, benchmarks and retranscription remain local.
 
 `memory_footprint_bytes` is the physical footprint Activity Monitor shows.
 `labs` lists the [Labs](features/labs.md) features turned on; older Hex omits it.

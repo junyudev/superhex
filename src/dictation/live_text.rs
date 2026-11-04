@@ -46,6 +46,7 @@ pub(crate) struct Line {
 struct Board {
     /// The publisher whose text is current, or 0 when none is.
     owner: u64,
+    latest: u64,
     /// The current publisher's latest line.
     line: Option<Line>,
     watchers: Vec<Watcher>,
@@ -53,6 +54,7 @@ struct Board {
 
 static BOARD: Mutex<Board> = Mutex::new(Board {
     owner: 0,
+    latest: 0,
     line: None,
     watchers: Vec::new(),
 });
@@ -120,6 +122,15 @@ impl Publisher {
     pub(crate) fn show_line(&self, line: Line) {
         let watchers = {
             let mut board = board();
+            let finishing = matches!(line.phase, Phase::Finishing | Phase::Polishing);
+            let recording = board
+                .line
+                .as_ref()
+                .is_some_and(|line| matches!(line.phase, Phase::Hearing | Phase::Offline));
+            if board.latest > self.id || (finishing && recording && board.owner != self.id) {
+                return;
+            }
+            board.latest = self.id;
             board.owner = self.id;
             board.line = Some(line.clone());
             board.watchers.clone()
@@ -241,5 +252,31 @@ mod tests {
         let seen = watched();
         drop(Publisher::new());
         assert!(seen.lock().unwrap().is_empty());
+    }
+    #[test]
+    fn finishing_jobs_never_replace_a_recording_or_return_after_a_newer_line_ended() {
+        let _turn = turn();
+        let older = Publisher::new();
+        older.show(&said("older"));
+        let newer = Publisher::new();
+        newer.show(&said("recording"));
+        older.show_line(Line {
+            partial: said("old final"),
+            phase: Phase::Polishing,
+        });
+        assert_eq!(current().unwrap().stable, "recording");
+        let retry = Publisher::new();
+        retry.show_line(Line {
+            partial: said("retry"),
+            phase: Phase::Finishing,
+        });
+        assert_eq!(current().unwrap().stable, "recording");
+        drop(retry);
+        drop(newer);
+        older.show_line(Line {
+            partial: said("old final"),
+            phase: Phase::Finishing,
+        });
+        assert!(current().is_none());
     }
 }

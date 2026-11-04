@@ -86,10 +86,7 @@ fn run() -> Result<(), ()> {
         if args.iter().any(|a| a == "--cancel") {
             cancel.cancel();
         }
-        let result = pending.wait(&mut observe);
-        // A handle's drop cancels any remaining work after result delivery.
-        drop(cancel);
-        result
+        pending.wait(&mut observe)
     };
     println!(
         "audio_ms={} first_partial_ms={} partial_updates={} polishing={} release_to_final_ms={} total_ms={}",

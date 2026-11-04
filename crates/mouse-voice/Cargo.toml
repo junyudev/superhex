@@ -27,14 +27,8 @@ opus = "0.4"
 crossbeam-queue = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 tokio = { version = "1", features = ["rt", "net", "time", "sync", "macros"] }
-tokio-websockets = { version = "0.13.3", features = ["client", "ring", "getrandom", "rustls-bring-your-own-connector"] }
-# Independent server implementation for offline tests (-p on an excluded crate
-# cannot resolve dev-dependencies). The runtime never calls this library.
-tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
-hickory-resolver = "0.26.3"
+tokio-websockets = { version = "0.13.3", features = ["client", "server", "sha1_smol", "getrandom", "native-tls"] }
 tracing = "0.1"
-rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
-rustls-native-certs = "0.8"
 
 # Excluded workspace packages cannot have dev-dependencies when tested with -p.
 hound = { version = "3.5", optional = true }

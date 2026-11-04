@@ -1,57 +1,220 @@
-//! MouseVoice as macOS dictation's backend: the saved configuration, the
-//! choice of backend in effect, and the dictations that failed.
+//! MouseVoice configuration, capture sessions and failed dictations on macOS.
+mod capture;
+mod failed;
+mod store;
 
 use std::path::Path;
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+
+use mouse_voice::{Config, Options};
 
 use super::backend::{
-    DictationBackend, FailedAction, FailedDictation, FailureReason, FoundConfig, Setup,
+    DictationBackend, FailedAction, FailedDictation, FailureReason, FoundConfig,
+    MouseVoicePreferences, Setup,
 };
 use crate::app_settings::AppSettings;
 
-/// The backend a dictation uses now: MouseVoice only when it is chosen and a
-/// usable configuration is saved. A saved configuration is the person's
-/// consent that audio leaves this computer, so nothing here ever saves one
-/// unasked.
-pub(crate) fn effective_backend(_settings: &AppSettings) -> DictationBackend {
+#[cfg(test)]
+pub(crate) use capture::retry_once;
+pub(crate) use capture::{Capture, Pending};
+pub(crate) use failed::{Retry, RetryClip};
+pub(crate) fn failure_reason(failure: &mouse_voice::Failure) -> FailureReason {
+    reason(failure)
+}
+
+fn lock<T>(value: &Mutex<T>) -> MutexGuard<'_, T> {
+    value.lock().unwrap_or_else(|error| error.into_inner())
+}
+
+fn store() -> &'static Mutex<store::Store> {
+    static STORE: OnceLock<Mutex<store::Store>> = OnceLock::new();
+    STORE.get_or_init(|| Mutex::new(store::Store::load(store_path())))
+}
+
+// Serializes durable changes without holding the cache lock the audio owner
+// reads. A slow fsync must never stall microphone capture.
+static STORE_WRITES: Mutex<()> = Mutex::new(());
+
+#[cfg(test)]
+fn store_path() -> std::path::PathBuf {
+    // Caller tests never read imported credentials, even if their shell has
+    // HEX_APPLICATION_SUPPORT_DIR set. Tests install synthetic stores explicitly.
+    std::env::temp_dir()
+        .join(format!("hex-mouse-runtime-{}", std::process::id()))
+        .join("mouse-voice.json")
+}
+
+#[cfg(not(test))]
+fn store_path() -> std::path::PathBuf {
+    crate::app_paths::mouse_voice_file().unwrap_or_default()
+}
+
+#[derive(Clone, Copy, Default)]
+struct Preferences {
+    backend: DictationBackend,
+    voice: MouseVoicePreferences,
+}
+
+fn preferences() -> &'static Mutex<Preferences> {
+    static PREFERENCES: OnceLock<Mutex<Preferences>> = OnceLock::new();
+    PREFERENCES.get_or_init(Default::default)
+}
+
+pub(crate) fn configure(settings: &AppSettings) {
+    *lock(preferences()) = Preferences {
+        backend: settings.dictation_backend,
+        voice: settings.mouse_voice,
+    };
+}
+
+/// A saved, usable configuration is the person's consent to send audio.
+pub(crate) fn effective_backend(settings: &AppSettings) -> DictationBackend {
+    effective(settings.dictation_backend, &setup())
+}
+
+fn effective(chosen: DictationBackend, setup: &Setup) -> DictationBackend {
+    if chosen == DictationBackend::MouseVoice && matches!(setup, Setup::Ready { .. }) {
+        return DictationBackend::MouseVoice;
+    }
     DictationBackend::Local
 }
 
-/// The saved configuration's state, cheap enough to read from the window.
+pub(crate) fn current_backend() -> DictationBackend {
+    effective(lock(preferences()).backend, &setup())
+}
+
+pub(crate) fn chosen_backend() -> DictationBackend {
+    lock(preferences()).backend
+}
+
 pub(crate) fn setup() -> Setup {
-    Setup::Missing
+    lock(store()).setup.clone()
 }
 
-/// Valid configurations the person's other apps saved. Reads only MouseVoice's
-/// and Iris's own files, and only when setup asks.
 pub(crate) fn found() -> Vec<FoundConfig> {
-    Vec::new()
+    crate::app_paths::home_dir()
+        .map(|home| store::found_in(&home))
+        .unwrap_or_default()
 }
 
-/// Validates the file at `path` and saves a private copy, leaving the original
-/// alone. A failed import leaves what was saved.
-pub(crate) fn import(_path: &Path) -> Result<Setup, String> {
-    Err("not implemented".into())
+/// Failed validation or saving preserves the last usable configuration.
+pub(crate) fn import(path: &Path) -> Result<Setup, String> {
+    let _write = lock(&STORE_WRITES);
+    let previous_backend = current_backend();
+    let (config, _) = store::read_config(path)?;
+    let options = config.options();
+    let previous = AppSettings::load().map_err(|_| "Could not read settings")?;
+    let mut settings = previous.clone();
+    settings.mouse_voice = MouseVoicePreferences {
+        polish: options.polish,
+        traditional: options.traditional,
+        paragraph: options.paragraph,
+        reduce_redundancy: options.reduce_redundancy,
+    };
+    settings
+        .save()
+        .map_err(|_| "Could not save voice options")?;
+    let mut candidate = lock(store()).clone();
+    if let Err(error) = candidate.import_config(config) {
+        if previous.save().is_err() {
+            tracing::warn!("could not restore voice options after a failed import");
+        }
+        return Err(error);
+    }
+    *lock(store()) = candidate;
+    if previous_backend == DictationBackend::Local
+        && current_backend() == DictationBackend::MouseVoice
+        && let Some(runtime) = crate::macos_rune::runtime()
+    {
+        let _ = runtime.send(crate::macos_rune::Request::CancelModel);
+    }
+    Ok(setup())
 }
 
-/// Forgets the saved configuration.
 pub(crate) fn forget() -> Result<(), String> {
+    let _write = lock(&STORE_WRITES);
+    let mut candidate = lock(store()).clone();
+    candidate.forget()?;
+    *lock(store()) = candidate;
     Ok(())
 }
 
-/// Connects and completes the key exchange, sending no audio. Blocks; call it
-/// off the window's thread.
 pub(crate) fn check_connection() -> Result<(), FailureReason> {
-    Err(FailureReason::NotSetUp)
+    let config = config().ok_or(FailureReason::NotSetUp)?;
+    mouse_voice::check(&config).map_err(|error| {
+        reject(&config, &error);
+        persist_rejection(&config, &error);
+        reason(&error)
+    })
 }
 
-/// The failed dictations still held, oldest first.
 pub(crate) fn failed() -> Vec<FailedDictation> {
-    Vec::new()
+    failed::list()
+}
+pub(crate) fn watch_failed(watcher: impl Fn(&[FailedDictation]) + Send + Sync + 'static) {
+    failed::watch(watcher);
+}
+pub(crate) fn act_on_failed(id: u64, action: FailedAction) {
+    failed::act(id, action);
+}
+pub(crate) fn retry_newest() -> bool {
+    failed::retry_newest()
+}
+pub(crate) fn take_retry(ready: bool) -> Option<Retry> {
+    failed::take_retry(ready)
+}
+pub(crate) fn hold(clip: RetryClip, reason: FailureReason, heard: String) {
+    failed::hold(clip, reason, heard);
+}
+pub(crate) fn clear_failed() {
+    failed::clear();
 }
 
-/// Calls `watcher` with the list on each change, from any thread; it must hand
-/// the list to its own thread and never wait.
-pub(crate) fn watch_failed(_watcher: impl Fn(&[FailedDictation]) + Send + Sync + 'static) {}
+fn config() -> Option<Arc<Config>> {
+    lock(store()).usable()
+}
+fn options(config: &Config) -> Options {
+    let voice = lock(preferences()).voice;
+    Options {
+        polish: voice.polish,
+        traditional: voice.traditional,
+        paragraph: voice.paragraph,
+        reduce_redundancy: voice.reduce_redundancy,
+        ..config.options()
+    }
+}
+fn reject(config: &Arc<Config>, failure: &mouse_voice::Failure) {
+    if matches!(failure, mouse_voice::Failure::Rejected(_)) {
+        lock(store()).reject(config);
+    }
+}
+fn persist_rejection(config: &Arc<Config>, failure: &mouse_voice::Failure) {
+    if matches!(failure, mouse_voice::Failure::Rejected(_)) {
+        let _write = lock(&STORE_WRITES);
+        let snapshot = lock(store()).clone();
+        snapshot.persist_rejection(config);
+    }
+}
+fn reason(failure: &mouse_voice::Failure) -> FailureReason {
+    match failure {
+        mouse_voice::Failure::Connection(_) => FailureReason::Connection,
+        mouse_voice::Failure::TimedOut => FailureReason::TimedOut,
+        mouse_voice::Failure::Rejected(_) => FailureReason::Rejected,
+        mouse_voice::Failure::Service(_) | mouse_voice::Failure::Internal(_) => {
+            FailureReason::Service
+        }
+    }
+}
 
-/// Carries out the person's choice for the failed dictation `id`.
-pub(crate) fn act_on_failed(_id: u64, _action: FailedAction) {}
+pub(crate) fn failure_message(reason: FailureReason) -> &'static str {
+    match reason {
+        FailureReason::Connection => "Could not connect to the speech service",
+        FailureReason::TimedOut => "The speech service did not answer in time",
+        FailureReason::Rejected => "The speech service refused this configuration",
+        FailureReason::Service => "The speech service could not transcribe this dictation",
+        FailureReason::NotSetUp => "MouseVoice is not set up and no local model is ready",
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests;

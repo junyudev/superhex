@@ -30,13 +30,41 @@ pub(crate) fn sync_directory(directory: &Path) -> io::Result<()> {
 /// a dotfiles repository) stays a symlink: its final target is replaced.
 pub(crate) fn write(path: &Path, contents: &[u8]) -> io::Result<()> {
     let path = &symlink_target(path)?;
+    write_at(path, contents, false)
+}
+
+/// Replaces a private file. Unlike settings, private stores never follow a
+/// destination symlink, and their staging files are private from creation.
+#[cfg(target_os = "macos")]
+pub(crate) fn write_private(path: &Path, contents: &[u8]) -> io::Result<()> {
+    if fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
+        return Err(io::Error::other("the private store is a symbolic link"));
+    }
+    write_at(path, contents, true)
+}
+
+fn write_at(path: &Path, contents: &[u8], private: bool) -> io::Result<()> {
     let parent = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
     let staging = staging_path(path);
     let written = (|| {
-        let mut file = fs::File::create(&staging)?;
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        if private {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
+        }
+        #[cfg(not(unix))]
+        let _ = private;
+        let mut file = options.open(&staging)?;
+        #[cfg(unix)]
+        if private {
+            use std::os::unix::fs::PermissionsExt;
+            file.set_permissions(fs::Permissions::from_mode(0o600))?;
+        }
         file.write_all(contents)?;
         file.sync_all()
     })();

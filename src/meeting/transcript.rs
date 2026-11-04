@@ -833,6 +833,13 @@ impl ChunkModel {
 /// behind it.
 #[cfg(target_os = "macos")]
 fn engine_model(model: &mut crate::transcription::engine::Model) -> Option<&mut Transcriber> {
+    if model.active().is_none() {
+        let selection = crate::app_settings::transcription_selection().1;
+        if let Err(error) = model.activate(&selection) {
+            tracing::warn!(%error, "could not activate the local meeting model");
+            return None;
+        }
+    }
     match model.active() {
         Some(transcriber @ Transcriber::Gguf(_)) => Some(transcriber),
         _ => None,
