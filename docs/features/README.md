@@ -49,6 +49,11 @@ models another app already downloaded.
 and Windows) records the screen while you draw and talk and sends it to an agent.
 The other capabilities stay here until they need their own verification recipe.
 
+macOS mouse shortcuts are always available. The [dictation map](dictation.md#how-to-get-to-it)
+covers global recording, standard/native HID selection, explicit mouse-only
+Input Monitoring actions, and the read-only device observation. No physical
+button was pressed during that verification.
+
 ## Get Ready
 
 Install the signed macOS app with `brew install --cask anomalyco/tap/hex` or the
@@ -204,7 +209,7 @@ Launch Hex, setup incomplete              // setup.tour; every build and OS, ful
 │       Quit & Reopen after a grant) is passed; past setup, it waits until they do
 ├── Permissions                           // setup.checklist; skipped when granted
 │   ├── macOS: "Let Hex hear you and type for you", Microphone and Accessibility
-│   │   ├── No Input Monitoring row: Accessibility also lets the shortcut taps listen
+│   │   ├── No Input Monitoring setup row: Accessibility lets ordinary shortcut taps listen
 │   │   ├── Microphone -> macOS prompt; refused -> "Open System Settings" + guide
 │   │   ├── Accessibility -> Privacy pane + drag guide
 │   │   │   ├── Retired Hex bundle IDs (`com.kitlangton.hex2`, `com.kitlangton.Hex`,
@@ -636,7 +641,7 @@ worker readiness; a later worker-load failure does not roll back saved selection
 ## Dictate
 
 ```ts
-Saved shortcut                           // dictation; Option by default; Windows and X11 accept mouse buttons, macOS with Labs > Mouse shortcuts
+Saved shortcut                           // dictation; Option by default; macOS, Windows and X11 accept mouse buttons
 ├── Hold -> Speak -> Release
 ├── Tap, tap -> Speak hands-free -> Press again   // Shortcut mode: Hold or double-tap
 ├── Tap mode (Toggle) -> Cancel shortcut, Escape by default, while recording

@@ -67,7 +67,6 @@ pub enum Feature {
     VocabularyBiasing,
     TerminalPaste,
     KeyboardModelSwitching,
-    MouseShortcuts,
     PauseBrowser,
     ShareShortcut,
     UnloadIdle,
@@ -106,7 +105,7 @@ pub enum Feature {
 }
 
 impl Feature {
-    pub const ALL: [Self; 44] = [
+    pub const ALL: [Self; 43] = [
         Self::Meetings,
         Self::VoiceFilter,
         Self::Playground,
@@ -115,7 +114,6 @@ impl Feature {
         Self::VocabularyBiasing,
         Self::TerminalPaste,
         Self::KeyboardModelSwitching,
-        Self::MouseShortcuts,
         Self::PauseBrowser,
         Self::ShareShortcut,
         Self::UnloadIdle,
@@ -182,7 +180,6 @@ impl Feature {
             | Self::VocabularyBiasing
             | Self::TerminalPaste
             | Self::KeyboardModelSwitching
-            | Self::MouseShortcuts
             | Self::PauseBrowser
             | Self::ShareShortcut
             | Self::UnloadIdle
@@ -232,7 +229,6 @@ impl Feature {
             | Self::VocabularyBiasing
             | Self::TerminalPaste
             | Self::KeyboardModelSwitching
-            | Self::MouseShortcuts
             | Self::PauseBrowser
             | Self::ShareShortcut => 20261030,
             Self::UnloadIdle
@@ -307,8 +303,7 @@ impl Feature {
             Self::StandaloneSpecialKeys | Self::SkipPauses => {
                 cfg!(any(target_os = "linux", target_os = "windows"))
             }
-            Self::MouseShortcuts
-            | Self::PauseBrowser
+            Self::PauseBrowser
             | Self::KeepOnClipboard
             | Self::CopyOnly
             | Self::SecondDictationShortcut
@@ -353,7 +348,6 @@ impl Feature {
             Self::VocabularyBiasing => "vocabulary-biasing",
             Self::TerminalPaste => "terminal-paste",
             Self::KeyboardModelSwitching => "keyboard-model-switching",
-            Self::MouseShortcuts => "mouse-shortcuts",
             Self::PauseBrowser => "pause-browser",
             Self::ShareShortcut => "share-shortcut",
             Self::UnloadIdle => "unload-idle",
@@ -403,7 +397,6 @@ impl Feature {
             Self::VocabularyBiasing => "labs.vocabulary_biasing",
             Self::TerminalPaste => "paste_with_shift",
             Self::KeyboardModelSwitching => "keyboard_model_switching.enabled",
-            Self::MouseShortcuts => "labs.mouse_shortcuts",
             Self::PauseBrowser => "pause_browser_media",
             Self::ShareShortcut => "share_dictation_shortcut",
             Self::UnloadIdle => "labs.unload_idle",
@@ -460,7 +453,6 @@ impl Feature {
             Self::KeyboardModelSwitching => {
                 "Changing the keyboard language switches the speech model and language"
             }
-            Self::MouseShortcuts => "Record mouse buttons as shortcuts",
             Self::PauseBrowser => "Also pause the browser while dictating, with Pause media",
             Self::ShareShortcut => "Let apps such as Discord see the dictation shortcut too",
             Self::UnloadIdle => {
@@ -577,7 +569,6 @@ impl Feature {
             Self::VocabularyBiasing => settings.labs.vocabulary_biasing,
             Self::TerminalPaste => settings.paste_with_shift,
             Self::KeyboardModelSwitching => settings.keyboard_model_switching.enabled,
-            Self::MouseShortcuts => settings.labs.mouse_shortcuts,
             Self::PauseBrowser => settings.pause_browser_media,
             Self::ShareShortcut => settings.share_dictation_shortcut,
             Self::UnloadIdle => settings.labs.unload_idle,
@@ -631,7 +622,6 @@ impl Feature {
             &mut labs.live_text,
             &mut labs.live_chapters,
             &mut labs.vocabulary_biasing,
-            &mut labs.mouse_shortcuts,
             &mut labs.unload_idle,
             &mut labs.restore_shortcut_default,
             &mut labs.keep_on_clipboard,
@@ -683,7 +673,6 @@ impl Feature {
             Self::VocabularyBiasing => settings.labs.vocabulary_biasing = on,
             Self::TerminalPaste => settings.paste_with_shift = on,
             Self::KeyboardModelSwitching => settings.keyboard_model_switching.enabled = on,
-            Self::MouseShortcuts => settings.labs.mouse_shortcuts = on,
             Self::PauseBrowser => settings.pause_browser_media = on,
             Self::ShareShortcut => settings.share_dictation_shortcut = on,
             Self::UnloadIdle => settings.labs.unload_idle = on,
@@ -736,7 +725,6 @@ const LIVE_TEXT: u64 = 1 << 1;
 const LIVE_CHAPTERS: u64 = 1 << 2;
 const PLAYGROUND: u64 = 1 << 3;
 const VOCABULARY_BIASING: u64 = 1 << 4;
-const MOUSE_SHORTCUTS: u64 = 1 << 5;
 const UNLOAD_IDLE: u64 = 1 << 6;
 const KEEP_ON_CLIPBOARD: u64 = 1 << 7;
 const COPY_ONLY: u64 = 1 << 8;
@@ -800,12 +788,6 @@ pub fn playground() -> bool {
 /// Transcription biased toward the vocabulary (Parakeet).
 pub fn vocabulary_biasing() -> bool {
     on(VOCABULARY_BIASING)
-}
-
-/// Mouse buttons may be recorded as shortcuts (macOS).
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub fn mouse_shortcuts() -> bool {
-    on(MOUSE_SHORTCUTS)
 }
 
 /// A pasted dictation stays on the clipboard rather than the previous
@@ -991,11 +973,6 @@ fn encode_where(settings: &LabsSettings, reaches: impl Fn(Feature) -> bool) -> u
             Feature::VocabularyBiasing,
             settings.vocabulary_biasing,
             VOCABULARY_BIASING,
-        ),
-        (
-            Feature::MouseShortcuts,
-            settings.mouse_shortcuts,
-            MOUSE_SHORTCUTS,
         ),
         (Feature::UnloadIdle, settings.unload_idle, UNLOAD_IDLE),
         (

@@ -40,8 +40,7 @@ A feature with its own pane joins the sidebar as a normal item while
 on and is hidden while off; a behaviour-only feature is just its toggle. Today:
 Meetings (beta), Voice Filter (locked on while its macOS driver is
 installed), Playground, Live text, Live chapters, Vocabulary biasing, Switch
-model with keyboard language (#216), Mouse shortcuts (#209, macOS), Also
-pause the browser (#301, macOS), Share dictation shortcut (#176, Windows),
+model with keyboard language (#216), Also pause the browser (#301, macOS), Share dictation shortcut (#176, Windows),
 Unload model when idle (#442), and Terminal paste (Windows). Externally contributed features land there too.
 Annotate is a normal feature in every build, stable included, on macOS,
 Linux, and Windows; only developer tools (`dev_build::is_dev_build()` with
@@ -515,7 +514,7 @@ substitute for source inspection or a second roadmap.
   read as nothing chosen.
 - `labs`: the Labs feature registry (`labs::Feature`: name, settings key,
   description, audience), the runtime gates (`labs::live_text`, `live_chapters`,
-  `playground`, `vocabulary_biasing`, `mouse_shortcuts`), and
+  `playground`, `vocabulary_biasing`), and
   `hex labs [on|off <feature>]`. `dev_build`: whether this is a dev, local, test,
   or dev-channel build.
 - `capture_host`: Scrawl's capture engine (the `scrawl-capture` crate in
@@ -598,12 +597,33 @@ CoreAudio formats, AppleScript details, or event serialization.
   `meetings.retention` is omitted, not `null`. Do not omit optional fields
   whose absence restores a nonempty default, such as `paste_last_hotkey`.
 - On a new Mac, release dictation starts only after Microphone, Accessibility,
-  and the selected dictation model are ready. Hex never asks for Input
-  Monitoring: Accessibility also grants the listen-event access its shortcut
-  taps need (measured on macOS 26 and 27).
+  and the selected dictation model are ready. Hex asks for Input Monitoring
+  only from the explicit mouse access action. Ordinary shortcut taps use
+  Accessibility (measured on macOS 26 and 27). Raw mouse observation checks
+  `IOHIDCheckAccess` before every open; only `RequestMouseAccess` calls
+  `IOHIDRequestAccess`. Startup, settings reload, and recording never prompt.
 - The dictation shortcut defaults to Option but supports modifier-only,
   modifier-plus-key, standalone Globe/Fn, and standalone function-key bindings.
   Capturing a new binding suspends global matching.
+- macOS mouse shortcuts are graduated: always recordable, with no Labs gate or
+  reset. Ignore retired `labs.mouse_shortcuts` and `mouse_shortcut_notice` keys.
+  The recorder's temporary global tap owns a captured down, drag, and up;
+  bare left/right clicks pass, modified primary clicks record, and buttons
+  held at start must lift first. Finish on release. Cancellation stops capture
+  immediately and drains only an owned release (two neutral samples or a 30 s
+  hard limit), then removes the tap; no filtering mouse tap stays idle.
+- Raw mouse input observes only Button-page usages 3–32 on physical pointer
+  devices, never keyboard elements or virtual pointers. Prefer a matching
+  standard event within 80 ms; otherwise persist `native_mouse` vendor,
+  product, and usage inside the ordinary Mouse key. Pin one HID interface,
+  seed unknown/held states, order edges by the HID value's Mach timestamp,
+  recover sampled releases, and release on removal or lost access. The runtime
+  monitor exists only for an active native binding. Do not change the keyboard
+  shortcut machine for HID: native edges use its existing input codes.
+- Mouse events reach the filtering session tap only with a mouse shortcut
+  bound; otherwise they stay on the passive tap (#1215, window dragging
+  between displays/Spaces). The 5 s tap health check moves their masks after
+  settings change. The recorder's temporary filtering tap is independent.
 - Every shortcut is a chord: the set of keys held together, any order and
   nothing else, each modifier key with its side (left, right, or any) plus at
   most one other key or mouse button. It is down on the edge that completes

@@ -79,8 +79,6 @@ impl AppSettings {
         }
         settings.dictation_processing.default_mode.name = "Global".into();
         settings.repair_bare_primary_clicks();
-        #[cfg(target_os = "macos")]
-        settings.repair_mouse_shortcuts();
         #[cfg(target_os = "linux")]
         settings.repair_special_keys();
         #[cfg(target_os = "linux")]

@@ -15,7 +15,7 @@ pub(super) use self::category::Category;
 pub(super) use self::drawer::drawer;
 pub(super) use self::store::{page, search_field, tabs};
 use super::controls::{self, Paint};
-use super::icons::{BOOK, GLOBE, KEYBOARD, MOUSE, SPARKLES, TERMINAL, TIMER, WAVE};
+use super::icons::{BOOK, GLOBE, KEYBOARD, SPARKLES, TERMINAL, TIMER, WAVE};
 use super::sidebar::{NAV_ROW_GAP, NAV_ROW_HEIGHT, VOICE_FILTER_ICON};
 use super::{Pane, Ui};
 use crate::desktop::i18n::{tr, tr_fill};
@@ -395,12 +395,6 @@ fn rows(ui: &Ui) -> Vec<Row> {
     }
     if caps.os == super::platform::Os::Macos {
         rows.push(row(
-            Feature::MouseShortcuts,
-            Some(&MOUSE),
-            tr("Mouse shortcuts"),
-            tr("Record mouse buttons as shortcuts"),
-        ));
-        rows.push(row(
             Feature::PauseBrowser,
             Some(&GLOBE),
             tr("Also pause the browser"),
@@ -653,7 +647,6 @@ fn row_key(lab: Lab) -> &'static str {
         Feature::VocabularyBiasing => "lab-vocabulary-biasing",
         Feature::TerminalPaste => "lab-terminal-paste",
         Feature::KeyboardModelSwitching => "lab-keyboard-model-switching",
-        Feature::MouseShortcuts => "lab-mouse-shortcuts",
         Feature::PauseBrowser => "lab-pause-browser",
         Feature::ShareShortcut => "lab-share-shortcut",
         Feature::UnloadIdle => "lab-unload-idle",

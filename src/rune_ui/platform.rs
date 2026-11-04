@@ -273,6 +273,8 @@ pub(super) enum ScrawlRequest {
 #[derive(Clone, Debug)]
 pub(super) struct PlatformState {
     pub(super) caps: Capabilities,
+    #[cfg(target_os = "macos")]
+    pub(super) mouse_shortcut: crate::suppression::mouse::Status,
     pub(super) input_sources: Vec<crate::transcription::keyboard_model_switching::InputSource>,
     /// Microphone, Accessibility, and whether the selected
     /// speech model is installed. Every permission is ready where the OS has
@@ -371,6 +373,8 @@ impl PlatformState {
     pub(super) fn new(caps: Capabilities) -> Self {
         Self {
             caps,
+            #[cfg(target_os = "macos")]
+            mouse_shortcut: crate::suppression::mouse::Status::default(),
             input_sources: Vec::new(),
             permissions: crate::desktop::onboarding::status_with_transcription_model(false),
             permissions_asked: Vec::new(),
@@ -572,6 +576,11 @@ pub(super) enum PlatformRequest {
     Permission(PermissionAction),
     /// Screen & System Audio Recording, for meetings.
     SystemAudio,
+    /// Explicit mouse action: the only route to an Input Monitoring prompt.
+    #[allow(dead_code)] // Reserved for the window designer's explicit mouse action.
+    RequestMouseAccess,
+    #[allow(dead_code)]
+    OpenMouseInputMonitoring,
     SetLaunchAtLogin(bool),
     OpenLoginItemSettings,
     InstallHexMicrophone,

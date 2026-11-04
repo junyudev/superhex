@@ -22,6 +22,7 @@ mod hotkeys;
 mod labs;
 mod meeting_folder;
 mod meetings;
+mod native_mouse;
 mod persistence;
 mod shortcut_repair;
 
@@ -34,6 +35,9 @@ pub use hotkeys::*;
 pub use labs::*;
 pub use meeting_folder::default_meeting_output_folder;
 pub use meetings::*;
+pub use native_mouse::NativeMouseButton;
+#[cfg(target_os = "macos")]
+pub use native_mouse::native_mouse_bindings;
 
 static RECORDING_DUCK_VOLUME: AtomicU32 = AtomicU32::new(0.2_f32.to_bits());
 static RECORDING_AUDIO_BEHAVIOR: AtomicU8 = AtomicU8::new(0);
@@ -313,10 +317,6 @@ pub struct AppSettings {
     /// Let other apps see the dictation shortcut's key presses too
     /// (Windows), so a push-to-talk key can drive both.
     pub share_dictation_shortcut: bool,
-    /// A mouse-button shortcut went back to its default because Labs ›
-    /// Mouse shortcuts is off; the window says so once, then clears it.
-    #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub mouse_shortcut_notice: bool,
     /// The interface language code; `None` follows the system language.
     pub ui_language: Option<String>,
     pub indicator_position: IndicatorPosition,
@@ -427,7 +427,6 @@ impl Default for AppSettings {
             paste_with_shift: false,
             gnome_keyboard_shortcuts: false,
             share_dictation_shortcut: false,
-            mouse_shortcut_notice: false,
             ui_language: None,
             indicator_position: IndicatorPosition::default(),
             updates: UpdateSettings::default(),
@@ -804,6 +803,8 @@ impl AppSettings {
             .get_or_init(Default::default)
             .write()
             .unwrap_or_else(|error| error.into_inner()) = self.runtime_hotkeys();
+        #[cfg(target_os = "macos")]
+        native_mouse::apply(self);
         // An import that can't run stays saved; the listener runs the
         // default model until it is fixed.
         set_transcription_selection(&crate::transcription::custom_models::runnable(
@@ -1527,12 +1528,10 @@ mod tests {
         let loaded = AppSettings::load_from(&dir.path).unwrap();
         assert_eq!(loaded.dictation_hotkey, HotkeyBinding::default());
 
-        let mut settings = AppSettings {
+        let settings = AppSettings {
             dictation_hotkey: back_button.clone(),
             ..AppSettings::default()
         };
-        // macOS keeps a mouse shortcut only with Labs › Mouse shortcuts on.
-        settings.labs.mouse_shortcuts = true;
         fs::write(&dir.path, serde_json::to_vec(&settings).unwrap()).unwrap();
         let loaded = AppSettings::load_from(&dir.path).unwrap();
         assert_eq!(loaded.dictation_hotkey, back_button);
@@ -1549,23 +1548,37 @@ mod tests {
     }
 
     #[test]
-    fn mouse_shortcuts_go_back_to_their_default_while_their_labs_toggle_is_off() {
-        let mouse = HotkeyBinding {
-            modifiers: HotkeyModifiers::default(),
-            key: HotkeyKey::mouse(3),
+    fn graduated_mouse_shortcuts_survive_old_labs_settings() {
+        let dir = TestSettingsDir::new("graduated-mouse-shortcut");
+        let native = NativeMouseButton {
+            vendor: 6421,
+            product: 44572,
+            usage: 5,
         };
-        let mut settings = AppSettings {
-            dictation_hotkey: mouse.clone(),
-            ..Default::default()
-        };
-        settings.labs.mouse_shortcuts = true;
-        settings.repair_mouse_shortcuts();
-        assert_eq!(settings.dictation_hotkey, mouse);
-        assert!(!settings.mouse_shortcut_notice);
-        settings.labs.mouse_shortcuts = false;
-        settings.repair_mouse_shortcuts();
-        assert_eq!(settings.dictation_hotkey, HotkeyBinding::default());
-        assert!(settings.mouse_shortcut_notice);
+        for (on, key) in [false, true]
+            .into_iter()
+            .flat_map(|on| [HotkeyKey::mouse(3), native.key()].map(move |key| (on, key)))
+        {
+            let mouse = HotkeyBinding {
+                modifiers: HotkeyModifiers::default(),
+                key,
+            };
+            let mut value = serde_json::to_value(AppSettings {
+                dictation_hotkey: mouse.clone(),
+                ..Default::default()
+            })
+            .unwrap();
+            value["labs"]["mouse_shortcuts"] = on.into();
+            value["mouse_shortcut_notice"] = true.into();
+            fs::write(&dir.path, serde_json::to_vec(&value).unwrap()).unwrap();
+            let loaded = AppSettings::load_from(&dir.path).unwrap();
+            assert_eq!(loaded.dictation_hotkey, mouse);
+            assert!(
+                serde_json::to_value(loaded).unwrap()["labs"]
+                    .get("mouse_shortcuts")
+                    .is_none()
+            );
+        }
     }
 
     #[test]
@@ -2331,6 +2344,7 @@ mod tests {
                 function: true,
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: 49,
                 label: "Space".into(),
             }),
@@ -2367,6 +2381,7 @@ mod tests {
                     ..Default::default()
                 },
                 key: Some(HotkeyKey {
+                    native_mouse: None,
                     code: 0,
                     label: "A".into(),
                 }),
@@ -2421,6 +2436,7 @@ mod tests {
                 ..Default::default()
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: 0,
                 label: "A".into(),
             }),
@@ -2582,6 +2598,7 @@ mod tests {
                 ..Default::default()
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: 0,
                 label: "A".into(),
             }),

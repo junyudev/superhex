@@ -26,7 +26,6 @@ Feature             Pane  Toggle (settings.json, hex settings)   On: what it doe
 ├── Vocabulary biasing no labs.vocabulary_biasing                Parakeet transcription biased toward the vocabulary (#452/#457)
 ├── Switch model with keyboard language  no  keyboard_model_switching.enabled  (macOS, Windows, X11)
 │                                        the input source picks its mapped model (#216); General shows the mappings while on
-├── Mouse shortcuts no    labs.mouse_shortcuts         (macOS)   mouse buttons record as shortcuts (#209)
 ├── Also pause the browser no pause_browser_media      (macOS)   pause a playing tab too, with Pause media (#301); General shows its permission row
 ├── Share dictation shortcut no share_dictation_shortcut (Windows) apps such as Discord see the shortcut too (#176)
 ├── Unload model when idle no labs.unload_idle + labs.unload_idle_minutes (5/15/30/60, default 15)
@@ -134,23 +133,11 @@ Add a new feature to `labs::Feature` (name, settings key, description, audience)
 it a row in `rune_ui/labs.rs` and a `hex settings` key, and default it off.
 When a feature graduates, remove it from Labs.
 
-Mouse shortcuts off: the recorder ignores mouse buttons, `hex settings`
-refuses one, and a saved mouse-button shortcut goes back to its default when
-settings load (macOS), with a one-time note in General
-(`mouse_shortcut_notice`). Check:
-`mouse_shortcuts_go_back_to_their_default_while_their_labs_toggle_is_off` in
-[app_settings.rs](../../src/app_settings.rs).
-
-Clicks and drags reach Hex's filtering (event-consuming) session tap only
-while some shortcut is a mouse button; otherwise they go to the listen-only
-tap, as chord evidence only. A filtering tap on mouse events, even one that
-passes every event through, broke dragging windows between displays and
-Spaces (#1215). The tap thread's 5 s health check moves them when a mouse
-shortcut is bound or cleared, so for up to 5 s after that a newly bound button
-still reaches the app. Check:
-`mouse_events_reach_the_filtering_tap_only_while_a_mouse_shortcut_is_bound` in
-[suppression/tests.rs](../../src/suppression/tests.rs) (macOS only). Not yet
-observed: a real two-display Mac dragging windows with Hex running.
+Mouse shortcuts graduated on macOS. The old `labs.mouse_shortcuts` and
+`mouse_shortcut_notice` fields load harmlessly and are no longer written.
+The recorder, native HID access contract, runtime suppression and #1215 tap
+routing now live in [Dictation](dictation.md#how-to-get-to-it). There is no
+Labs row or CLI settings key for mouse shortcuts.
 
 Unload model when idle (`unload-idle`, issue 442 from @theoneand33): while
 on, its row shows "Unload after" (5, 15, 30, or 60 minutes; default 15).
@@ -1004,7 +991,7 @@ sending the event, on any OS; the Labs page goldens that show Meetings rows
 need regenerating with the new row.
 
 Normal features, not Labs: dictation, Annotate (every build; its own pane
-and switch), lowering audio while dictating (#210), Dot scope, chord shortcuts, QuickJS transformations, clipboard
+and switch), macOS mouse shortcuts, lowering audio while dictating (#210), Dot scope, chord shortcuts, QuickJS transformations, clipboard
 restore (Labs › Keep dictation on clipboard skips it on macOS), the
 vocabulary list itself (rewriting and search), and Linux's Terminal paste.
 

@@ -3,24 +3,17 @@
 //! update, and settings state, plus the OS-only work the panes ask for
 //! (permissions, the login item, Hex Microphone, meetings).
 //!
-//! Shortcut capture stays in the window: an AppKit local event
-//! monitor records the chord, because a modifier-only binding such as Option
-//! or Fn never reaches Rune as a key event. The listener's event tap is
-//! suspended meanwhile so the current binding can be recorded again.
+//! Shortcut capture combines local keyboard events with a temporary global
+//! mouse tap and permission-checked HID observation. Global matching is
+//! suspended until capture ends.
 
-use std::cell::RefCell;
 use std::path::PathBuf;
-use std::ptr::NonNull;
 use std::sync::Arc;
 use std::sync::mpsc::{self, Receiver};
 use std::time::{Duration, Instant};
 
-use block2::RcBlock;
 use color_eyre::Result;
 use color_eyre::eyre::eyre;
-use objc2::rc::Retained;
-use objc2::runtime::AnyObject;
-use objc2_app_kit::{NSEvent, NSEventMask, NSEventType};
 
 use super::meetings::Meeting;
 use super::meetings_host::MeetingFeed;
@@ -88,6 +81,7 @@ impl Backend {
     pub(super) fn send(&mut self, request: Request) -> Result<()> {
         match request {
             Request::CaptureShortcutFor(_) => {
+                self.chords = None;
                 self.chords = Some(ChordWatch::start(self.wake.clone())?);
                 Ok(())
             }
@@ -122,7 +116,9 @@ impl Backend {
 
     /// Rune hides the window (`keep_running`); the window's own close hook
     /// restores the Dock policy (`macos_rune::window_closed`).
-    pub(super) fn closed(&mut self) {}
+    pub(super) fn closed(&mut self) {
+        self.chords = None;
+    }
 
     /// The runtime publishes into shared memory; nothing to pull.
     pub(super) fn refresh(&mut self) {}
@@ -157,253 +153,12 @@ impl Backend {
     }
 }
 
-/// Records chords from the window's keyboard events while Settings listens,
-/// with the listener's event tap suspended. Removing the monitor ends it.
-struct ChordWatch {
-    results: Receiver<Chord>,
-    monitor: Retained<AnyObject>,
-}
-
-impl ChordWatch {
-    fn start(wake: Arc<dyn Fn() + Send + Sync>) -> Result<Self> {
-        crate::app_settings::set_hotkey_capture_active(true);
-        let (sender, results) = mpsc::channel();
-        // Labs › Sided modifier chords is read once, as recording starts.
-        let capture = RefCell::new(ChordCapture::with_sides(
-            crate::labs::sided_modifier_chords(),
-        ));
-        let block = RcBlock::new(move |event: NonNull<NSEvent>| -> *mut NSEvent {
-            // SAFETY: AppKit passes a live event for the handler's duration.
-            let event_ref = unsafe { event.as_ref() };
-            let flags = event_ref.modifierFlags().bits() as u64;
-            let chord = match event_ref.r#type() {
-                NSEventType::KeyDown => {
-                    let characters = event_ref
-                        .charactersIgnoringModifiers()
-                        .map(|characters| characters.to_string());
-                    capture.borrow_mut().key_down(
-                        event_ref.keyCode(),
-                        event_ref.isARepeat(),
-                        characters.as_deref(),
-                        flags,
-                    )
-                }
-                NSEventType::FlagsChanged => capture.borrow_mut().flags_changed(flags),
-                // Mouse buttons record only with Labs › Mouse shortcuts on;
-                // otherwise the click reaches the window as usual.
-                NSEventType::LeftMouseDown
-                | NSEventType::RightMouseDown
-                | NSEventType::OtherMouseDown
-                    if crate::labs::mouse_shortcuts() =>
-                {
-                    capture
-                        .borrow_mut()
-                        .mouse_down(event_ref.buttonNumber(), flags)
-                }
-                // Key releases still reach the window so its key state
-                // stays balanced.
-                _ => return event.as_ptr(),
-            };
-            if let Some(chord) = chord
-                && sender.send(chord).is_ok()
-            {
-                wake();
-            }
-            std::ptr::null_mut()
-        });
-        // SAFETY: the block lives as long as AppKit retains it; the monitor
-        // is removed on drop, on the main thread that installed it.
-        let monitor = unsafe {
-            NSEvent::addLocalMonitorForEventsMatchingMask_handler(
-                NSEventMask::KeyDown
-                    | NSEventMask::FlagsChanged
-                    | NSEventMask::LeftMouseDown
-                    | NSEventMask::RightMouseDown
-                    | NSEventMask::OtherMouseDown,
-                &block,
-            )
-        };
-        match monitor {
-            Some(monitor) => Ok(Self { results, monitor }),
-            None => {
-                crate::app_settings::set_hotkey_capture_active(false);
-                Err(eyre!("could not watch the keyboard to record a shortcut"))
-            }
-        }
-    }
-}
-
-impl Drop for ChordWatch {
-    fn drop(&mut self) {
-        // SAFETY: the monitor came from addLocalMonitor on this thread.
-        unsafe { NSEvent::removeMonitor(&self.monitor) };
-        crate::app_settings::set_hotkey_capture_active(false);
-    }
-}
-
-/// Turns key and modifier events into a chord: a key with its held
-/// modifiers, or the most modifier keys held at once when they are all
-/// released without a key, with the sides `recorded_sides` keeps (or,
-/// with Labs › Sided modifier chords on, the side each was pressed on).
-#[derive(Default)]
-struct ChordCapture {
-    peak: HotkeyModifiers,
-    /// A key went down with these modifiers; their release records nothing.
-    keyed: bool,
-    /// A modifier-only chord keeps every modifier's side, such as
-    /// Right ⌘ + Right ⌥, instead of widening each to either side.
-    sided: bool,
-}
-
-impl ChordCapture {
-    fn with_sides(sided: bool) -> Self {
-        Self {
-            sided,
-            ..Self::default()
-        }
-    }
-
-    fn mouse_down(&mut self, button: isize, flags: u64) -> Option<Chord> {
-        let key = u16::try_from(button).ok().and_then(HotkeyKey::mouse)?;
-        let mut modifiers = modifiers_from_flags(flags).without_side_constraints();
-        modifiers.function = false;
-        self.keyed = !modifiers.is_empty();
-        self.peak = HotkeyModifiers::default();
-        Some(Chord::Captured(Ok(HotkeyBinding {
-            modifiers,
-            key: Some(key),
-        })))
-    }
-
-    fn key_down(
-        &mut self,
-        code: u16,
-        repeat: bool,
-        characters: Option<&str>,
-        flags: u64,
-    ) -> Option<Chord> {
-        if repeat {
-            return None;
-        }
-        if code == ESCAPE_KEY_CODE {
-            return Some(Chord::Cancelled);
-        }
-        let mut modifiers = modifiers_from_flags(flags).without_side_constraints();
-        // Arrow and function keys report Fn; a chord never binds it.
-        modifiers.function = false;
-        // Only modifiers held with the key are spent by it.
-        self.keyed = !modifiers.is_empty();
-        self.peak = HotkeyModifiers::default();
-        let key = match hotkey_key(code, characters) {
-            Ok(key) => key,
-            Err(message) => return Some(Chord::Captured(Err(message))),
-        };
-        if modifiers.is_empty() && !is_function_key(&key.label) && !is_navigation_key(code) {
-            return Some(Chord::Captured(Err(tr("Add a modifier"))));
-        }
-        Some(Chord::Captured(Ok(HotkeyBinding {
-            modifiers,
-            key: Some(key),
-        })))
-    }
-
-    /// While modifiers are down, reports the ones their release would record.
-    fn flags_changed(&mut self, flags: u64) -> Option<Chord> {
-        let held = modifiers_from_flags(flags);
-        let current = if self.sided {
-            held
-        } else {
-            held.recorded_sides()
-        };
-        if !current.is_empty() {
-            if self.keyed {
-                return None;
-            }
-            if current.count() >= self.peak.count() {
-                self.peak = current;
-            }
-            return Some(Chord::Held(self.peak));
-        }
-        let keyed = std::mem::take(&mut self.keyed);
-        let peak = std::mem::take(&mut self.peak);
-        if keyed || peak.is_empty() {
-            return None;
-        }
-        Some(Chord::Captured(Ok(HotkeyBinding {
-            modifiers: peak,
-            key: None,
-        })))
-    }
-}
-
-fn is_function_key(label: &str) -> bool {
-    label
-        .strip_prefix('F')
-        .and_then(|number| number.parse::<u8>().ok())
-        .is_some_and(|number| (1..=20).contains(&number))
-}
-
-/// Home, End, Page Up, Page Down, and Help (Insert on PC keyboards): keys
-/// that type nothing, so, like a function key, one may be a shortcut alone,
-/// as it could before (#1138).
-fn is_navigation_key(code: u16) -> bool {
-    matches!(code, 115 | 119 | 116 | 121 | 114)
-}
-
-/// The key a virtual key code records, and its label.
-fn hotkey_key(code: u16, characters: Option<&str>) -> Result<HotkeyKey, &'static str> {
-    let special = match code {
-        49 => Some("Space"),
-        48 => Some("Tab"),
-        36 => Some("Return"),
-        51 => Some(tr("Delete")),
-        126 => Some("Up"),
-        125 => Some("Down"),
-        123 => Some(tr("Left")),
-        124 => Some(tr("Right")),
-        116 => Some("Page Up"),
-        121 => Some("Page Down"),
-        115 => Some("Home"),
-        119 => Some("End"),
-        117 => Some("Forward Delete"),
-        114 => Some("Help"),
-        122 => Some("F1"),
-        120 => Some("F2"),
-        99 => Some("F3"),
-        118 => Some("F4"),
-        96 => Some("F5"),
-        97 => Some("F6"),
-        98 => Some("F7"),
-        100 => Some("F8"),
-        101 => Some("F9"),
-        109 => Some("F10"),
-        103 => Some("F11"),
-        111 => Some("F12"),
-        105 => Some("F13"),
-        107 => Some("F14"),
-        113 => Some("F15"),
-        106 => Some("F16"),
-        64 => Some("F17"),
-        79 => Some("F18"),
-        80 => Some("F19"),
-        90 => Some("F20"),
-        _ => None,
-    };
-    if let Some(label) = special {
-        return Ok(HotkeyKey {
-            code,
-            label: label.into(),
-        });
-    }
-    let mut chars = characters.unwrap_or_default().chars();
-    match (chars.next(), chars.next()) {
-        (Some(character), None) if !character.is_control() => Ok(HotkeyKey {
-            code,
-            label: character.to_uppercase().collect(),
-        }),
-        _ => Err(tr("Unsupported key")),
-    }
-}
+#[path = "macos_host/chord.rs"]
+mod chord;
+#[path = "macos_host/recorder.rs"]
+mod recorder;
+use chord::{ChordCapture, hotkey_key};
+use recorder::ChordWatch;
 
 /// The key a typed name records, with the label recording it would show.
 pub(super) fn hotkey_key_named(name: &str) -> Result<HotkeyKey, &'static str> {
@@ -412,6 +167,9 @@ pub(super) fn hotkey_key_named(name: &str) -> Result<HotkeyKey, &'static str> {
         .filter(|character| !matches!(character, ' ' | '-' | '_'))
         .flat_map(char::to_lowercase)
         .collect();
+    if name.contains('@') {
+        return crate::app_settings::NativeMouseButton::parse(name).ok_or(tr("Unsupported key"));
+    }
     if let Some(number) = normalized.strip_prefix("mouse") {
         return number
             .parse::<u16>()
@@ -710,6 +468,13 @@ impl NativeHost for MacHost {
                 }
                 crate::macos_rune::quit();
             }
+            PlatformRequest::RequestMouseAccess => {
+                crate::suppression::mouse::request_access();
+            }
+            PlatformRequest::OpenMouseInputMonitoring => {
+                crate::suppression::mouse::open_input_monitoring()
+                    .map_err(|error| error.to_string())?;
+            }
             PlatformRequest::SystemAudio => {
                 self.note_permission_asked(PermissionKind::SystemAudio);
                 crate::desktop::permission_guide::clear_legacy_entries_async(
@@ -765,7 +530,10 @@ impl NativeHost for MacHost {
     }
 
     fn poll(&mut self, state: &mut PlatformState) -> bool {
-        let mut changed = false;
+        let mut changed = update(
+            &mut state.mouse_shortcut,
+            crate::suppression::mouse::status(),
+        );
         for &kind in &state.permissions_shown {
             crate::desktop::permission_guide::clear_legacy_entries_async(kind);
         }
@@ -1441,6 +1209,10 @@ mod tests {
             for flags in [0, LEFT_OPTION, RIGHT_OPTION | LEFT_COMMAND] {
                 let mut capture = ChordCapture::default();
                 capture.flags_changed(flags);
+                if button < 2 && flags == 0 {
+                    assert!(capture.mouse_down(button, flags).is_none());
+                    continue;
+                }
                 let binding = captured(capture.mouse_down(button, flags)).unwrap();
                 assert_eq!(binding.key, HotkeyKey::mouse(button as u16));
                 assert_eq!(
@@ -1452,12 +1224,7 @@ mod tests {
                 let parsed = crate::control::settings::parse_hotkey(&text, |name| {
                     hotkey_key_named(name).map_err(str::to_owned)
                 });
-                // A bare left click is recorded, then refused (issue 411).
-                if binding.is_bare_primary_click() {
-                    assert!(parsed.is_err());
-                } else {
-                    assert_eq!(parsed.unwrap(), binding);
-                }
+                assert_eq!(parsed.unwrap(), binding);
             }
         }
         let mut capture = ChordCapture::default();
@@ -1625,6 +1392,7 @@ mod tests {
         assert_eq!(
             binding.key,
             Some(HotkeyKey {
+                native_mouse: None,
                 code: 9,
                 label: "V".into()
             })

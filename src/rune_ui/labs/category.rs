@@ -95,8 +95,7 @@ impl Category {
             | Feature::OutputFixes
             | Feature::HistoryStats
             | Feature::SkipPauses => Self::Dictation,
-            Feature::MouseShortcuts
-            | Feature::SecondDictationShortcut
+            Feature::SecondDictationShortcut
             | Feature::SidedChords
             | Feature::TapOrHold
             | Feature::RestoreShortcutDefault
@@ -164,7 +163,6 @@ impl Place {
             | Feature::GnomeClipboardRestore
             | Feature::TerminalPaste => Self::Elsewhere(tr("Every dictation")),
             Feature::PauseBrowser
-            | Feature::MouseShortcuts
             | Feature::SidedChords
             | Feature::StandaloneSpecialKeys
             | Feature::SectionKeyAlone

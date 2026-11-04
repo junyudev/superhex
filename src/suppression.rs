@@ -16,6 +16,7 @@ use crate::audio::CaptureInstant;
 use crate::dictation::{BOTH_SIDES_WINDOW, MINIMUM_HOLD_DURATION};
 
 mod hotkey;
+pub(crate) mod mouse;
 mod tap;
 pub use hotkey::{DictationHotkey, HotkeyAction};
 use tap::*;
@@ -569,6 +570,9 @@ unsafe extern "C" fn event_callback(
     ) && (crate::capture_host::list_open() || crate::capture_host::suggesting())
     {
         crate::capture_host::capsule_key(crate::capture_host::CapsuleKey::Press);
+    }
+    if mouse::consume_standard(event_type, event) {
+        return ptr::null_mut();
     }
     if matches!(
         event_type,

@@ -250,14 +250,6 @@ line_icon!(
     ["M2 12a10 10 0 1 0 20 0a10 10 0 1 0-20 0", "M12 6v6l4 2"]
 );
 line_icon!(
-    MOUSE,
-    "hex-row-mouse",
-    [
-        "M12 2a6 6 0 0 1 6 6v8a6 6 0 0 1-12 0V8a6 6 0 0 1 6-6z",
-        "M12 6v4"
-    ]
-);
-line_icon!(
     CIRCLE_X,
     "hex-row-circle-x",
     [

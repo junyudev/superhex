@@ -13,12 +13,12 @@ pub(super) struct AttachedTap {
 impl AttachedTap {
     /// # Safety
     /// `context` and `run_loop` must outlive the returned `AttachedTap`.
-    unsafe fn create(
+    pub(super) unsafe fn create(
         location: u32,
         options: u32,
         mask: u64,
         callback: EventTapCallback,
-        context: *mut EventTapContext,
+        context: *mut c_void,
         run_loop: *mut c_void,
         slot: &AtomicPtr<c_void>,
     ) -> Result<Self, &'static str> {
@@ -29,7 +29,7 @@ impl AttachedTap {
                 options,
                 mask,
                 callback,
-                context.cast(),
+                context,
             )
         };
         if tap.is_null() {
@@ -135,6 +135,7 @@ pub(super) fn input_is_down(state: u32, code: u16) -> bool {
     // codes are decoded before crossing the native keyboard API boundary.
     unsafe {
         match crate::app_settings::HotkeyKey::mouse_button(code) {
+            Some(button) if mouse::native_button(button) => mouse::native_held(code),
             Some(button) => CGEventSourceButtonState(state, u32::from(button)),
             None => CGEventSourceKeyState(state, code),
         }
@@ -234,6 +235,7 @@ pub(super) fn run_event_tap(
     // invalidated on drop, and both live on this run loop's thread.
     let _health = unsafe { HealthTimer::start(&raw mut *taps, current_run_loop) };
     let _app_nap = AppNapOptOut::begin();
+    let _mouse = mouse::Runtime::start(context_ptr);
     run_loop.store(current_run_loop, Ordering::Release);
     let _ = ready.send(Ok(()));
     // SAFETY: This dedicated thread exists solely to dispatch the event tap.
@@ -328,7 +330,15 @@ impl ManagedTap {
         };
         // SAFETY: forwarded from the caller.
         let attached = unsafe {
-            AttachedTap::create(location, options, mask, callback, context, run_loop, slot)
+            AttachedTap::create(
+                location,
+                options,
+                mask,
+                callback,
+                context.cast(),
+                run_loop,
+                slot,
+            )
         }?;
         self.attached = Some(attached);
         Ok(())
