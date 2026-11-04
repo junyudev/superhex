@@ -1142,13 +1142,13 @@ fn pill(
 
 /// The panel capsule's corners, concentric with its buttons' (`radius.md`)
 /// across the [`ACTIONS_INSET`] between them and the edge.
-fn panel_radius(p: Paint) -> f32 {
+pub(super) fn panel_radius(p: Paint) -> f32 {
     p.k.radius.md + ACTIONS_INSET
 }
 
 /// The capsule body with its dot and two truncated lines: a rounded
 /// rectangle for the panel capsules, a full pill for the recording capsule.
-fn pill_body(p: Paint, dot: El, title: &str, subtitle: &str, radius: f32) -> El {
+pub(super) fn pill_body(p: Paint, dot: El, title: &str, subtitle: &str, radius: f32) -> El {
     let c = &p.k.c;
     row()
         .key("pill")

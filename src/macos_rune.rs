@@ -500,6 +500,11 @@ pub fn run(shutdown: &'static AtomicBool, listener: ListenerConfig) -> Result<()
     };
     let hud = crate::rune_hud::install(&mut app);
     crate::rune_ui::live_text::install(&mut app, crate::rune_hud::live_text_place);
+    crate::rune_ui::dictation_failed::install(
+        &mut app,
+        crate::rune_hud::live_text_place,
+        open_settings,
+    );
     // The capture capsule, picker, and ink.
     #[cfg(hex_capture)]
     let capture_overlays =
@@ -994,6 +999,11 @@ fn show(window: &rune::AppHandle<Ui>, destination: Destination) {
 fn show_update_check(window: &rune::AppHandle<Ui>) {
     window.update(|ui, _| crate::rune_ui::update_check_asked(ui));
     show(window, Destination::Settings);
+}
+
+/// Opens the window at Settings, from the main thread.
+fn open_settings() {
+    with_window(|window| show(window, Destination::Settings));
 }
 
 /// Opens the window in front, from the main thread.

@@ -193,17 +193,23 @@ fn models_page(p: Paint, s: &Onboard, live: &Live) -> El {
         .map(|(index, model)| model_row(p, index, model).into())
         .collect();
     let list = card(p, "model-list", rows).w(MODELS_W);
+    let service = live.models.iter().any(|model| model.service);
+    let (title, line) = if service {
+        (
+            tr("Choose how Hex hears you"),
+            tr("MouseVoice streams your voice to its service. A local model stays on this Mac."),
+        )
+    } else {
+        (
+            tr("Choose a speech model"),
+            tr("Hex found speech models already on this computer."),
+        )
+    };
     col()
         .key("models")
         .gap(22.0)
         .items_center()
-        .child(heading(
-            p,
-            s,
-            "models-head",
-            tr("Choose a speech model"),
-            lead(p, tr("Hex found speech models already on this computer.")),
-        ))
+        .child(heading(p, s, "models-head", title, lead(p, line)))
         .child(s.motion.staggered(list, 1.0, 8.0))
         .child(action(continue_model_button(p)))
 }
@@ -217,7 +223,9 @@ fn model_row(p: Paint, index: usize, model: &ChoiceRow) -> El {
         })
         .build(p.k)
         .key("radio")
-        .grow(1.0);
+        .grow(1.0)
+        .min_w(0.0)
+        .shrink();
     let tag = model
         .recommended
         .then(|| Badge::new(tr("Recommended")).build(p.k).key("recommended"));

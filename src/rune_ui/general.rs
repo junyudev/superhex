@@ -113,6 +113,9 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         }
         rows.extend(configure_shortcuts_row(ui, p).map(CardRow::from));
     }
+    if ui.platform.caps.mouse_voice {
+        rows.push(super::mouse_voice::backend_row(ui, p).into());
+    }
     let picker_button = value_button(
         p,
         "transcription-control",
@@ -170,18 +173,28 @@ fn basics(ui: &Ui, p: Paint, layer: &mut Vec<El>) -> El {
         }
         None => (s::transcription_status(ui, p), picker_button),
     };
-    rows.push(
-        icon_described_row(
-            p,
-            "transcription",
-            &WAVE,
-            tr("Speech model"),
-            description,
-            control,
-        )
-        .into(),
-    );
-    rows.extend(language_row(ui, p, layer).map(CardRow::from));
+    if super::mouse_voice::chosen(ui) {
+        rows.push(super::mouse_voice::status_row(ui, p));
+    } else {
+        // With the choice above leading the card, the model is its detail.
+        let glyph = if ui.platform.caps.mouse_voice {
+            &MODEL
+        } else {
+            &WAVE
+        };
+        rows.push(
+            icon_described_row(
+                p,
+                "transcription",
+                glyph,
+                tr("Speech model"),
+                description,
+                control,
+            )
+            .into(),
+        );
+        rows.extend(language_row(ui, p, layer).map(CardRow::from));
+    }
     let vocabulary_note = super::vocabulary::unused_note(ui);
     rows.push(
         icon_row(

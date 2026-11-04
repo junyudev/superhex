@@ -2,6 +2,7 @@
 //! opens.
 
 use super::*;
+use crate::dictation::backend::Setup;
 
 /// A named starting state for `--scene`.
 pub(super) type Scene = (&'static str, fn(&mut Ui));
@@ -265,6 +266,38 @@ pub(super) const SCENES: &[Scene] = &[
     }),
     // macOS and Windows surfaces, from preview data (see `platform`).
     ("mac-settings", |ui| *ui = mac_fixture()),
+    // MouseVoice's Speech rows: set up from what another app saved, from a
+    // file, refused, and ready, with its options; and the local model chosen.
+    ("mac-mouse-voice-found", |ui| {
+        *ui = mac_fixture();
+        mouse_voice::fixture(
+            ui,
+            Setup::Missing,
+            Some(crate::dictation::backend::ConfigSource::MouseVoice),
+        );
+    }),
+    ("mac-mouse-voice-missing", |ui| {
+        *ui = mac_fixture();
+        mouse_voice::fixture(ui, Setup::Missing, None);
+    }),
+    ("mac-mouse-voice-broken", |ui| {
+        *ui = mac_fixture();
+        mouse_voice::fixture(
+            ui,
+            Setup::Broken {
+                reason: "The service refused this configuration. Import another.".into(),
+            },
+            None,
+        );
+    }),
+    ("mac-mouse-voice-options", |ui| {
+        *ui = mac_fixture();
+        mouse_voice::options_fixture(ui, true);
+    }),
+    ("mac-mouse-voice-local", |ui| {
+        *ui = mac_fixture();
+        ui.settings.dictation_backend = crate::dictation::backend::DictationBackend::Local;
+    }),
     // The microphone row following a recorded voice (`--video`), and with
     // the microphone released while idle, when no audio arrives.
     ("mac-settings-mic-level", |ui| {
@@ -666,6 +699,17 @@ pub(super) const SCENES: &[Scene] = &[
     ("mac-onboarding", |ui| {
         mac_first_run(ui, onboarding::MacStep::Setup, Page::Download)
     }),
+    // The speech step with MouseVoice's configuration found on this Mac.
+    ("mac-onboarding-mouse-voice-found", |ui| {
+        *ui = mac_fixture();
+        mouse_voice::fixture(
+            ui,
+            Setup::Missing,
+            Some(crate::dictation::backend::ConfigSource::MouseVoice),
+        );
+        onboarding::mac_fixture(ui, onboarding::MacStep::Setup);
+        onboarding_kit::live::fixture(ui, Page::Download);
+    }),
     ("mac-onboarding-permissions", |ui| {
         mac_first_run(ui, onboarding::MacStep::Setup, Page::Permissions)
     }),
@@ -733,6 +777,11 @@ fn first_run(ui: &mut Ui, state: FirstRun, page: Page) {
 
 fn mac_first_run(ui: &mut Ui, step: onboarding::MacStep, page: Page) {
     *ui = mac_fixture();
+    // A new Mac starts at the speech step; the pages after it have MouseVoice
+    // set up.
+    if page == Page::Download {
+        mouse_voice::fixture(ui, Setup::Missing, None);
+    }
     onboarding::mac_fixture(ui, step);
     onboarding_kit::live::fixture(ui, page);
 }
@@ -754,6 +803,13 @@ pub(super) fn mac_fixture() -> Ui {
     let mut ui = fixture(DesktopShortcuts::Registered);
     ui.platform = platform::PlatformState::preview(platform::Capabilities::MACOS);
     ui.host = platform::PlatformHost::Fixture(Vec::new());
+    mouse_voice::fixture(
+        &mut ui,
+        Setup::Ready {
+            host: mouse_voice::FIXTURE_HOST.into(),
+        },
+        None,
+    );
     ui.settings.dictation_hotkey = AppSettings::default().dictation_hotkey;
     ui.settings.paste_with_shift = false;
     ui.settings.meetings.enabled = true;
