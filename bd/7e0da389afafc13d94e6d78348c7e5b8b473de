@@ -1,0 +1,27 @@
+AGENTS.md
+  s_eaf24bb7841bbf::t_e5c3b62e290c87 812
+crates/mouse-voice/src/session.rs
+  s_eaf24bb7841bbf::t_2dd2148d69a744 287-288,292-294
+crates/mouse-voice/src/tests.rs
+  s_eaf24bb7841bbf::t_64e8fe202d7bda 1001-1047
+docs/features/dictation.md
+  s_eaf24bb7841bbf::t_0e8eba3f65fdd4 829
+src/dictation/mouse_voice/store.rs
+  s_eaf24bb7841bbf::t_2954e86d5b7ad5 136-137,141,210,222-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bd7e0da389afafc13d94e6d78348c7e5b8b473de",
+  "prompts": {},
+  "sessions": {
+    "s_eaf24bb7841bbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e8fb7ff1-d8c5-4052-b6df-2d0682da4efe",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
