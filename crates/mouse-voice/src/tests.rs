@@ -8,20 +8,18 @@ use crate::{
         bytes, decode, int, message, text,
     },
 };
+use futures_util::{SinkExt, StreamExt};
 use md5::Md5;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
-    net::{TcpListener, TcpStream},
+    net::TcpListener,
     sync::{Arc, mpsc},
     thread,
     time::{Duration, Instant},
 };
-use tungstenite::{
-    self, Message, WebSocket,
-    handshake::server::{Request, Response},
-};
+use tokio_websockets::{Message, ServerBuilder, WebSocketStream};
 
 fn configuration() -> Value {
     json!({"host":"speech.example.invalid", "uin":"42", "device_code":"test-device", "device_token":"test-token", "device_model_id":"test-model", "user_device_name":"test computer", "version":"1.0", "system_version":"test OS", "sign_key":"test-signing-key", "bootstrap_aes_key":"0123456789ABCDEF", "os_type":1, "package_type":2, "scene":3})
@@ -192,15 +190,24 @@ struct Incoming {
     headers: BTreeMap<String, String>,
 }
 struct Peer {
-    socket: WebSocket<TcpStream>,
+    socket: WebSocketStream<tokio::net::TcpStream>,
+    runtime: tokio::runtime::Runtime,
     key: String,
 }
 impl Peer {
     fn receive(&mut self) -> Option<Incoming> {
-        let data = match self.socket.read().ok()? {
-            Message::Binary(data) => data,
-            _ => return None,
-        };
+        let incoming = self
+            .runtime
+            .block_on(async {
+                tokio::time::timeout(Duration::from_secs(3), self.socket.next())
+                    .await
+                    .ok()?
+            })?
+            .ok()?;
+        if !incoming.is_binary() {
+            return None;
+        }
+        let data = incoming.into_payload();
         let outer = decode(&data).unwrap();
         assert_eq!(int(&outer, 1).unwrap(), 0);
         assert_eq!(int(&outer, 2).unwrap(), 0);
@@ -306,10 +313,12 @@ impl Peer {
             (4, Bytes(&compression)),
             (5, Bytes(&body)),
         ]);
-        self.socket
-            .send(Message::Binary(
-                message(&[(2, Int(request.task)), (4, Bytes(&http))]).into(),
-            ))
+        let response = Message::binary(message(&[(2, Int(request.task)), (4, Bytes(&http))]));
+        self.runtime
+            .block_on(async {
+                tokio::time::timeout(Duration::from_secs(3), self.socket.send(response)).await
+            })
+            .unwrap()
             .unwrap();
     }
     fn calibrate(&mut self) {
@@ -377,10 +386,6 @@ impl Peer {
         self.response(request, 0, &body, &self.key.clone(), true);
     }
 }
-#[allow(
-    clippy::result_large_err,
-    reason = "The server callback error type is fixed by tungstenite"
-)]
 fn fake(run: impl FnOnce(&mut Peer) + Send + 'static) -> (String, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
@@ -396,19 +401,30 @@ fn fake(run: impl FnOnce(&mut Peer) + Send + 'static) -> (String, thread::JoinHa
                 }
             }
         };
-        tcp.set_nonblocking(false).unwrap();
-        tcp.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
-        tcp.set_write_timeout(Some(Duration::from_secs(3))).unwrap();
-        let socket = tungstenite::accept_hdr(tcp, |request: &Request, mut response: Response| {
+        tcp.set_nonblocking(true).unwrap();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let socket = runtime.block_on(async {
+            let tcp = tokio::net::TcpStream::from_std(tcp).unwrap();
+            let builder = ServerBuilder::new()
+                .add_header(
+                    "Sec-WebSocket-Protocol".parse().unwrap(),
+                    "wxws_pb".parse().unwrap(),
+                )
+                .unwrap();
+            let (request, socket) =
+                tokio::time::timeout(Duration::from_secs(3), builder.accept(tcp))
+                    .await
+                    .unwrap()
+                    .unwrap();
             assert_eq!(request.headers()["Sec-WebSocket-Protocol"], "wxws_pb");
-            response
-                .headers_mut()
-                .insert("Sec-WebSocket-Protocol", "wxws_pb".parse().unwrap());
-            Ok(response)
-        })
-        .unwrap();
+            socket
+        });
         run(&mut Peer {
             socket,
+            runtime,
             key: String::new(),
         });
     });
@@ -659,11 +675,7 @@ fn cancellation_during_handshake_and_final_wait_closes_the_socket_promptly() {
         let cancel = pending.canceller();
         ready.recv_timeout(Duration::from_secs(2)).unwrap();
         let start = Instant::now();
-        if stage % 2 == 0 {
-            cancel.cancel();
-        } else {
-            drop(cancel);
-        }
+        cancel.cancel();
         assert_eq!(
             pending
                 .wait(|_| panic!("cancelled update escaped"))
@@ -815,19 +827,26 @@ fn cancellation_interrupts_the_refresh_drain() {
 }
 
 #[test]
-fn cancellation_during_dns_leaves_no_worker_or_resolver_thread() {
-    let dns = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
-    dns.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+fn cancellation_during_dns_abandons_the_lookup_without_waiting_for_it() {
+    let (started, lookup_started) = mpsc::channel();
+    let (release, lookup_released) = mpsc::channel();
+    let (finished, lookup_finished) = mpsc::channel();
     let endpoint = crate::network::Endpoint {
-        url: "ws://speech.example.com".into(),
-        dns: Some(dns.local_addr().unwrap()),
+        url: "ws://speech.example.invalid".into(),
+        lookup: Some(Box::new(move || {
+            started.send(()).unwrap();
+            lookup_released
+                .recv_timeout(Duration::from_secs(3))
+                .unwrap();
+            finished.send(()).unwrap();
+            Ok(Vec::new())
+        })),
     };
     let mut session = Session::local(config(), Options::default(), endpoint);
     let worker = session.worker();
     let pending = session.finish();
     let cancel = pending.canceller();
-    // A real DNS request is in flight; the local resolver never answers it.
-    assert!(dns.recv_from(&mut [0; 4096]).unwrap().0 > 0);
+    lookup_started.recv_timeout(Duration::from_secs(2)).unwrap();
     let start = Instant::now();
     cancel.cancel();
     assert_eq!(
@@ -837,8 +856,15 @@ fn cancellation_during_dns_leaves_no_worker_or_resolver_thread() {
     while !worker.is_finished() && start.elapsed() < Duration::from_millis(500) {
         thread::sleep(Duration::from_millis(5));
     }
-    assert!(worker.is_finished());
+    let stopped = worker.is_finished();
+    // The system lookup is allowed to outlive the cancelled session, then
+    // discard its reply when it finishes. Unblock the fake even if the test fails.
+    release.send(()).unwrap();
+    assert!(stopped);
     worker.join().unwrap();
+    lookup_finished
+        .recv_timeout(Duration::from_millis(500))
+        .unwrap();
 }
 
 #[test]
@@ -923,5 +949,52 @@ fn independent_canceller_stops_whole_clip_during_upload() {
         Failure::Internal("cancelled".into())
     );
     caller.join().unwrap();
+    server.join().unwrap();
+}
+
+#[test]
+fn dropping_canceller_clones_leaves_linked_work_running() {
+    let (sent, uploaded) = mpsc::channel();
+    let (release, released) = mpsc::channel();
+    let (endpoint, server) = fake(move |peer| {
+        peer.handshake();
+        let request = peer.receive().unwrap();
+        sent.send(()).unwrap();
+        released.recv_timeout(Duration::from_secs(2)).unwrap();
+        peer.speech(&request, "raw example", "final example", true, 0, 0);
+    });
+    // Resolve localhost through the system resolver and drop a clone while
+    // whole-clip transcription is already waiting for the service's response.
+    let endpoint = endpoint.replace("127.0.0.1", "localhost");
+    let cancel = crate::Canceller::new();
+    let linked = cancel.clone();
+    let caller = thread::spawn(move || {
+        crate::session::transcribe_to(
+            config(),
+            Options::default(),
+            &[0.1; 320],
+            Some(&linked),
+            |_| {},
+            Some(endpoint.into()),
+        )
+    });
+    uploaded.recv_timeout(Duration::from_secs(2)).unwrap();
+    drop(cancel.clone());
+    release.send(()).unwrap();
+    assert_eq!(caller.join().unwrap().unwrap(), "final example");
+    server.join().unwrap();
+
+    let (endpoint, server) = fake(|peer| {
+        peer.handshake();
+        let request = peer.receive().unwrap();
+        peer.speech(&request, "raw example", "final example", true, 0, 0);
+    });
+    let mut session = local(endpoint, Options::default());
+    session.feed(&[0.1; 320]);
+    let pending = session.finish();
+    let cancel = pending.canceller();
+    drop(cancel.clone());
+    drop(cancel);
+    assert_eq!(pending.wait(|_| {}).unwrap(), "final example");
     server.join().unwrap();
 }
