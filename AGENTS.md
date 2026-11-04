@@ -809,7 +809,7 @@ CoreAudio formats, AppleScript details, or event serialization.
   Local. Keyboard-language switching applies only while Local is in effect.
 - Import is consent to send audio. Store only validated durable fields in
   `<support>/mouse-voice.json` (0600; folder 0700), through `app_paths` and
-  `durable`; imports are bounded and reject symlinks in any path component.
+  `durable`; imports are bounded and refuse a file that is itself a symlink.
   Only explicit discovery reads `~/Library/Application Support/MouseVoice/context.json` No automatic import,
   identity creation, keychain access, or other-app scan. Rejected credentials
   mark setup Broken in memory immediately; the finishing job persists that

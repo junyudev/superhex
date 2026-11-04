@@ -998,3 +998,50 @@ fn dropping_canceller_clones_leaves_linked_work_running() {
     assert_eq!(pending.wait(|_| {}).unwrap(), "final example");
     server.join().unwrap();
 }
+
+#[test]
+fn a_retry_linked_to_a_failed_session_really_runs_and_can_still_be_cancelled() {
+    // Nothing listens here, so the streamed session fails as a connection.
+    let closed = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = closed.local_addr().unwrap();
+    drop(closed);
+    let pending = local(format!("ws://{address}"), Options::default()).finish();
+    let cancel = pending.canceller();
+    let failed = pending.wait(|_| {}).unwrap_err();
+    assert!(
+        matches!(failed.failure, Failure::Connection(_)),
+        "{failed:?}"
+    );
+
+    // The retry reaches a working service through the same canceller.
+    let (endpoint, server) = fake(|peer| {
+        peer.handshake();
+        let request = peer.receive().unwrap();
+        peer.speech(&request, "raw example", "final example", true, 0, 0);
+    });
+    let retried = crate::session::transcribe_to(
+        config(),
+        Options::default(),
+        &[0.1; 320],
+        Some(&cancel),
+        |_| {},
+        Some(endpoint.into()),
+    );
+    assert_eq!(retried.unwrap(), "final example");
+    server.join().unwrap();
+
+    // Cancelling it afterwards still stops linked work at once.
+    cancel.cancel();
+    let cancelled = crate::session::transcribe_to(
+        config(),
+        Options::default(),
+        &[0.1; 320],
+        Some(&cancel),
+        |_| {},
+        Some(format!("ws://{address}").into()),
+    );
+    assert_eq!(
+        cancelled.unwrap_err().failure,
+        Failure::Internal("cancelled".into())
+    );
+}

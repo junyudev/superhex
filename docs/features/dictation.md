@@ -826,7 +826,7 @@ macOS dictation backend                    // dictate.mouse-voice
 └── Otherwise -> selected local model, with the existing local stream/fallback
 
 Explicit configuration import              // dictate.mouse-voice-setup
-├── Validate bounded regular file, no symlinks -> durable fields only
+├── Validate bounded regular file, not itself a symlink -> durable fields only
 │   ├── <support>/mouse-voice.json: 0600; parent: 0700
 │   └── Copy voice options into settings once; leave source alone
 ├── Explicit discovery only -> MouseVoice/context.json

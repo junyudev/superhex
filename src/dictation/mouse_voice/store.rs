@@ -133,12 +133,12 @@ impl Store {
     }
 }
 
-/// Open no symlink in any path component, and refuse devices/FIFOs before
-/// reading. The extra byte bounds a file that grows after its metadata read.
+/// Refuse a symlink as the file itself, and devices/FIFOs, before reading.
+/// Folders on the way may be links: macOS's own `/tmp` and `/var` are. The extra byte bounds a file that grows after its metadata read.
 pub(super) fn read_config(path: &Path) -> Result<(Config, bool), String> {
     let file = OpenOptions::new()
         .read(true)
-        .custom_flags(libc::O_NOFOLLOW_ANY | libc::O_NONBLOCK)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
         .open(path)
         .map_err(|_| "Could not open a regular configuration file")?;
     let metadata = file
@@ -207,7 +207,7 @@ mod tests {
         fs::remove_dir_all(dir).unwrap();
     }
     #[test]
-    fn configurations_and_their_parent_paths_cannot_be_symlinks() {
+    fn a_configuration_cannot_be_a_symlink_but_its_folders_may_be() {
         let dir = directory();
         let regular = dir.join("regular.json");
         fs::write(&regular, b"{}").unwrap();
@@ -219,7 +219,13 @@ mod tests {
         );
         let folder_link = dir.with_extension("link");
         symlink(&dir, &folder_link).unwrap();
-        assert!(read_config(&folder_link.join("regular.json")).is_err());
+        // Opened through the linked folder; only its contents are refused.
+        assert_ne!(
+            read_config(&folder_link.join("regular.json"))
+                .err()
+                .unwrap(),
+            "Could not open a regular configuration file"
+        );
         assert!(matches!(
             Store::load(link.clone()).setup,
             Setup::Broken { .. }

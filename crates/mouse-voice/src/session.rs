@@ -284,11 +284,14 @@ impl Pending {
                 heard: String::new(),
             });
         };
-        // If the callback unwinds, the worker is still cancelled.
+        // If the callback unwinds, the worker is still cancelled. A normal return
+        // cancels nothing: a caller's retry may be linked to this canceller.
         struct CancelOnDrop(Arc<Control>);
         impl Drop for CancelOnDrop {
             fn drop(&mut self) {
-                self.0.cancel();
+                if std::thread::panicking() {
+                    self.0.cancel();
+                }
             }
         }
         let _guard = CancelOnDrop(inner.control.clone());
