@@ -1,0 +1,62 @@
+crates/voice-buddy/src/config.rs
+  s_46c0804192cf07::t_a2604872ee6de2 1-2,4,19-50,57-63
+  s_46c0804192cf07::t_f9e272725ef299 51-56
+  s_46c0804192cf07::t_0426dfd6ec0f45 64
+crates/voice-buddy/src/session.rs
+  s_46c0804192cf07::t_a2604872ee6de2 89,389-394,405-419
+  s_46c0804192cf07::t_f9e272725ef299 395-404
+crates/voice-buddy/README.md
+  s_46c0804192cf07::t_dc816da554219e 3-4,15-23,34-36,38-39,56-82,104-109,136-144
+  s_46c0804192cf07::t_6eb5fd6ad26a96 24,92,145-149
+  s_34aad1862a6748::t_e84ba287254fd2 150
+crates/voice-buddy/src/tests.rs
+  s_46c0804192cf07::t_a19f3973dc24a9 640-646
+  s_46c0804192cf07::t_2934dc94869c3c 196-201,251-261,280,287,353-355,372-374,380-384,387,395-396,406-414,419-434,440,469-474,514,519-533,539-557,565-586,594-622,660-673,679-682,690,699-704,708-710,715-718
+  s_46c0804192cf07::t_f9e272725ef299 366-371,375-379,401-405,415-418,435-439,534-538,558-564,587-593,674-677,692-698,705-707,711-714
+  s_46c0804192cf07::t_7fe8a6f0b61d1c 389,398
+  s_46c0804192cf07::t_1b7b10b5867df9 623-639,647-659,678,683-689,691
+crates/voice-buddy/src/lib.rs
+  s_46c0804192cf07::t_a2604872ee6de2 10-11,122,177-181
+  s_46c0804192cf07::t_eccda240611c5c 182-183
+crates/voice-buddy/examples/live.rs
+  s_46c0804192cf07::t_143d4325ea8c5b 21-38
+crates/voice-buddy/src/network.rs
+  s_46c0804192cf07::t_143d4325ea8c5b 53,57,60-63,121-123,131-135,139,141,163-179,181-207,211-216,272-275,563,566,588,601-617,620,633,636,711
+  s_46c0804192cf07::t_1b7b10b5867df9 180,369-370,697-710
+  s_46c0804192cf07::t_f9e272725ef299 208-210
+  s_b6c984883307b1::t_58a24cbd143a87 371
+Cargo.lock
+  s_46c0804192cf07::t_644e40e485e090 2035,6386-6409
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aa63b6b49630b812607e202039b745f6f0069ba5",
+  "prompts": {},
+  "sessions": {
+    "s_34aad1862a6748": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a700-341c-7fe3-a34e-b82454e08eb3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    },
+    "s_46c0804192cf07": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a70f-0ad2-7d12-9749-550a34e2c8d5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    },
+    "s_b6c984883307b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2dc6247d-3cd5-4c0f-8a1e-4811850a8588",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
