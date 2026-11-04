@@ -1,6 +1,8 @@
 #[cfg(target_os = "macos")]
 pub(crate) mod audio;
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub(crate) mod backend;
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) mod browser_page;
 #[cfg(target_os = "macos")]
 pub(crate) mod config;
@@ -13,6 +15,8 @@ pub(crate) mod indicator;
 pub(crate) mod live_text;
 #[cfg_attr(target_os = "macos", allow(dead_code))]
 pub(crate) mod modes;
+#[cfg(target_os = "macos")]
+pub(crate) mod mouse_voice;
 #[cfg_attr(any(target_os = "linux", target_os = "windows"), allow(dead_code))]
 pub(crate) mod processor;
 pub(crate) mod service;

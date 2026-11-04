@@ -251,6 +251,10 @@ pub struct AppSettings {
     pub double_tap_lock: bool,
     pub double_tap_only: bool,
     pub shortcut_mode: crate::dictation::ShortcutMode,
+    /// Who turns dictation into text: MouseVoice by default on macOS, or the
+    /// model in `transcription`, which meetings and captures always use.
+    pub dictation_backend: crate::dictation::backend::DictationBackend,
+    pub mouse_voice: crate::dictation::backend::MouseVoicePreferences,
     pub dictation_hotkey: HotkeyBinding,
     /// Retired Voice Action shortcut, kept untouched in `settings.json`.
     #[serde(
@@ -396,6 +400,8 @@ impl Default for AppSettings {
             double_tap_lock: true,
             double_tap_only: false,
             shortcut_mode: crate::dictation::ShortcutMode::Hold,
+            dictation_backend: Default::default(),
+            mouse_voice: Default::default(),
             dictation_hotkey: HotkeyBinding::default(),
             retired_edit_hotkey: None,
             paste_last_hotkey: Some(HotkeyBinding::paste_last_default()),

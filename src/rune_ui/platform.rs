@@ -62,6 +62,8 @@ pub(super) struct Capabilities {
     /// Input-source changes can operate the installed-model picker (macOS,
     /// Windows, and Linux on X11; Wayland has no general layout protocol).
     pub(super) keyboard_model_switching: bool,
+    /// Dictation can go through the MouseVoice speech service (macOS).
+    pub(super) mouse_voice: bool,
 }
 
 impl Capabilities {
@@ -80,6 +82,7 @@ impl Capabilities {
         fun: true,
         modifier_sides: false,
         keyboard_model_switching: true,
+        mouse_voice: false,
     };
 
     pub(super) const MACOS: Self = Self {
@@ -97,6 +100,7 @@ impl Capabilities {
         fun: true,
         modifier_sides: true,
         keyboard_model_switching: true,
+        mouse_voice: true,
     };
 
     pub(super) const WINDOWS: Self = Self {
@@ -114,6 +118,7 @@ impl Capabilities {
         fun: false,
         modifier_sides: true,
         keyboard_model_switching: true,
+        mouse_voice: false,
     };
 
     /// This OS's capabilities, with the rows its window host decides.
@@ -807,6 +812,10 @@ impl Difference {
 #[cfg(test)]
 const DIFFERENCES: &[(&str, Difference)] = &[
     (
+        "mouse_voice",
+        Difference::Pending("the speech client is only wired into macOS's capture loop"),
+    ),
+    (
         "calendar",
         Difference::OsPattern("EventKit; there is no cross-platform calendar source"),
     ),
@@ -849,7 +858,7 @@ const DIFFERENCES: &[(&str, Difference)] = &[
 impl Capabilities {
     /// Every capability by name. Destructuring makes a new capability a
     /// compile error here until it is named.
-    pub(super) fn fields(self) -> [(&'static str, bool); 13] {
+    pub(super) fn fields(self) -> [(&'static str, bool); 14] {
         let Self {
             os: _,
             meetings,
@@ -865,6 +874,7 @@ impl Capabilities {
             fun,
             modifier_sides,
             keyboard_model_switching,
+            mouse_voice,
         } = self;
         [
             ("meetings", meetings),
@@ -880,6 +890,7 @@ impl Capabilities {
             ("fun", fun),
             ("modifier_sides", modifier_sides),
             ("keyboard_model_switching", keyboard_model_switching),
+            ("mouse_voice", mouse_voice),
         ]
     }
 }
