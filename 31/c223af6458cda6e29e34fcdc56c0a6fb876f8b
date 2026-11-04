@@ -1,0 +1,38 @@
+crates/mouse-voice/src/lib.rs
+  s_eaf24bb7841bbf::t_8f49e22f5e7a6c 1-237
+.gitignore
+  s_eaf24bb7841bbf::t_de0c5f45ff5f6a 2
+scripts/check
+  s_eaf24bb7841bbf::t_e688d849038b55 11-13,21
+Cargo.toml
+  s_eaf24bb7841bbf::t_17d934270a1425 137-139
+  s_eaf24bb7841bbf::t_e688d849038b55 14-16,19,86
+crates/mouse-voice/Cargo.toml
+  s_eaf24bb7841bbf::t_29e6a4e2a33423 1-12
+Cargo.lock
+  s_c709cab53bd58e::t_6ccaa4164d8f0d 1944,2634-2637
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31c223af6458cda6e29e34fcdc56c0a6fb876f8b",
+  "prompts": {},
+  "sessions": {
+    "s_c709cab53bd58e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a63d-3057-7013-94d3-655a991c69e9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    },
+    "s_eaf24bb7841bbf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e8fb7ff1-d8c5-4052-b6df-2d0682da4efe",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
