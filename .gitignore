@@ -1,4 +1,5 @@
 /target
+/.agents/worktrees/
 /.venv
 /logs
 /perf/transcription-corpus

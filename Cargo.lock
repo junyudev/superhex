@@ -1941,6 +1941,7 @@ dependencies = [
  "getrandom 0.4.3",
  "hound",
  "libc",
+ "mouse-voice",
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-core-audio",
@@ -2629,6 +2630,10 @@ dependencies = [
  "wasi",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "mouse-voice"
+version = "0.1.0"
 
 [[package]]
 name = "moxcms"
