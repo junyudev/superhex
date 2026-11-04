@@ -1,0 +1,19 @@
+docs/features/branding.md
+  s_adfc31adb39091::t_4c2d045ae608b3 46-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ccb8cb1f633578fb4ddaa2f5745a5d5e03ac4151",
+  "prompts": {},
+  "sessions": {
+    "s_adfc31adb39091": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a739-c97b-7291-896e-5bea63f44f88",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Jun Yu <junyu.dev@gmail.com>"
+    }
+  }
+}
