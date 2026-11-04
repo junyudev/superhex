@@ -1991,7 +1991,6 @@ dependencies = [
  "getrandom 0.4.3",
  "hound",
  "libc",
- "voice-buddy",
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-core-audio",
@@ -2033,6 +2032,7 @@ dependencies = [
  "unicode-segmentation",
  "ureq",
  "url",
+ "voice-buddy",
  "wayland-client",
  "wayland-protocols",
  "wayland-protocols-wlr",
@@ -2699,30 +2699,6 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "voice-buddy"
-version = "0.1.0"
-dependencies = [
- "aes",
- "crossbeam-queue",
- "crypto-bigint",
- "ecb",
- "futures-util",
- "getrandom 0.4.3",
- "hex 0.4.3",
- "md-5",
- "opus",
- "serde_json",
- "sha2 0.10.9",
- "snap",
- "subtle",
- "tokio",
- "tokio-websockets",
- "tracing",
- "url",
- "zeroize",
 ]
 
 [[package]]
@@ -6405,6 +6381,30 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "voice-buddy"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "crossbeam-queue",
+ "crypto-bigint",
+ "ecb",
+ "futures-util",
+ "getrandom 0.4.3",
+ "hex 0.4.3",
+ "md-5",
+ "opus",
+ "serde_json",
+ "sha2 0.10.9",
+ "snap",
+ "subtle",
+ "tokio",
+ "tokio-websockets",
+ "tracing",
+ "url",
+ "zeroize",
 ]
 
 [[package]]

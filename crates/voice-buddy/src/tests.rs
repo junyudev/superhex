@@ -193,6 +193,12 @@ struct Peer {
     socket: WebSocketStream<tokio::net::TcpStream>,
     runtime: tokio::runtime::Runtime,
     key: String,
+    config: Arc<Config>,
+}
+struct Exchange {
+    client_public: String,
+    server_public: String,
+    device_code: String,
 }
 impl Peer {
     fn receive(&mut self) -> Option<Incoming> {
@@ -242,6 +248,17 @@ impl Peer {
                 "Kb-TraceId",
                 "Kb-TaskId",
             ]
+        } else if path == "/gen_uin_v2" {
+            &[
+                "Kb-OsType",
+                "Kb-Version",
+                "Kb-Scene",
+                "Kb-TimeStamp",
+                "Kb-BodyMd5",
+                "Kb-GenUinToken",
+                "Kb-TraceId",
+                "Kb-TaskId",
+            ]
         } else {
             &[
                 "Kb-OsType",
@@ -260,14 +277,14 @@ impl Peer {
         for &name in signed_fields {
             signed.push_str(&headers[name]);
         }
-        signed.push_str("test-signing-key");
+        signed.push_str(self.config.text("sign_key"));
         assert_eq!(
             headers["Kb-Sign"],
             hex::encode_upper(Sha256::digest(signed.as_bytes()))
         );
         let key = match path.as_str() {
             "/timestamp" => "",
-            "/oauth_pubkey_v2" => "0123456789ABCDEF",
+            "/oauth_pubkey_v2" => self.config.text("bootstrap_aes_key"),
             _ => &self.key,
         };
         let mut body = if key.is_empty() {
@@ -333,6 +350,9 @@ impl Peer {
         );
     }
     fn handshake(&mut self) -> String {
+        self.handshake_for(42, false, b"").client_public
+    }
+    fn handshake_for(&mut self, uin: u64, need_gen_uin: bool, token: &[u8]) -> Exchange {
         self.calibrate();
         let request = self.receive().unwrap();
         assert_eq!(request.path, "/oauth_pubkey_v2");
@@ -343,22 +363,81 @@ impl Peer {
                 .iter()
                 .any(|(n, v)| *n == 2 && matches!(v,Bytes(b) if b.is_empty()))
         );
-        assert!(fields.iter().any(|(n, v)| *n == 3 && matches!(v, Int(0))));
-        assert_eq!(int(&fields, 5).unwrap(), 42);
+        assert!(
+            fields
+                .iter()
+                .any(|(n, v)| *n == 3
+                    && matches!(v, Int(value) if *value == u64::from(need_gen_uin)))
+        );
+        assert!(request.headers["Kb-Uin"] == uin.to_string());
+        if uin == 0 {
+            assert!(!fields.iter().any(|(n, _)| *n == 5));
+            assert!(
+                fields
+                    .iter()
+                    .any(|(n, v)| *n == 6 && matches!(v, Bytes(b) if b.is_empty()))
+            );
+        } else {
+            assert!(int(&fields, 5).unwrap() == uin);
+            assert!(!fields.iter().any(|(n, _)| *n == 6));
+        }
+        let device_code = text(&fields, 4).unwrap().to_owned();
         let client = text(&fields, 1).unwrap().to_owned();
         let private = crypto::KeyExchange::new().unwrap();
+        let server_public = private.public().unwrap();
         self.key = private.shared(&client).unwrap().to_string();
+        let bootstrap_key = self.config.text("bootstrap_aes_key").to_owned();
         self.response(
             &request,
             0,
             &message(&[
                 (1, Int(0)),
-                (2, Bytes(private.public().unwrap().as_bytes())),
+                (2, Bytes(server_public.as_bytes())),
+                (4, Bytes(token)),
             ]),
-            "0123456789ABCDEF",
+            &bootstrap_key,
             false,
         );
-        client
+        Exchange {
+            client_public: client,
+            server_public,
+            device_code,
+        }
+    }
+    fn registration(&mut self) -> Incoming {
+        let exchange = self.handshake_for(0, true, b"test-registration-token");
+        let request = self.receive().unwrap();
+        assert_eq!(request.path, "/gen_uin_v2");
+        assert_eq!(request.task, 2_147_483_645);
+        assert_eq!(request.headers["Kb-GenUinToken"], "test-registration-token");
+        assert_eq!(request.headers["Kb-CompressionType"], "1");
+        assert_eq!(request.headers["Kb-CmdId"], "0");
+        assert_eq!(
+            request.headers["Kb-SharedKeySuffix"],
+            &self.key[self.key.len() - 4..]
+        );
+        let fields = decode(&request.body).unwrap();
+        assert!(text(&fields, 1).unwrap() == exchange.device_code);
+        assert!(text(&fields, 2).unwrap() == exchange.server_public);
+        assert!(!fields.iter().any(|(n, _)| *n == 3));
+        let uuid = text(&fields, 4).unwrap();
+        assert!(uuid.len() == 36);
+        assert!(uuid.as_bytes()[14] == b'4');
+        assert!(matches!(uuid.as_bytes()[19], b'8' | b'9' | b'A' | b'B'));
+        for (index, byte) in uuid.bytes().enumerate() {
+            let valid = if [8, 13, 18, 23].contains(&index) {
+                byte == b'-'
+            } else {
+                byte.is_ascii_digit() || (b'A'..=b'F').contains(&byte)
+            };
+            assert!(valid);
+        }
+        assert!(
+            fields
+                .iter()
+                .any(|(n, v)| *n == 5 && matches!(v, Bytes(b) if b.is_empty()))
+        );
+        request
     }
     fn speech(
         &mut self,
@@ -387,6 +466,12 @@ impl Peer {
     }
 }
 fn fake(run: impl FnOnce(&mut Peer) + Send + 'static) -> (String, thread::JoinHandle<()>) {
+    fake_with_config(config(), run)
+}
+fn fake_with_config(
+    config: Arc<Config>,
+    run: impl FnOnce(&mut Peer) + Send + 'static,
+) -> (String, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
     let handle = thread::spawn(move || {
@@ -426,9 +511,210 @@ fn fake(run: impl FnOnce(&mut Peer) + Send + 'static) -> (String, thread::JoinHa
             socket,
             runtime,
             key: String::new(),
+            config,
         });
     });
     (format!("ws://{address}"), handle)
+}
+fn registration_fake(
+    run: impl FnOnce(&mut Peer) + Send + 'static,
+) -> (String, thread::JoinHandle<()>) {
+    fake_with_config(Arc::new(crate::config::new_configuration().unwrap()), run)
+}
+
+#[test]
+fn new_installations_have_independent_random_device_bindings() {
+    let first = crate::config::new_configuration().unwrap();
+    let second = crate::config::new_configuration().unwrap();
+    assert!(first.text("device_code") != second.text("device_code"));
+    for config in [first, second] {
+        let device = config.text("device_code");
+        assert!(device.len() == 64);
+        assert!(device.starts_with("MAC"));
+        assert!(
+            device[3..32]
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        );
+        let mut binding = Md5::new();
+        binding.update(&device[..32]);
+        binding.update(config.text("sign_key"));
+        assert!(device[32..] == hex::encode_upper(binding.finalize()));
+        assert!(config.number("uin") == 0);
+        assert!(Config::parse(&config.to_json()).is_err());
+        assert_eq!(config.text("system_version"), "15.6.1");
+        assert_eq!(config.text("device_model_id"), "Mac14,3");
+        assert_eq!(format!("{config:?}"), "Config(redacted)");
+    }
+}
+
+#[test]
+fn registration_validates_the_new_identity_with_a_second_fresh_handshake() {
+    let (sent, received) = mpsc::channel();
+    let (endpoint, server) = registration_fake(move |peer| {
+        let request = peer.registration();
+        let device = text(&decode(&request.body).unwrap(), 1).unwrap().to_owned();
+        let old_key = peer.key.clone();
+        peer.response(
+            &request,
+            0,
+            &message(&[(2, Int(u64::MAX))]),
+            &old_key,
+            false,
+        );
+        let checked = peer.handshake_for(u64::MAX, false, b"");
+        assert!(peer.key != old_key);
+        assert!(checked.device_code == device);
+        sent.send(device).unwrap();
+    });
+    let config = crate::session::register_to(None, Some(endpoint.into())).unwrap();
+    assert!(config.number("uin") == u64::MAX);
+    assert!(config.text("device_code") == received.recv_timeout(Duration::from_secs(1)).unwrap());
+    let parsed = Config::parse(&config.to_json()).unwrap();
+    assert!(parsed.number("uin") == u64::MAX);
+    assert_eq!(parsed.options(), Options::default());
+    assert!(config.durable.get("gen_uin_token").is_none());
+    assert!(config.durable.get("server_public_key").is_none());
+    server.join().unwrap();
+}
+
+#[test]
+fn registration_business_refusals_are_not_retryable() {
+    for envelope_error in [false, true] {
+        let (endpoint, server) = registration_fake(move |peer| {
+            let request = peer.registration();
+            let code = if envelope_error { 403 } else { 0 };
+            peer.response(
+                &request,
+                code,
+                &message(&[(1, Int(403))]),
+                &peer.key.clone(),
+                false,
+            );
+            assert!(peer.receive().is_none());
+        });
+        let error = crate::session::register_to(None, Some(endpoint.into())).unwrap_err();
+        assert_eq!(error, Failure::Rejected(403));
+        assert!(!error.retryable());
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn registration_rejects_missing_zero_and_invalid_identities() {
+    for body in [
+        message(&[]),
+        message(&[(2, Int(0))]),
+        message(&[(2, Bytes(b"42"))]),
+        [vec![16], vec![255; 10]].concat(),
+    ] {
+        let (endpoint, server) = registration_fake(move |peer| {
+            let request = peer.registration();
+            peer.response(&request, 0, &body, &peer.key.clone(), false);
+            assert!(peer.receive().is_none());
+        });
+        let error = crate::session::register_to(None, Some(endpoint.into())).unwrap_err();
+        assert!(matches!(error, Failure::Internal(_)));
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn registration_requires_a_valid_token_before_sending_identity_creation() {
+    for token in [b"".as_slice(), b"\xff", b"\xc3\xa9", b"bad\nheader"] {
+        let (endpoint, server) = registration_fake(move |peer| {
+            peer.handshake_for(0, true, token);
+            assert!(peer.receive().is_none());
+        });
+        let error = crate::session::register_to(None, Some(endpoint.into())).unwrap_err();
+        assert!(matches!(error, Failure::Internal(_)));
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn registration_does_not_return_an_identity_that_fails_confirmation() {
+    for failure in [message(&[(1, Int(403))]), message(&[(5, Int(1))])] {
+        let (endpoint, server) = registration_fake(move |peer| {
+            let request = peer.registration();
+            peer.response(
+                &request,
+                0,
+                &message(&[(2, Int(42))]),
+                &peer.key.clone(),
+                false,
+            );
+            peer.calibrate();
+            let confirmation = peer.receive().unwrap();
+            assert_eq!(confirmation.path, "/oauth_pubkey_v2");
+            let key = peer.config.text("bootstrap_aes_key").to_owned();
+            peer.response(&confirmation, 0, &failure, &key, false);
+        });
+        let error = crate::session::register_to(None, Some(endpoint.into())).unwrap_err();
+        assert!(matches!(error, Failure::Rejected(_)));
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn registration_transport_failures_remain_retryable() {
+    let (endpoint, server) = registration_fake(|peer| {
+        peer.registration();
+    });
+    let error = crate::session::register_to(None, Some(endpoint.into())).unwrap_err();
+    assert!(matches!(error, Failure::Connection(_)));
+    assert!(error.retryable());
+    server.join().unwrap();
+}
+
+#[test]
+fn cancellation_interrupts_registration_and_identity_confirmation() {
+    let cancelled = crate::Canceller::new();
+    cancelled.cancel();
+    assert_eq!(
+        crate::register(Some(&cancelled)).unwrap_err(),
+        Failure::Internal("cancelled".into())
+    );
+    for stage in 0..3 {
+        let (sent, received) = mpsc::channel();
+        let cancel = crate::Canceller::new();
+        let worker_cancel = cancel.clone();
+        let (endpoint, server) = registration_fake(move |peer| {
+            if stage == 0 {
+                peer.calibrate();
+                assert_eq!(peer.receive().unwrap().path, "/oauth_pubkey_v2");
+                sent.send(()).unwrap();
+                assert!(peer.receive().is_none());
+                return;
+            }
+            let request = peer.registration();
+            if stage == 2 {
+                peer.response(
+                    &request,
+                    0,
+                    &message(&[(2, Int(42))]),
+                    &peer.key.clone(),
+                    false,
+                );
+                peer.calibrate();
+                assert_eq!(peer.receive().unwrap().path, "/oauth_pubkey_v2");
+            }
+            sent.send(()).unwrap();
+            assert!(peer.receive().is_none());
+        });
+        let worker = thread::spawn(move || {
+            crate::session::register_to(Some(&worker_cancel), Some(endpoint.into()))
+        });
+        received.recv_timeout(Duration::from_secs(2)).unwrap();
+        let started = Instant::now();
+        cancel.cancel();
+        assert_eq!(
+            worker.join().unwrap().unwrap_err(),
+            Failure::Internal("cancelled".into())
+        );
+        assert!(started.elapsed() < Duration::from_millis(500));
+        server.join().unwrap();
+    }
 }
 fn voice(request: &Incoming) -> wire::Fields<'_> {
     decode(bytes(&decode(&request.body).unwrap(), 1).unwrap()).unwrap()

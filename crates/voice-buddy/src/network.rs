@@ -50,11 +50,16 @@ impl From<String> for Endpoint {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 enum Mode {
     Ordinary,
     Dh,
+    GenUin(Zeroizing<String>),
     Timestamp,
+}
+pub(crate) struct Handshake {
+    server_public_key: String,
+    gen_uin_token: Zeroizing<Vec<u8>>,
 }
 struct Request {
     body: Vec<u8>,
@@ -113,6 +118,9 @@ impl Network {
         self.pending.values().filter(|r| r.poll).count()
     }
     pub async fn handshake(&mut self) -> Result<(), Failure> {
+        self.handshake_with(false).await.map(|_| ())
+    }
+    pub async fn handshake_with(&mut self, need_gen_uin: bool) -> Result<Handshake, Failure> {
         if !self.pending.is_empty() {
             return Err(Failure::Internal("undrained handshake".into()));
         }
@@ -120,12 +128,17 @@ impl Network {
         let private = crypto::KeyExchange::new()?;
         let public = private.public()?;
         let cfg = &self.config;
+        let identity = if cfg.number("uin") != 0 {
+            (5, Int(cfg.number("uin")))
+        } else {
+            (6, Bytes(b""))
+        };
         let body = message(&[
             (1, Bytes(public.as_bytes())),
             (2, Bytes(b"")),
-            (3, Int(0)),
+            (3, Int(u64::from(need_gen_uin))),
             (4, Bytes(cfg.text("device_code").as_bytes())),
-            (5, Int(cfg.number("uin"))),
+            identity,
             (7, Bytes(cfg.text("device_token").as_bytes())),
             (8, Bytes(cfg.text("device_model_id").as_bytes())),
             (9, Bytes(cfg.text("user_device_name").as_bytes())),
@@ -147,8 +160,60 @@ impl Network {
         if int(&fields, 5)? != 0 {
             return Err(Failure::Rejected(-1));
         }
-        self.key = private.shared(text(&fields, 2)?)?;
-        Ok(())
+        let server_public_key = text(&fields, 2)?.to_owned();
+        self.key = private.shared(&server_public_key)?;
+        Ok(Handshake {
+            server_public_key,
+            gen_uin_token: Zeroizing::new(bytes(&fields, 4)?.to_vec()),
+        })
+    }
+    pub async fn register(&mut self, handshake: Handshake) -> Result<Config, Failure> {
+        let token = std::str::from_utf8(&handshake.gen_uin_token).map_err(|_| malformed())?;
+        if self.key.is_empty()
+            || token.is_empty()
+            || token.len() > 16_384
+            || !token.is_ascii()
+            || token.bytes().any(|b| b.is_ascii_control())
+        {
+            return Err(malformed());
+        }
+        let uuid = initialization_uuid()?;
+        let cfg = &self.config;
+        let mut fields = vec![
+            (1, Bytes(cfg.text("device_code").as_bytes())),
+            (2, Bytes(handshake.server_public_key.as_bytes())),
+        ];
+        if cfg.number("uin") != 0 {
+            fields.push((3, Int(cfg.number("uin"))));
+        }
+        fields.extend([
+            (4, Bytes(uuid.as_bytes())),
+            (5, Bytes(cfg.text("device_token").as_bytes())),
+        ]);
+        let request = Request {
+            body: message(&fields),
+            key: self.key.clone(),
+            mode: Mode::GenUin(Zeroizing::new(token.into())),
+            attempt: 0,
+            poll: false,
+        };
+        let body = self.request(request).await?;
+        let fields = decode(&body)?;
+        let code = int(&fields, 1)? as i64;
+        if code != 0 {
+            return Err(Failure::Rejected(code));
+        }
+        let uin = int(&fields, 2)?;
+        if uin == 0 {
+            return Err(Failure::Internal(
+                "registration returned an invalid identity".into(),
+            ));
+        }
+        let mut config = (*self.config).clone();
+        config.durable.insert("uin".into(), uin.into());
+        let config = Config::parse(&config.to_json()).map_err(|_| malformed())?;
+        self.config = Arc::new(config.clone());
+        Ok(config)
     }
     async fn calibrate(&mut self) -> Result<(), Failure> {
         let body = self
@@ -204,10 +269,10 @@ impl Network {
             return Err(Failure::Internal("service request buffer full".into()));
         }
         self.counter += 1;
-        let task = if request.mode == Mode::Dh {
-            2_147_483_646
-        } else {
-            self.counter
+        let task = match &request.mode {
+            Mode::Dh => 2_147_483_646,
+            Mode::GenUin(_) => 2_147_483_645,
+            _ => self.counter,
         };
         let envelope = encode_request(&self.config, &request, task, self.timestamp())?;
         timeout(REQUEST_TIMEOUT, self.socket.send(Message::binary(envelope)))
@@ -300,6 +365,9 @@ impl Network {
             }
             if headers.contains_key("kb-noretry") {
                 code = -503;
+            }
+            if code != 0 && status == 200 && matches!(request.mode, Mode::GenUin(_)) {
+                return Err(Failure::Rejected(code));
             }
             if code != 0 {
                 return Ok((task, Response::Error(code, request)));
@@ -492,10 +560,10 @@ fn encode_request(
         ("Content-Length", body.len().to_string()),
         ("HOST", cfg.host().into()),
     ]);
-    let fields = if request.mode == Mode::Dh {
+    let fields: &[&str] = if request.mode == Mode::Dh {
         // The evolved client omits CmdId for DH, but still signs SubCmdId nowhere.
         values.remove("Kb-CmdId");
-        vec![
+        &[
             "Kb-OsType",
             "Kb-Version",
             "Kb-Scene",
@@ -517,7 +585,7 @@ fn encode_request(
                 .rev()
                 .collect(),
         );
-        vec![
+        &[
             "Kb-OsType",
             "Kb-Version",
             "Kb-Scene",
@@ -530,9 +598,26 @@ fn encode_request(
             "Kb-TaskId",
         ]
     };
+    // Registration signs the token between the body hash and trace ID;
+    // CmdId/SubCmdId/UIN remain headers but are excluded from its signature.
+    let fields = if let Mode::GenUin(token) = &request.mode {
+        values.insert("Kb-GenUinToken", token.to_string());
+        &[
+            "Kb-OsType",
+            "Kb-Version",
+            "Kb-Scene",
+            "Kb-TimeStamp",
+            "Kb-BodyMd5",
+            "Kb-GenUinToken",
+            "Kb-TraceId",
+            "Kb-TaskId",
+        ][..]
+    } else {
+        fields
+    };
     let mut signed = Zeroizing::new(String::new());
     for field in fields {
-        signed.push_str(&values[field]);
+        signed.push_str(&values[*field]);
     }
     signed.push_str(cfg.text("sign_key"));
     values.insert(
@@ -545,9 +630,10 @@ fn encode_request(
     if cfg.durable.contains_key("use_debug_net") {
         values.insert("Use_DebugNet", cfg.text("use_debug_net").into());
     }
-    let path = match request.mode {
+    let path = match &request.mode {
         Mode::Ordinary => "/api_v2",
         Mode::Dh => "/oauth_pubkey_v2",
+        Mode::GenUin(_) => "/gen_uin_v2",
         Mode::Timestamp => "/timestamp",
     };
     let mut http = message(&[
@@ -607,4 +693,19 @@ pub(crate) fn wall_time() -> u64 {
 }
 fn connection(why: &str) -> Failure {
     Failure::Connection(why.into())
+}
+fn initialization_uuid() -> Result<Zeroizing<String>, Failure> {
+    let mut random = Zeroizing::new([0; 16]);
+    crypto::random(random.as_mut())?;
+    random[6] = (random[6] & 0x0f) | 0x40;
+    random[8] = (random[8] & 0x3f) | 0x80;
+    let hex = Zeroizing::new(hex::encode_upper(random.as_slice()));
+    Ok(Zeroizing::new(format!(
+        "{}-{}-{}-{}-{}",
+        &hex[..8],
+        &hex[8..12],
+        &hex[12..16],
+        &hex[16..20],
+        &hex[20..]
+    )))
 }

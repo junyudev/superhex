@@ -18,6 +18,24 @@ fn run() -> Result<(), ()> {
             .find(|v| v[0] == flag)
             .map(|v| v[1].as_str())
     };
+    if args.iter().any(|a| a == "--register") {
+        let started = Instant::now();
+        let result = voice_buddy::register(None);
+        println!(
+            "register_accepted={} register_ms={}",
+            result.is_ok(),
+            started.elapsed().as_millis()
+        );
+        let config = result.map_err(|_| ())?;
+        let started = Instant::now();
+        let result = voice_buddy::check(&config);
+        println!(
+            "check_accepted={} check_ms={}",
+            result.is_ok(),
+            started.elapsed().as_millis()
+        );
+        return result.map_err(|_| ());
+    }
     let config = Arc::new(
         Config::parse(&std::fs::read(value("--config").ok_or(())?).map_err(|_| ())?)
             .map_err(|_| ())?,

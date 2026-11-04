@@ -86,7 +86,7 @@ impl Default for Canceller {
     }
 }
 impl Canceller {
-    /// Creates an independent cancellation handle for whole-clip transcription.
+    /// Creates an independent cancellation handle for transcription or registration.
     /// Clones share its state; call `cancel()` to cancel linked work.
     pub fn new() -> Self {
         Self {
@@ -385,6 +385,37 @@ pub(crate) fn check(config: &Config) -> Result<(), Failure> {
             network.handshake().await
         })
     })
+}
+pub(crate) fn register_to(
+    cancel: Option<&Canceller>,
+    endpoint: Option<Endpoint>,
+) -> Result<Config, Failure> {
+    let control = Control::new(cancel.map(|c| c.control.clone()));
+    control.check()?;
+    let result =
+        tracing::subscriber::with_default(tracing::subscriber::NoSubscriber::default(), || {
+            runtime()?.block_on(async {
+                tokio::select! {
+                    biased;
+                    failure = control.interrupted() => Err(failure),
+                    result = register_identity(endpoint) => result,
+                }
+            })
+        });
+    control.check().and(result)
+}
+async fn register_identity(endpoint: Option<Endpoint>) -> Result<Config, Failure> {
+    let config = Arc::new(crate::config::new_configuration()?);
+    let mut network = match endpoint {
+        Some(endpoint) => Network::connect_to(config, endpoint).await?,
+        None => Network::connect(config).await?,
+    };
+    let handshake = network.handshake_with(true).await?;
+    let config = network.register(handshake).await?;
+    // Prove the returned identity through speech's existing-identity path,
+    // with a second ephemeral key, before exposing it to the caller.
+    network.handshake().await?;
+    Ok(config)
 }
 pub(crate) fn transcribe(
     config: Arc<Config>,

@@ -7,8 +7,8 @@
 //! starts a session and feeds it at once. Nothing here blocks the caller's
 //! audio thread, reads the microphone, or writes to disk.
 //!
-//! Credentials come only from the [`Config`] the caller supplies. They are
-//! never logged, and `Debug` redacts them.
+//! [`register`] creates an independent installation identity; callers may also
+//! import a [`Config`]. Credentials are never logged, and `Debug` redacts them.
 
 use std::fmt;
 use std::sync::Arc;
@@ -119,7 +119,7 @@ pub enum Failure {
     /// No final text before the deadline.
     TimedOut,
     /// The service refused this identity: retrying the same configuration
-    /// can't help, the person must import another.
+    /// can't help, the person needs a usable identity.
     Rejected(i64),
     /// The service reported an error for this session.
     Service(i64),
@@ -172,6 +172,13 @@ pub fn transcribe(
 /// configuration during setup.
 pub fn check(config: &Config) -> Result<(), Failure> {
     session::check(config)
+}
+
+/// Creates and validates an independent service identity on one connection.
+/// Reads no hardware identifier and writes no files. The caller owns private
+/// storage of the returned configuration. Cancellation is checked throughout.
+pub fn register(cancel: Option<&Canceller>) -> Result<Config, Failure> {
+    session::register_to(cancel, None)
 }
 
 impl fmt::Debug for Update {

@@ -1,5 +1,7 @@
-use crate::{Config, ConfigError, Options};
+use crate::{Config, ConfigError, Failure, Options, crypto};
+use md5::{Digest, Md5};
 use serde_json::{Map, Value};
+use zeroize::Zeroizing;
 
 const MAX_BYTES: usize = 1_048_576;
 const STRINGS: &[&str] = &[
@@ -13,6 +15,52 @@ const STRINGS: &[&str] = &[
     "sign_key",
     "bootstrap_aes_key",
 ];
+
+pub(crate) fn new_configuration() -> Result<Config, Failure> {
+    let mut random = Zeroizing::new([0; 15]);
+    crypto::random(random.as_mut())?;
+    let descriptor = Zeroizing::new(hex::encode(&random[..9]));
+    let nonce = Zeroizing::new(hex::encode(&random[9..]));
+    // Public protocol defaults from the npm artifact recorded in the README.
+    // The model and system version identify that client, not this machine.
+    let mut durable = Map::from_iter([
+        ("host".into(), "wetype.weixin.qq.com".into()),
+        ("websocket_path".into(), "".into()),
+        ("use_debug_net".into(), "0".into()),
+        ("os_type".into(), 5.into()),
+        ("package_type".into(), 3.into()),
+        ("scene".into(), 2.into()),
+        ("version".into(), "2.2.0(617)".into()),
+        ("system_version".into(), "15.6.1".into()),
+        ("device_token".into(), "".into()),
+        ("device_model_id".into(), "Mac14,3".into()),
+        ("user_device_name".into(), "".into()),
+        ("sign_key".into(), "zN7rB3bL4pO8jW1o".into()),
+        (
+            "bootstrap_aes_key".into(),
+            "D4Y5U3Y2M0C0T7N4P1P7O2N6E1I2Y1U6".into(),
+        ),
+        ("uin".into(), 0.into()),
+    ]);
+    let prefix = Zeroizing::new(format!("MAC{}{}", &descriptor[..17], nonce.as_str()));
+    let mut binding = Md5::new();
+    binding.update(prefix.as_bytes());
+    binding.update(durable["sign_key"].as_str().unwrap_or_default());
+    durable.insert(
+        "device_code".into(),
+        format!(
+            "{}{}",
+            prefix.as_str(),
+            hex::encode_upper(binding.finalize())
+        )
+        .into(),
+    );
+    // A zero UIN exists only during registration; parse still rejects it.
+    Ok(Config {
+        durable,
+        options: Options::default(),
+    })
+}
 
 pub(crate) fn parse(bytes: &[u8]) -> Result<Config, ConfigError> {
     if bytes.len() > MAX_BYTES {
