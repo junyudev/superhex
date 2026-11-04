@@ -43,3 +43,15 @@ Checks: `scripts/test-app-identity.sh`, `app_paths::tests`, the onboarding
 permission-scope tests, deep-link tests, translation completeness, and the Linux
 Rune golden suite. These checks do not grant macOS permissions or prove live
 microphone capture, dictation, or pasting in another app.
+
+Observed on 2026-11-05: macOS Clippy, identity guards, focused Rust and Rune
+behavior checks, packaged-launch checks, VoiceBuddy tests, and the TypeScript
+SDK's typecheck, 70 tests, and build passed. A Developer ID signed Superhex.app
+was installed beside Hex and opened successfully.
+
+All six Linux Rune golden groups were regenerated and every changed image
+was visually inspected; a focused comparison against the new baselines passed.
+The isolated Linux run used QEMU with Mesa llvmpipe Vulkan for UI rendering and
+a CPU-only speech build; it does not verify Vulkan speech inference. The
+macOS-only capture permission baselines were regenerated and compared on macOS.
+No live microphone, dictation, or cross-app paste test was performed.
