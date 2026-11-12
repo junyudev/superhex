@@ -1,6 +1,6 @@
 //! Shortcut mode's modal, from General's Shortcut mode row: the four ways
 //! the shortcut can trigger (`shortcut_mode::Trigger`), each with its keycaps
-//! and two lanes, the key above and what Hex records below, like a chart
+//! and two lanes, the key above and what Superhex records below, like a chart
 //! recorder: a pen holds still at the lanes' right end while the tape scrolls
 //! left under it, so each press draws on at the pen and slides away into a
 //! soft left edge. Picking an option is the setting.

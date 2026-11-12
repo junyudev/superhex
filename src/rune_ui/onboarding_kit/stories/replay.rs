@@ -126,14 +126,14 @@ impl Onboard {
         self.replay.speed = self.replay.speed.next();
     }
 
-    /// `"Without Hex"` from the top: the conversation opens as it would
-    /// after `"Setting up Hex"`.
+    /// `"Without Superhex"` from the top: the conversation opens as it would
+    /// after `"Setting up Superhex"`.
     fn opener(&mut self) {
         self.jump_to_demo();
         self.auto_due_at = Some(self.now);
     }
 
-    /// `"With Hex"` from the top, `"Without Hex"` just behind it.
+    /// `"With Superhex"` from the top, `"Without Superhex"` just behind it.
     fn with_hex(&mut self) {
         self.jump_to_demo();
         let now = self.now;

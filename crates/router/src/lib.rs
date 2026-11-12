@@ -1,5 +1,5 @@
 //! Where a capture or dictation goes among OpenCode sessions, sending it there, and taking it
-//! back. Scrawl's `scrawl router …` commands and Hex call the same [`Router`]; the host owns
+//! back. Scrawl's `scrawl router …` commands and Superhex call the same [`Router`]; the host owns
 //! the settings ([`RouterConfig`]) and the folders ([`RouterDirs`]). See `README.md`.
 
 pub mod bundle;
@@ -194,7 +194,7 @@ impl Router {
         self.run(|| routing::router::correct(decision_id, action, to))
     }
 
-    /// `router log`: one correction line in Hex's spelling, joined to its decision.
+    /// `router log`: one correction line in Superhex's spelling, joined to its decision.
     pub fn log_correction(&self, line: &str) -> Result<()> {
         self.run(|| routing::router::log(line))
     }

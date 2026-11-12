@@ -37,6 +37,7 @@ hex
 │   ├── start --print              (Labs, macOS) answer with the transcript when the recording ends
 │   ├── stop --print               print the transcript instead of pasting it (below)
 │   └── start|toggle --raw         paste the transcript as heard, skipping the Output steps
+├── dictation retry                macOS: retry the newest held service failure
 ├── paste-last                     paste the last dictation (Option-Shift-V); refused while recording
 ├── typed-text                     Labs › Transform typed text (Linux): replace the focused field's text
 ├── transcribe <file> [--model <id>] [--language L]  Labs › Transcribe files: print a WAV file's transcript
@@ -87,7 +88,14 @@ hex
 ```
 
 `dictation start` locks the recording, as a double tap would: `dictation stop`
-or the next shortcut press finishes it, and `dictation cancel` discards it.
+or the next shortcut press finishes it, and `dictation retry` (macOS) requests a new ordered job for the newest failed
+VoiceBuddy dictation still held in memory, pasting at the current focus. It
+accepts neither `--raw` nor `--print`; no held failure answers unchanged. The
+list holds at most eight entries for ten minutes (and 128 MiB total audio),
+never on disk or in History. A retry can fail again; `hex status` reports setup.
+Other platforms answer `unsupported`.
+
+`dictation cancel` discards it.
 A CLI start has no press to judge, so its recording counts as
 intentional at once: the start tone plays once the microphone is open, and the
 recording behavior (mute or pause media, idle-sleep prevention) and the live
@@ -327,8 +335,9 @@ Requests are flat objects tagged by `command` (kebab-case):
 
 ```ts
 status | quit {force} | restart {force}
+dictation-retry                                  macOS; newest held service failure
 dictation {action, print?, raw?}                 action: start | stop | toggle | cancel;
-                                                 print (start and stop) answers `transcript`
+                                                 print (stop only) answers `transcript`
 paste-last
 typed-text
 meeting-record {title?} | meeting-stop | meeting-copy-last
@@ -391,6 +400,7 @@ recording", "The window isn't open"). Setting `kind` is one of `bool`,
   "meeting": {"state": "recording", "title": "Design sync", "elapsed_seconds": 723},
   "model": {"id": "parakeet_v3", "name": "…", "language": "en", "installed": true,
             "preparing": null, "downloaded_bytes": 0, "error": null, "fallback": null},
+  "dictation": {"backend": "voice_buddy", "voice_buddy_setup": "ready"},
   "features": {"meetings": true, "release_microphone_while_idle": false,
                "history_retention": "week"},
   "permissions": {"ready": true, "microphone": "ready", "accessibility": "ready",
@@ -415,6 +425,26 @@ permissions.*       ready | needs-request | needs-settings | needs-restart
 window.pane         settings | modes | history | meetings | …
 update              current | checking | available | unavailable
 ```
+
+`dictation.backend` reports the backend in effect (`local` or `voice_buddy`),
+not just the saved choice. `dictation.voice_buddy_setup` is `missing`, `ready`,
+`broken`, or `unsupported` off macOS; it exposes no credentials. `model` still
+reports the independent local selection. With usable VoiceBuddy selected,
+`permissions.transcription_model` means the speech step is ready even without a
+local model. These fields and `dictation-retry` are additive within control
+version 4: older status replies deserialize with Local/unsupported defaults;
+existing request and response shapes remain compatible. The retry command,
+flag restrictions and older-status defaults have unit checks in
+`control/cli/dictation.rs` and `control/cli.rs`; these passed on macOS ARM64
+with Rust 1.99.1 on November 4, 2026. No native CLI-to-listener/paste run was
+observed for the VoiceBuddy backend.
+
+The settings keys `dictation_backend` (`voice_buddy` or `local`) and
+`voice_buddy.polish`, `.traditional`, `.paragraph`, `.reduce_redundancy` control
+macOS dictation. Choosing VoiceBuddy registers, imports and scans nothing: the
+window's Set up, Use it, or Choose file… does that, and until one of them has
+run Hex uses Local. `model use` and choosing a local model select Local.
+Meetings, Annotate, host audio, benchmarks and retranscription remain local.
 
 `memory_footprint_bytes` is the physical footprint Activity Monitor shows.
 `permissions.transcription_model` is about the model Hex runs, the fallback
@@ -507,7 +537,11 @@ support this lab.
 - Shortcuts take text such as `option`, `right-command`, `option+shift+v`,
   `control+space`, `fn`, `f5`, or `left-option+right-option` (both Options
   held together). `left-` and `right-` apply to shortcuts without a key. On macOS, Windows and X11, `mouse4` and `option+mouse4`
-  also work (Mouse 1/2/3 are left/right/middle). Key names resolve on the active keyboard
+  also work (Mouse 1/2/3 are left/right/middle). macOS mouse shortcuts are
+  always available; `labs.mouse_shortcuts` is retired. A native mouse binding
+  uses `mouse5@6421:44572` (button usage @ vendor:product, decimal), with
+  optional modifiers. This text round-trips the saved native identity.
+  Key names resolve on the active keyboard
   layout, the OS's rules for Settings' recorder apply, and a binding another
   Hex shortcut uses is refused with `shortcut-in-use`. `double_tap_only`
   needs a key chord, as in Settings.

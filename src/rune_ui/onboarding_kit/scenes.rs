@@ -48,6 +48,11 @@ pub(in crate::rune_ui) fn first_run(ui: &mut Ui, state: FirstRun, page: Page) {
 
 pub(in crate::rune_ui) fn mac_first_run(ui: &mut Ui, step: onboarding::MacStep, page: Page) {
     *ui = super::super::mac_fixture();
+    // A new Mac starts at the speech step; the pages after it have VoiceBuddy
+    // set up.
+    if page == Page::Download {
+        super::super::voice_buddy::fixture(ui, crate::dictation::backend::Setup::Missing, false);
+    }
     onboarding::mac_fixture(ui, step);
     super::live::fixture(ui, page);
 }

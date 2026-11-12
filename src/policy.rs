@@ -1,5 +1,5 @@
 //! Feature locks an organization sets through managed preferences (macOS
-//! configuration profiles) in the `anomaly.hex` domain: `DisableMeetings`,
+//! configuration profiles) in the `io.github.junyudev.superhex` domain: `DisableMeetings`,
 //! `DisableAnnotate`, `DisableOpenCodeProcessing`, `DisableTransforms`, and
 //! `DisableLabs`, plus `RestrictTransformsToLoopback`, which keeps
 //! transformations on but holds their `fetch` to this computer and runs no
@@ -21,7 +21,7 @@ use crate::app_settings::{AppSettings, MeetingSummaries};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Lock {
     /// No new meeting recording or meeting processing; existing meetings stay
-    /// readable (`hex meetings`, `hex mcp`).
+    /// readable (`superhex meetings`, `superhex mcp`).
     Meetings,
     Annotate,
     /// No OpenCode generation: mode rewrites, meeting notes, and Annotate's
@@ -47,7 +47,7 @@ impl Lock {
         Self::LoopbackTransforms,
     ];
 
-    /// Its key in the `anomaly.hex` managed preferences.
+    /// Its key in the `io.github.junyudev.superhex` managed preferences.
     pub const fn key(self) -> &'static str {
         match self {
             Self::Meetings => "DisableMeetings",
@@ -137,7 +137,7 @@ impl Policy {
         self.locks(Lock::Labs).then_some(Lock::Labs)
     }
 
-    /// The lock on `hex settings` key `name`, if any.
+    /// The lock on `superhex settings` key `name`, if any.
     pub fn setting_lock(self, name: &str) -> Option<Lock> {
         if let Some(feature) = crate::labs::Feature::for_settings_key(name) {
             return self.labs_lock(feature);
@@ -209,7 +209,7 @@ mod platform {
         CFPreferencesAppValueIsForced, CFPreferencesGetAppBooleanValue, CFString,
     };
 
-    const DOMAIN: &str = "anomaly.hex";
+    const DOMAIN: &str = "io.github.junyudev.superhex";
 
     /// Whether a configuration profile forces `key` to true.
     pub fn forced(key: &str) -> bool {

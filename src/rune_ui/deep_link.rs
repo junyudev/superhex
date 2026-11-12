@@ -1,6 +1,6 @@
-//! Links that open the window on a page: `hex://labs`,
-//! `hex://labs/<feature>` (`hex labs link <feature>` prints it), and
-//! `hex://settings/<pane>` (`hex-test://` in a test build). A Labs link
+//! Links that open the window on a page: `superhex://labs`,
+//! `superhex://labs/<feature>` (`superhex labs link <feature>` prints it), and
+//! `superhex://settings/<pane>` (`superhex-test://` in a test build). A Labs link
 //! opens the store, on Turned on with `?tab=on`, on a chip with
 //! `?category=<id>`, searching with `?search=<words>`, and on a lab's group
 //! chip when it names one; it never turns a lab on. Story links live
@@ -42,7 +42,7 @@ impl LabsLink {
     }
 }
 
-/// The main panes a `hex://settings/<pane>` link names.
+/// The main panes a `superhex://settings/<pane>` link names.
 const PANES: [(&str, Pane); 5] = [
     ("general", Pane::General),
     ("output", Pane::Output),
@@ -104,7 +104,7 @@ pub(crate) fn open(ui: &mut Ui, target: Target, tx: &mut Tx) {
                     ui.select_pane(pane, tx);
                 }
                 _ => {
-                    tracing::warn!(pane = %name, "a settings link named no pane this Hex shows");
+                    tracing::warn!(pane = %name, "a settings link named no pane this Superhex shows");
                     super::show(ui, super::Destination::Settings, tx);
                 }
             }
@@ -118,7 +118,7 @@ mod tests {
     use crate::labs::Feature;
 
     fn read(link: &str) -> Option<Result<Target, String>> {
-        parse(link, "hex")
+        parse(link, "superhex")
     }
 
     fn lab(id: &str) -> Target {
@@ -131,12 +131,18 @@ mod tests {
     #[test]
     fn reads_labs_links() {
         let store = Target::Labs(LabsLink::default());
-        assert_eq!(read("hex://labs"), Some(Ok(store.clone())));
-        assert_eq!(read("hex://labs/"), Some(Ok(store)));
-        assert_eq!(read("hex://labs/live-text"), Some(Ok(lab("live-text"))));
-        assert_eq!(read("hex://labs/Live-Text/"), Some(Ok(lab("live-text"))));
+        assert_eq!(read("superhex://labs"), Some(Ok(store.clone())));
+        assert_eq!(read("superhex://labs/"), Some(Ok(store)));
         assert_eq!(
-            parse("hex-test://labs/meetings", "hex-test"),
+            read("superhex://labs/live-text"),
+            Some(Ok(lab("live-text")))
+        );
+        assert_eq!(
+            read("superhex://labs/Live-Text/"),
+            Some(Ok(lab("live-text")))
+        );
+        assert_eq!(
+            parse("superhex-test://labs/meetings", "superhex-test"),
             Some(Ok(lab("meetings")))
         );
     }
@@ -145,22 +151,25 @@ mod tests {
     fn reads_the_labs_stores_tab_chip_and_search() {
         let labs = |link: LabsLink| Some(Ok(Target::Labs(link)));
         assert_eq!(
-            read("hex://labs?tab=on"),
+            read("superhex://labs?tab=on"),
             labs(LabsLink {
                 turned_on: true,
                 ..LabsLink::default()
             })
         );
-        assert_eq!(read("hex://labs?tab=discover"), labs(LabsLink::default()));
         assert_eq!(
-            read("hex://labs?category=Meetings"),
+            read("superhex://labs?tab=discover"),
+            labs(LabsLink::default())
+        );
+        assert_eq!(
+            read("superhex://labs?category=Meetings"),
             labs(LabsLink {
                 category: Some("meetings".into()),
                 ..LabsLink::default()
             })
         );
         assert_eq!(
-            read("hex://labs?search=paste%20last&tab=on"),
+            read("superhex://labs?search=paste%20last&tab=on"),
             labs(LabsLink {
                 turned_on: true,
                 search: Some("paste last".into()),
@@ -168,7 +177,7 @@ mod tests {
             })
         );
         assert_eq!(
-            read("hex://labs/live-text?category=dictation&search=live+text"),
+            read("superhex://labs/live-text?category=dictation&search=live+text"),
             labs(LabsLink {
                 lab: Some("live-text".into()),
                 category: Some("dictation".into()),
@@ -177,7 +186,7 @@ mod tests {
             })
         );
         assert_eq!(
-            read("hex://labs?search=&category=&other=1"),
+            read("superhex://labs?search=&category=&other=1"),
             labs(LabsLink::default())
         );
     }
@@ -185,33 +194,33 @@ mod tests {
     #[test]
     fn reads_settings_links() {
         assert_eq!(
-            read("hex://settings/history"),
+            read("superhex://settings/history"),
             Some(Ok(Target::Settings("history".into())))
         );
-        assert!(matches!(read("hex://settings"), Some(Err(_))));
-        assert!(matches!(read("hex://labs/%FF"), Some(Err(_))));
+        assert!(matches!(read("superhex://settings"), Some(Err(_))));
+        assert!(matches!(read("superhex://labs/%FF"), Some(Err(_))));
     }
 
     #[test]
     fn leaves_other_links_alone() {
         for other in [
-            "hex://story/hud/processing",
-            "hex-test://labs/live-text",
+            "superhex://story/hud/processing",
+            "superhex-test://labs/live-text",
             "https://labs/live-text",
-            "hex://elsewhere",
+            "superhex://elsewhere",
             "not a link",
             "",
         ] {
             assert_eq!(read(other), None, "{other}");
         }
-        let long = format!("hex://labs/{}", "a".repeat(MAX_LINK));
+        let long = format!("superhex://labs/{}", "a".repeat(MAX_LINK));
         assert_eq!(read(&long), None);
     }
 
     #[test]
     fn every_feature_has_a_link_that_reads_back() {
         for feature in Feature::ALL {
-            let link = labs_link("hex", feature);
+            let link = labs_link("superhex", feature);
             assert_eq!(read(&link), Some(Ok(lab(feature.name()))), "{link}");
         }
     }

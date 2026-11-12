@@ -1036,7 +1036,7 @@ fn expiry_leaves_a_markdown_copy_the_user_edited() {
         "the edited Markdown stays"
     );
 
-    // A Markdown written before Hex recorded its digest is not Hex's to move.
+    // A Markdown written before Superhex recorded its digest is not Superhex's to move.
     manifest.export_sha256 = None;
     write_manifest(&directory, &manifest).unwrap();
     trashed.clear();

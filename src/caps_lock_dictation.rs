@@ -169,6 +169,11 @@ impl LedModel {
             DictationIndicatorEvent::Discarded
             | DictationIndicatorEvent::Cancelled
             | DictationIndicatorEvent::Failed { .. } => self.capture = CaptureState::Idle,
+            // Recovery work has no recording to finish, so an active capture
+            // stays; the accepted job still keeps the light blinking.
+            DictationIndicatorEvent::Queued { job_id } => {
+                self.jobs.insert(job_id);
+            }
             DictationIndicatorEvent::ConfigureDotScope(_)
             | DictationIndicatorEvent::DemoVoice
             | DictationIndicatorEvent::Transcribing { .. }

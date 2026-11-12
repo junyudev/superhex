@@ -87,7 +87,7 @@ impl MixFormat {
         Some(format)
     }
 
-    /// Bytes per sample, when Hex can decode this format.
+    /// Bytes per sample, when Superhex can decode this format.
     fn sample_bytes(&self) -> Option<usize> {
         let bytes = usize::from(self.bits_per_sample / 8);
         let decodable = match self.sample? {

@@ -1,4 +1,4 @@
-//! A headless render (`hex app -- --snap … --scene …`) draws fixtures and
+//! A headless render (`superhex app -- --snap … --scene …`) draws fixtures and
 //! never reads, migrates, or saves anything in the data folder.
 
 use std::fs;

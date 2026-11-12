@@ -1171,7 +1171,7 @@ fn settle(rt: &mut Runtime<CapsuleState>) {
 }
 
 /// Clicks the middle of the live element keyed `key` as a Mac delivers it:
-/// the pointer gets there, Hex's session tap hears the press first and
+/// the pointer gets there, Superhex's session tap hears the press first and
 /// tells the capsule it may be a click away (`CapsuleKey::Press`), and only
 /// then does the overlay get the press and the release.
 fn click_on(rt: &mut Runtime<CapsuleState>, key: &str, nth: usize) {

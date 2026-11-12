@@ -14,7 +14,7 @@ use serde::de::DeserializeOwned;
 use crate::app_settings::MeetingSummaries;
 use crate::dictation::processor::Model;
 
-/// OpenCode's models take far more than any excerpt Hex sends.
+/// OpenCode's models take far more than any excerpt Superhex sends.
 const OPENCODE_CONTEXT_TOKENS: usize = 32_000;
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq)]
@@ -35,7 +35,7 @@ pub enum NotesWriter {
     AppleIntelligence,
     #[serde(rename = "opencode")]
     OpenCode {
-        /// `provider/model`, when Hex named the model; `None` when
+        /// `provider/model`, when Superhex named the model; `None` when
         /// OpenCode's own default answered.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         model: Option<String>,
@@ -258,7 +258,7 @@ fn opencode<T: DeserializeOwned>(
     opencode_reporting(instructions, prompt, shape, timeout).map(|(answer, _)| answer)
 }
 
-/// [`opencode`], with the model that answered when Hex named one.
+/// [`opencode`], with the model that answered when Superhex named one.
 fn opencode_reporting<T: DeserializeOwned>(
     instructions: &str,
     prompt: &str,

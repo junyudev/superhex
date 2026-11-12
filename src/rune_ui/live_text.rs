@@ -1,10 +1,12 @@
-//! The live text plate (Labs): one click-through line
-//! beside the recording HUD with what the dictation has said so far, on
-//! every OS. It shows while a recording has text and hides when the
-//! recording ends ([`crate::dictation::live_text`]); `rune_hud` says where the HUD is,
-//! so the plate sits just past it, on the HUD's screen. Labs › Failure
-//! notices reuses the same plate for one line saying why a dictation failed,
-//! for a few seconds or until the next capture.
+//! The live text plate: one click-through line beside the recording HUD with
+//! what the dictation has said so far, on every OS. Labs › Live text turns it
+//! on for local models; VoiceBuddy always shows it, and keeps it up past the
+//! recording while the service finishes the words, saying so with its phase.
+//! It shows while a recording has text and hides when the recording ends
+//! ([`crate::dictation::live_text`]); `rune_hud` says where the HUD is, so the
+//! plate sits just past it, on the HUD's screen. Labs › Failure notices
+//! reuses the same plate for one line saying why a dictation failed, for a
+//! few seconds or until the next capture.
 //!
 //! The overlay is prewarmed: macOS keeps it drawn while hidden and refreshes
 //! it before a reveal, so it never reappears with the last dictation's
@@ -20,7 +22,8 @@ use rune::{
     text,
 };
 
-use super::controls::Paint;
+use super::controls::{Paint, pulsing_dot, status_dot};
+use crate::dictation::live_text::{Line, Phase};
 use crate::transcription::engine::Partial;
 
 /// The overlay's size: room for about a dozen words on one line.
@@ -36,6 +39,8 @@ const FAILURE_VISIBLE: Duration = Duration::from_secs(6);
 pub(crate) struct Plate {
     stable: String,
     tentative: String,
+    /// Where the words are in their journey (VoiceBuddy's service).
+    phase: Phase,
     /// Labs › Failure notices: why the last dictation failed, shown instead
     /// of the live words while it lasts.
     failure: Option<String>,
@@ -57,6 +62,7 @@ impl Plate {
     /// while the plate fades.
     fn words_ended(&mut self) {
         self.live = false;
+        self.phase = Phase::Hearing;
     }
 
     fn show_failure(&mut self, message: String) {
@@ -198,14 +204,14 @@ pub(crate) fn refollow_pointer() {
 pub(crate) type Place = fn() -> Spot;
 
 /// Adds the plate to the app. It shows while a dictation publishes its text
-/// (Labs › Live text) or while a failure notice explains a failed dictation
+/// (Labs › Live text, or VoiceBuddy's words) or while a failure notice explains a failed dictation
 /// (Labs › Failure notices), applied at once. On macOS it's always prewarmed,
 /// since either lab may be turned on after launch and an unprewarmed plate
 /// reappears for a frame with the last dictation's words (#1075); elsewhere
 /// when either is on at launch.
 pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     let spec = OverlaySpec {
-        name: "Hex live text",
+        name: "Superhex live text",
         size: SIZE,
         // Placed for real each time it appears.
         edge: ScreenEdge::Top,
@@ -229,9 +235,13 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
     let overlay = app.overlay(spec, Plate::default());
     let _ = LIVE.set(overlay.clone());
     let _ = PLACE.set(place);
-    crate::dictation::live_text::watch(move |partial| {
-        let partial = partial.filter(|partial| !is_blank(partial));
-        let Some(Partial { stable, tentative }) = partial.cloned() else {
+    crate::dictation::live_text::watch(move |line| {
+        let line = line.filter(|line| !is_blank(line)).cloned();
+        let Some(Line {
+            partial: Partial { stable, tentative },
+            phase,
+        }) = line
+        else {
             // Nothing was published since the last end and no notice is up:
             // this is a no-op, and skipping it keeps a dictation that never
             // showed text off the update queue.
@@ -258,6 +268,7 @@ pub(crate) fn install<S: 'static>(app: &mut rune::App<S>, place: Place) {
         let handle = overlay.clone();
         overlay.update(move |plate, tx| {
             plate.set_words(stable, tentative);
+            plate.phase = phase;
             tx.instant();
             if plate.failure.is_none() && !plate.shown {
                 // Placed and shown after the new words, so it appears
@@ -390,9 +401,46 @@ fn hide_expired(deadline: Instant) {
 /// How long the plate fades out once a dictation stops publishing.
 const FADE: Duration = Duration::from_millis(150);
 
-/// The model's first update often has no words yet.
-fn is_blank(partial: &Partial) -> bool {
+/// The model's first update often has no words yet. A line in another phase
+/// has something to say without them.
+fn is_blank(line: &Line) -> bool {
+    line.phase == Phase::Hearing && no_words(&line.partial)
+}
+
+fn no_words(partial: &Partial) -> bool {
     partial.stable.trim().is_empty() && partial.tentative.trim().is_empty()
+}
+
+/// What a phase says beside the words, and its dot.
+fn phase_lead(p: &Paint, phase: Phase, words: bool) -> Option<El> {
+    let (dot, label) = match phase {
+        Phase::Hearing => return None,
+        Phase::Offline => (
+            status_dot(p.warning()),
+            Some(crate::desktop::i18n::tr("No connection, still recording")),
+        ),
+        Phase::Finishing => (
+            pulsing_dot(p.muted()),
+            (!words).then(|| crate::desktop::i18n::tr("Finishing…")),
+        ),
+        Phase::Polishing => (
+            pulsing_dot(p.accent()),
+            Some(crate::desktop::i18n::tr("Polishing")),
+        ),
+    };
+    Some(
+        row()
+            .key("phase")
+            .gap(8.0)
+            .center_y()
+            .child(dot)
+            .children(label.map(|label| {
+                text(label)
+                    .key("phase-label")
+                    .font(p.k.ty.ui)
+                    .color(p.muted())
+            })),
+    )
 }
 
 /// About one space of the plate's font, between right-to-left stable and
@@ -447,15 +495,22 @@ fn view(plate_state: &Plate, cx: &mut Cx<Plate>) -> El {
             .color(p.danger());
         return root.child(plate(&p, line));
     }
-    if plate_state.stable.trim().is_empty() && plate_state.tentative.trim().is_empty() {
+    let words = !plate_state.stable.trim().is_empty() || !plate_state.tentative.trim().is_empty();
+    let lead = phase_lead(&p, plate_state.phase, words);
+    if !words && lead.is_none() {
         return root;
     }
+    // The words wait for the service once the recording ends, so they read
+    // muted until the phase is Hearing again.
+    let settled = plate_state.phase == Phase::Hearing;
     // The newest words stay in view: the start gives way with "…".
-    let stable = text(plate_state.stable.trim().to_owned())
-        .key("stable")
-        .truncate_head()
-        .font(p.k.ty.ui)
-        .color(p.text());
+    let stable = words.then(|| {
+        text(plate_state.stable.trim().to_owned())
+            .key("stable")
+            .truncate_head()
+            .font(p.k.ty.ui)
+            .color(if settled { p.text() } else { p.muted() })
+    });
     let rtl = is_right_to_left(&plate_state.stable, &plate_state.tentative);
     let tentative = (!plate_state.tentative.trim().is_empty()).then(|| {
         let words = text(if rtl {
@@ -478,10 +533,11 @@ fn view(plate_state: &Plate, cx: &mut Cx<Plate>) -> El {
     // Right-to-left, the newer (tentative) words read after the stable ones,
     // so they sit to their left.
     let line = if rtl {
-        line.children(tentative).child(stable)
+        line.children(tentative).children(stable)
     } else {
-        line.child(stable).children(tentative)
+        line.children(stable).children(tentative)
     };
+    let line = line.children(lead);
     root.child(plate(&p, line))
 }
 
@@ -541,10 +597,15 @@ mod tests {
     }
 
     fn runtime(stable: &str, tentative: &str, dark: bool) -> Runtime<Plate> {
+        runtime_in(stable, tentative, Phase::Hearing, dark)
+    }
+
+    fn runtime_in(stable: &str, tentative: &str, phase: Phase, dark: bool) -> Runtime<Plate> {
         runtime_plate(
             Plate {
                 stable: stable.into(),
                 tentative: tentative.into(),
+                phase,
                 ..Plate::default()
             },
             dark,
@@ -693,16 +754,45 @@ mod tests {
     fn no_words_draw_nothing() {
         let rt = runtime("  ", "", false);
         assert!(rect(&rt, "plate").is_none());
-        let blank = |stable: &str, tentative: &str| {
-            is_blank(&Partial {
-                stable: stable.into(),
-                tentative: tentative.into(),
+        let blank = |stable: &str, tentative: &str, phase| {
+            is_blank(&Line {
+                partial: Partial {
+                    stable: stable.into(),
+                    tentative: tentative.into(),
+                },
+                phase,
             })
         };
-        assert!(blank("", ""));
-        assert!(blank("  ", " "));
-        assert!(!blank("", " so"));
-        assert!(!blank("so", ""));
+        assert!(blank("", "", Phase::Hearing));
+        assert!(blank("  ", " ", Phase::Hearing));
+        assert!(!blank("", " so", Phase::Hearing));
+        assert!(!blank("so", "", Phase::Hearing));
+        // Waiting on the service shows with no words yet.
+        assert!(!blank("", "", Phase::Finishing));
+        assert!(!blank("", "", Phase::Offline));
+    }
+
+    #[test]
+    fn the_phase_says_where_the_words_are_without_pushing_them_out() {
+        let rt = runtime_in(LONG, "", Phase::Polishing, false);
+        let [x, _, w, _] = rect(&rt, "plate").unwrap();
+        assert!(x >= 0.0 && x + w <= SIZE.0, "inside: {x} {w}");
+        let [_, _, label, _] = rect(&rt, "phase-label").expect("polishing says so");
+        let [_, _, line, _] = rect(&rt, "line").unwrap();
+        assert!(
+            label > 0.0 && line > label,
+            "the words keep room: {label} {line}"
+        );
+
+        // Hearing says nothing beside the words.
+        assert!(rect(&runtime(SHORT, "", false), "phase").is_none());
+        // Finishing has a dot, and words only when it has some.
+        let rt = runtime_in(SHORT, "", Phase::Finishing, false);
+        assert!(rect(&rt, "phase").is_some());
+        assert!(rect(&rt, "phase-label").is_none());
+        let rt = runtime_in("", "", Phase::Finishing, false);
+        assert!(rect(&rt, "phase-label").is_some());
+        assert!(rect(&rt, "stable").is_none());
     }
 
     /// Renders the plate to `HEX_LIVE_TEXT_SNAPS/live-text-*.png` in both
@@ -712,14 +802,18 @@ mod tests {
     fn snapshots() {
         let folder = std::path::PathBuf::from(std::env::var("HEX_LIVE_TEXT_SNAPS").unwrap());
         let gpu = rune::render::Gpu::try_new(rune::render::Gpu::instance(), None).unwrap();
-        for (name, stable, tentative) in [
-            ("short", SHORT, ""),
-            ("long", LONG, ""),
-            ("tentative", SHORT, " is to finish"),
-            ("rtl", HEBREW, " והיום"),
+        for (name, stable, tentative, phase) in [
+            ("short", SHORT, "", Phase::Hearing),
+            ("long", LONG, "", Phase::Hearing),
+            ("tentative", SHORT, " is to finish", Phase::Hearing),
+            ("rtl", HEBREW, " והיום", Phase::Hearing),
+            ("offline", SHORT, "", Phase::Offline),
+            ("finishing", LONG, "", Phase::Finishing),
+            ("finishing-empty", "", "", Phase::Finishing),
+            ("polishing", LONG, "", Phase::Polishing),
         ] {
             for dark in [false, true] {
-                let mut rt = runtime(stable, tentative, dark);
+                let mut rt = runtime_in(stable, tentative, phase, dark);
                 let (w, h) = ((SIZE.0 * 2.0) as u32, (SIZE.1 * 2.0) as u32);
                 let mut renderer = crate::rune_ui::offscreen::renderer(&gpu.device);
                 let target = crate::rune_ui::offscreen::target(&gpu.device, w, h);

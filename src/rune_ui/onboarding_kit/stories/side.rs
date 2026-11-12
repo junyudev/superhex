@@ -228,7 +228,7 @@ fn motion_controls(p: Paint, s: &Onboard) -> El {
         ))
 }
 
-/// One `"Without Hex"` timing: a field of [`typing::Timing`] and its range.
+/// One `"Without Superhex"` timing: a field of [`typing::Timing`] and its range.
 struct Knob {
     key: &'static str,
     label: &'static str,

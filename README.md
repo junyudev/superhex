@@ -1,44 +1,61 @@
-# Hex
+# Superhex
 
-Hex is local voice dictation for Mac, Windows and Linux. Hold a key, speak, and
-it pastes.
+Voice dictation for Mac, Windows and Linux. Hold a shortcut, speak, then release
+to paste into the app you're using. A personal fork of [Hex](https://github.com/anomalyco/hex).
 
-## How it works
+On macOS, set up VoiceBuddy in General › Speech to use its speech service, or
+choose Local model to transcribe on your Mac. Windows and Linux use local models.
+Experimental features live in Labs.
 
-- hold the shortcut, speak, then let go
-- Hex transcribes on your device and pastes into whatever app you're in
-- the first run downloads a speech model; after that nothing leaves your machine
-- experimental features live in Labs, at the bottom of the sidebar
+## Install on macOS
 
-## Downloads
+Requires Apple silicon, macOS 15+, Xcode 26 or newer selected with `xcode-select`,
+Rust 1.99.1 through [rustup](https://rustup.rs/), CMake and pkg-config
+(`brew install cmake pkg-config`).
 
-Stable is the current release. Dev is the newest build of `dev` and updates
-itself from the dev channel.
+```sh
+curl -fsSL https://raw.githubusercontent.com/junyudev/superhex/HEAD/scripts/install-app.sh | bash
+```
 
-| Platform | Stable | Dev |
-| --- | --- | --- |
-| macOS (Apple silicon) | [DMG](https://anoma.ly/hex/download/macos-arm64-dmg) | [DMG](https://anoma.ly/hex/download/dev/macos-arm64-dmg) |
-| Windows x64 | [Installer](https://anoma.ly/hex/download/windows-x64-setup) | [Installer](https://anoma.ly/hex/download/dev/windows-x64-setup) |
-| Windows ARM64 | [Installer](https://anoma.ly/hex/download/windows-arm64-setup) | [Installer](https://anoma.ly/hex/download/dev/windows-arm64-setup) |
-| Linux x86_64 | [Executable](https://anoma.ly/hex/download/linux-x64) | [Executable](https://anoma.ly/hex/download/dev/linux-x64) |
-| Linux x86_64 (Debian, Ubuntu) | [.deb](https://anoma.ly/hex/download/linux-x64-deb) | [.deb](https://anoma.ly/hex/download/dev/linux-x64-deb) |
-| Linux x86_64 (Fedora, openSUSE) | [.rpm](https://anoma.ly/hex/download/linux-x64-rpm) | [.rpm](https://anoma.ly/hex/download/dev/linux-x64-rpm) |
-| Linux ARM64 | [Executable](https://anoma.ly/hex/download/linux-arm64) | [Executable](https://anoma.ly/hex/download/dev/linux-arm64) |
-| Linux ARM64 (Debian, Ubuntu) | [.deb](https://anoma.ly/hex/download/linux-arm64-deb) | [.deb](https://anoma.ly/hex/download/dev/linux-arm64-deb) |
-| Linux ARM64 (Fedora, openSUSE) | [.rpm](https://anoma.ly/hex/download/linux-arm64-rpm) | [.rpm](https://anoma.ly/hex/download/dev/linux-arm64-rpm) |
+The installer clones **the current HEAD of `junyudev/superhex`**, builds it, and
+installs `/Applications/Superhex.app`. Run the same command again to update.
+Build artifacts are cached in `~/Library/Caches/superhex`.
 
-Or install with:
+It uses your Developer ID certificate when available; otherwise it signs ad hoc
+for local use. Set `HEX_TEAM_ID` to choose a signing team. These source builds
+show their commit and keep automatic updates off.
 
-- Homebrew: `brew install --cask anomalyco/tap/hex`
-- AUR: `yay -S hex-bin`
-- install script (Linux): `curl -fsSL https://anoma.ly/hex/install-linux.sh | sh`
-- Nix (Linux): `nix profile add github:anomalyco/hex`
+Superhex has its own app identity, permissions, settings, history and models.
+Grant its permissions during setup. It can be installed alongside Hex.
 
-More docs are in [`docs/`](docs/README.md).
+## Install on Linux
 
-## Contributing
+With the [native build dependencies](docs/linux.md) installed:
 
-We don't take pull requests. [Open an issue](https://github.com/anomalyco/hex/issues)
-describing the bug or idea, and our agents usually turn it around fast.
+```sh
+curl -fsSL https://raw.githubusercontent.com/junyudev/superhex/HEAD/scripts/install-linux.sh | bash
+```
 
-MIT licensed.
+This builds remote HEAD and adds Superhex to your application launcher.
+
+## Build this checkout
+
+```sh
+scripts/install-app.sh --local
+```
+
+Use `--no-open` to install without launching. `SUPERHEX_INSTALL_DIR` overrides
+`/Applications`; `SUPERHEX_BUILD_CACHE` overrides the build cache.
+
+The native Rust engine and Cargo target retain the internal name `hex`:
+
+```sh
+cargo run -- app
+scripts/check
+```
+
+More docs are in [`docs/`](docs/README.md), including the
+[Superhex identity and source installation contract](docs/features/branding.md).
+[Report an issue](https://github.com/junyudev/superhex/issues).
+
+MIT licensed. Original copyright notices are preserved.

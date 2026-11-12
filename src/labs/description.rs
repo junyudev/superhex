@@ -32,7 +32,6 @@ impl Feature {
             Self::AppModelSwitching => {
                 "Each dictation mode's speech model and language follow the app in front"
             }
-            Self::MouseShortcuts => "Record mouse buttons as shortcuts",
             Self::PauseBrowser => "Also pause the browser while dictating, with Pause media",
             Self::ShareShortcut => "Let apps such as Discord see the dictation shortcut too",
             Self::UnloadIdle => {
@@ -58,7 +57,7 @@ impl Feature {
                 "Remove filler words such as um and uh from dictations, without an AI model"
             }
             Self::SubtitleExport => {
-                "Export meeting transcripts as SRT or VTT subtitles with hex meetings show"
+                "Export meeting transcripts as SRT or VTT subtitles with superhex meetings show"
             }
             Self::SecondDictationShortcut => {
                 "Another shortcut that dictates like the main one (second_dictation_hotkey), such as a key on an external keyboard"
@@ -98,7 +97,7 @@ impl Feature {
                 "Use Menu, Pause, or Scroll Lock alone as a shortcut, such as Caps Lock remapped to Menu"
             }
             Self::HistoryStats => {
-                "Add a Stats button to History that shows a summary of your retained dictations, with hex history stats"
+                "Add a Stats button to History that shows a summary of your retained dictations, with superhex history stats"
             }
             Self::HistoryMultiSelect => {
                 "Shift-click, Cmd-click (Ctrl on Windows and Linux) or drag to select several dictations, then copy or delete them together"
@@ -123,7 +122,7 @@ impl Feature {
                 "Show only downloaded speech models in the picker, with the space they take"
             }
             Self::SectionKeyAlone => {
-                "Use the key left of 1 on ISO keyboards, § or a dead key such as ^, alone as a shortcut; Hex takes it from every app while it's bound"
+                "Use the key left of 1 on ISO keyboards, § or a dead key such as ^, alone as a shortcut; Superhex takes it from every app while it's bound"
             }
             Self::KeepRecordings => {
                 "Keep the audio of dictations saved to History, so you can transcribe them again with another model"
@@ -209,13 +208,13 @@ impl Feature {
                 "Apply \"While dictating\" only when sound plays through speakers; headphones are left alone"
             }
             Self::PauseMenu => {
-                "Add Pause Hex to the menu bar. While paused, Hex ignores its shortcuts so other apps get the keys"
+                "Add Pause Superhex to the menu bar. While paused, Superhex ignores its shortcuts so other apps get the keys"
             }
             Self::PrintStart => {
                 "Let hex dictation start --print hand the transcript to the command that started it, however the recording ends"
             }
             Self::VoicePrompt => {
-                "Say \"rewrite this\" in a dictation, then an instruction; Hex applies it with the mode's OpenCode model"
+                "Say \"rewrite this\" in a dictation, then an instruction; Superhex applies it with the mode's OpenCode model"
             }
         }
     }

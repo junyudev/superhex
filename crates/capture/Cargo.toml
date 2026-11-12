@@ -94,3 +94,6 @@ windows = { version = "0.61.3", features = [
   "Win32_UI_Shell_Common",
   "Win32_UI_WindowsAndMessaging",
 ] }
+
+# Keep this excluded crate independent when Hex is in a nested git worktree.
+[workspace]

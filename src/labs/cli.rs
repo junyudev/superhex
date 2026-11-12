@@ -103,10 +103,14 @@ pub fn run(command: Option<&LabsCommand>) -> Result<()> {
 
 /// The feature `name` names, if this OS has it and `reaches` admits it.
 /// Features that left Labs: `hex labs` still knows their names.
-const GRADUATED: [(&str, &str); 2] = [
+const GRADUATED: [(&str, &str); 3] = [
     (
         "custom-models",
         "custom-models graduated: adding a model file and models found on this computer are always on now",
+    ),
+    (
+        "mouse-shortcuts",
+        "mouse-shortcuts graduated: mouse buttons are always recordable as shortcuts on macOS now",
     ),
     (
         "meeting-platform-icons",

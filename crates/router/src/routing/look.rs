@@ -1577,8 +1577,8 @@ mod tests {
         assert_eq!(found(&bundle.target, &[]), Some((opencode, false)));
         let mut target = bundle.target.clone();
         // Kit's own apps: their checkout is named like them.
-        target.app = Some("Hex".into());
-        target.bundle_id = Some("com.example.Hex".into());
+        target.app = Some("Superhex".into());
+        target.bundle_id = Some("com.example.Superhex".into());
         assert_eq!(
             found(&target, &[]).map(|f| f.0),
             Some(PathBuf::from("/Users/example/code/open-source/hex"))

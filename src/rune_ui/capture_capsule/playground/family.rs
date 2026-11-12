@@ -8,7 +8,7 @@
 //! The voice is drawn three ways (the story's variants): Dot scope's braid,
 //! from its real simulation and HUD Lab's tuning, bars, and a line. Only
 //! the capture adds the screen cue, a red dot or a small screen (each
-//! loop shows the other), so "Hex is listening" and "Hex is
+//! loop shows the other), so "Superhex is listening" and "Superhex is
 //! recording your screen" read apart at a glance. A prototype: the real
 //! HUD and capsule don't place or draw this way yet.
 

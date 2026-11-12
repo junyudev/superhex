@@ -1,4 +1,4 @@
-//! `"With Hex"`'s payoff, timed from the scene's cheers ([`Cheer`]): your
+//! `"With Superhex"`'s payoff, timed from the scene's cheers ([`Cheer`]): your
 //! spoken line goes out, tapbacks rain on it, replies cascade in, status
 //! pills and renames pile on, and confetti and fireworks go off around the
 //! conversation ([`super::fireworks`]). Every part is optional per scene.
@@ -42,7 +42,7 @@ impl Said {
     }
 }
 
-/// `"With Hex"`'s beats, in seconds after the shortcut goes down.
+/// `"With Superhex"`'s beats, in seconds after the shortcut goes down.
 #[derive(Clone, Debug)]
 pub(crate) struct HexBeats {
     /// Your line leaving the field.

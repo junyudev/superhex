@@ -787,7 +787,7 @@ pub(super) enum ButtonKind {
     Danger,
 }
 
-/// Builds push buttons at Hex's sizes, which keep tighter padding and
+/// Builds push buttons at Superhex's sizes, which keep tighter padding and
 /// corners than the kit's `ControlSize`s of the same height.
 pub(super) trait PushSize {
     /// 28 pt, the kit's Large height.

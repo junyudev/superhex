@@ -167,6 +167,31 @@ pub(super) const KEYS: &[Key] = &[
         "Hold the shortcut while speaking, or press once to start and again to finish",
     ),
     key(
+        "dictation_backend",
+        Kind::Choice(&["voice_buddy", "local"]),
+        "Who turns dictation into text: the VoiceBuddy speech service, or the local model",
+    ),
+    key(
+        "voice_buddy.polish",
+        Kind::Bool,
+        "VoiceBuddy polishes the final text",
+    ),
+    key(
+        "voice_buddy.traditional",
+        Kind::Bool,
+        "VoiceBuddy returns Traditional Chinese",
+    ),
+    key(
+        "voice_buddy.paragraph",
+        Kind::Bool,
+        "VoiceBuddy breaks long text into paragraphs",
+    ),
+    key(
+        "voice_buddy.reduce_redundancy",
+        Kind::Bool,
+        "VoiceBuddy removes repetition",
+    ),
+    key(
         "dictation_hotkey",
         Kind::Shortcut(HotkeySlot::Dictation),
         "The dictation shortcut",
@@ -323,11 +348,6 @@ pub(super) const KEYS: &[Key] = &[
         "Labs: use names and terms visible in the focused window as temporary vocabulary for each dictation (macOS)",
     ),
     key(
-        "labs.mouse_shortcuts",
-        Kind::Bool,
-        "Labs: record mouse buttons as shortcuts (macOS)",
-    ),
-    key(
         "labs.unload_idle",
         Kind::Bool,
         "Labs: unload the speech model when idle, freeing its memory",
@@ -385,7 +405,7 @@ pub(super) const KEYS: &[Key] = &[
     key(
         "labs.subtitle_export",
         Kind::Bool,
-        "Labs: export meeting transcripts as SRT or VTT subtitles with hex meetings show --srt|--vtt",
+        "Labs: export meeting transcripts as SRT or VTT subtitles with superhex meetings show --srt|--vtt",
     ),
     key(
         "labs.second_dictation_shortcut",
@@ -890,6 +910,8 @@ pub(super) const RETIRED: &[(&str, &str)] = &[
 /// `rune_ui::capabilities` name), the same one that shows their row in the
 /// window. The first matching prefix decides.
 pub(super) const NEEDS: &[(&str, &str)] = &[
+    ("dictation_backend", "voice_buddy"),
+    ("voice_buddy.", "voice_buddy"),
     ("meetings.calendar.", "calendar"),
     ("meetings.", "meetings"),
     ("labs.live_chapters", "meetings"),

@@ -1407,6 +1407,7 @@ mod tests {
             key: Some(HotkeyKey {
                 code: 15,
                 label: "R".into(),
+                native_mouse: None,
             }),
         };
         let hotkeys = RuntimeHotkeys {

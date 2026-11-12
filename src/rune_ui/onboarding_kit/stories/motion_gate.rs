@@ -156,7 +156,7 @@ fn record(w: &Window, dark: bool, reduced: bool) -> Recording {
     r.rec
 }
 
-/// The window opening on `"Setting up Hex"`: the story as it opens, then
+/// The window opening on `"Setting up Superhex"`: the story as it opens, then
 /// Play.
 fn entrance(dark: bool, reduced: bool) -> Recording {
     let mut r = runtime_at(opened(), dark, reduced);

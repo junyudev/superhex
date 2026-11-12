@@ -1,5 +1,5 @@
 //! `hex` control: the typed command/reply protocol an agent uses to drive the
-//! one running Hex, the settings registry behind `hex settings`, and the CLI
+//! one running Superhex, the settings registry behind `superhex settings`, and the CLI
 //! client. Transports (the macOS local API's `POST /control`) only move
 //! [`ControlRequest`]s and [`ControlResponse`]s; the app's host carries out
 //! each command, and every rule shared between the window and the CLI lives
@@ -43,7 +43,7 @@ pub enum CaptureAction {
     Cancel,
 }
 
-/// What `hex capture` does (the `capture` experiment).
+/// What `superhex capture` does (the `capture` experiment).
 /// Idempotent like [`CaptureAction`].
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, clap::ValueEnum)]
 #[serde(rename_all = "kebab-case")]
@@ -62,7 +62,7 @@ pub enum ScrawlCaptureAction {
     Replay,
 }
 
-/// The window's panes, by the names `hex window show` takes.
+/// The window's panes, by the names `superhex window show` takes.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, clap::ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 pub enum Pane {
@@ -97,6 +97,8 @@ pub enum ControlCommand {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         raw: bool,
     },
+    /// Retry the newest failed VoiceBuddy dictation at the current focus (macOS).
+    DictationRetry,
     PasteLast,
     /// Labs › Transform typed text (Linux): runs the focused field's text
     /// through its Output steps and replaces it, as its shortcut does.
@@ -121,7 +123,7 @@ pub enum ControlCommand {
         key: String,
         value: String,
     },
-    /// Several settings at once, all or none (`hex settings apply`).
+    /// Several settings at once, all or none (`superhex settings apply`).
     SettingsApply {
         values: serde_json::Map<String, serde_json::Value>,
     },
@@ -247,7 +249,7 @@ pub enum ControlReply {
     ScrawlCaptureRoute {
         explanation: String,
     },
-    /// `hex dictation stop --print` or `hex transcribe`: the transcript.
+    /// `superhex dictation stop --print` or `superhex transcribe`: the transcript.
     Transcript {
         text: String,
     },
@@ -341,7 +343,7 @@ pub struct ScrawlCaptureOutcome {
     pub missing_transcript: Option<String>,
 }
 
-/// A capture on disk, as `hex capture list` shows it.
+/// A capture on disk, as `superhex capture list` shows it.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ScrawlCaptureSummary {
     /// The bundle's folder name, which `show`, `send`, and `route` take.
@@ -355,7 +357,7 @@ pub struct ScrawlCaptureSummary {
     pub words: usize,
     /// The session it was sent to, if it was.
     pub sent_to: Option<ScrawlCaptureSession>,
-    /// OpenCode didn't take its send yet; Hex retries it.
+    /// OpenCode didn't take its send yet; Superhex retries it.
     #[serde(default)]
     pub queued: bool,
 }
@@ -366,7 +368,7 @@ pub struct ScrawlCaptureSession {
     pub title: String,
 }
 
-/// `hex capture show`: a capture's summary with its words and files.
+/// `superhex capture show`: a capture's summary with its words and files.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ScrawlCaptureDetail {
     #[serde(flatten)]
@@ -399,7 +401,7 @@ impl ControlError {
     }
 }
 
-/// How long `hex dictation stop --print` waits for its transcript.
+/// How long `superhex dictation stop --print` waits for its transcript.
 pub const PRINT_WAIT: Duration = Duration::from_secs(60);
 /// How long `hex dictation start --print` waits for its dictation to end.
 pub const PRINT_START_WAIT: Duration = Duration::from_secs(31 * 60);
@@ -512,13 +514,13 @@ pub fn check_flags(
     if print && !matches!(action, CaptureAction::Start | CaptureAction::Stop) {
         return Err(ControlError::new(
             "invalid-value",
-            "--print works only with `hex dictation start` and `hex dictation stop`",
+            "--print works only with `superhex dictation start` and `superhex dictation stop`",
         ));
     }
     if raw && !matches!(action, CaptureAction::Start | CaptureAction::Toggle) {
         return Err(ControlError::new(
             "invalid-value",
-            "--raw works only with `hex dictation start` and `hex dictation toggle`",
+            "--raw works only with `superhex dictation start` and `superhex dictation toggle`",
         ));
     }
     Ok(action)
@@ -542,8 +544,8 @@ pub fn version_mismatch(version: u64) -> ControlError {
     ControlError::new(
         "version-mismatch",
         format!(
-            "this hex speaks control version {version}, but the running Hex speaks \
-             {CONTROL_VERSION}; use the hex inside the running app or restart Hex"
+            "this hex speaks control version {version}, but the running Superhex speaks \
+             {CONTROL_VERSION}; use the hex inside the running app or restart Superhex"
         ),
     )
 }
@@ -558,18 +560,57 @@ pub struct StatusReport {
     pub capture: CaptureReport,
     pub meeting: MeetingReport,
     pub model: ModelReport,
+    #[serde(default)]
+    pub dictation: DictationReport,
     pub features: FeatureReport,
     pub permissions: PermissionReport,
     pub window: WindowReport,
     /// current, checking, available, or unavailable.
     pub update: String,
-    /// The Labs features turned on (`crate::labs`), by `hex labs` name.
+    /// The Labs features turned on (`crate::labs`), by `superhex labs` name.
     #[serde(default)]
     pub labs: Vec<String>,
-    /// What this OS's Hex can do, by capability name (`rune_ui::platform`).
+    /// What this OS's Superhex can do, by capability name (`rune_ui::platform`).
     /// A command for one it can't do answers `unsupported`.
     #[serde(default)]
     pub capabilities: std::collections::BTreeMap<String, bool>,
+}
+
+/// Additive v4 status fields. Older replies read as Local, since those apps
+/// have no speech-service backend.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct DictationReport {
+    pub backend: crate::dictation::backend::DictationBackend,
+    /// missing, ready, broken, or unsupported (off macOS).
+    pub voice_buddy_setup: String,
+}
+
+impl Default for DictationReport {
+    fn default() -> Self {
+        Self {
+            backend: crate::dictation::backend::DictationBackend::Local,
+            voice_buddy_setup: "unsupported".into(),
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn dictation_report(settings: &crate::app_settings::AppSettings) -> DictationReport {
+    use crate::dictation::{backend::Setup, voice_buddy};
+    DictationReport {
+        backend: voice_buddy::effective_backend(settings),
+        voice_buddy_setup: match voice_buddy::setup() {
+            Setup::Missing => "missing",
+            Setup::Ready { .. } => "ready",
+            Setup::Broken { .. } => "broken",
+        }
+        .into(),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn dictation_report(_settings: &crate::app_settings::AppSettings) -> DictationReport {
+    DictationReport::default()
 }
 
 /// `StatusReport::update` for an updater status.
@@ -755,15 +796,15 @@ pub struct ModelInfo {
     /// Deprecated: whether the model reads the vocabulary as its prompt,
     /// which is what recognition hints became. Use `vocabulary`.
     pub supports_recognition_hints: bool,
-    /// Where the file is or comes from: `download` (Hex downloads it),
-    /// `hex` (Hex's own download), `imported` (Hex's copy of a file you
+    /// Where the file is or comes from: `download` (Superhex downloads it),
+    /// `hex` (Superhex's own download), `imported` (Superhex's copy of a file you
     /// added), or `found: owner/name@abcdef1` (another app's download in the
     /// Hugging Face cache, used where it is).
     #[serde(default)]
     pub source: String,
 }
 
-/// Where `model`'s file is or comes from, as `hex model list` and the local
+/// Where `model`'s file is or comes from, as `superhex model list` and the local
 /// API say it: `found: owner/name@abcdef1`, `imported`, `hex`, or `download`.
 pub fn model_source(
     model: &crate::transcription::models::ModelDefinition,
@@ -777,7 +818,7 @@ pub fn model_source(
         .filter(|_| installed)
         .and_then(|path| describe(&path));
     match (model.id.is_custom(), here) {
-        (true, Some(origin)) => format!("found: {origin} (not tested by Hex)"),
+        (true, Some(origin)) => format!("found: {origin} (not tested by Superhex)"),
         (false, Some(origin)) => format!("found: {origin}"),
         (true, None) => "imported".into(),
         (false, None) if installed => "hex".into(),
@@ -785,7 +826,7 @@ pub fn model_source(
     }
 }
 
-/// Every model `hex model` can name, with what this Mac has installed.
+/// Every model `superhex model` can name, with what this Mac has installed.
 pub fn model_infos(
     selection: &crate::transcription::models::TranscriptionSelection,
 ) -> Vec<ModelInfo> {
@@ -816,7 +857,7 @@ pub fn model_infos(
         })
         .collect();
     // Compatible files that aren't catalog models and aren't in use yet:
-    // `hex model use` takes their id and checks them in full first.
+    // `superhex model use` takes their id and checks them in full first.
     for model in found.into_iter().filter(|found| {
         found.catalog.is_none() && !crate::transcription::custom_models::uses_path(&found.path)
     }) {
@@ -843,13 +884,13 @@ pub fn model_infos(
                 model.architecture.as_str(),
                 "whisper" | "qwen3_asr"
             ),
-            source: format!("found: {} (not tested by Hex)", model.source()),
+            source: format!("found: {} (not tested by Superhex)", model.source()),
         });
     }
     infos
 }
 
-/// The selection `hex model use` or `install` asks for: a known, available
+/// The selection `superhex model use` or `install` asks for: a known, available
 /// model, and a language it supports (the model's best match for the
 /// current language when none is given).
 pub fn model_selection(
@@ -913,7 +954,7 @@ pub fn model_selection(
         .ok_or_else(|| {
             ControlError::new(
                 "unknown-model",
-                format!("unknown model `{model}`; run `hex model list` for the ids"),
+                format!("unknown model `{model}`; run `superhex model list` for the ids"),
             )
         })?;
     // The model's own remembered language, as the menu bar picks it; only
@@ -925,7 +966,7 @@ pub fn model_selection(
     let definition = crate::transcription::models::definition(id);
     crate::transcription::models::validate(&selection).map_err(|error| {
         let supported = if definition.languages.contains(&"*") {
-            "any language code Hex knows (en, de, fr, ja, …)".to_owned()
+            "any language code Superhex knows (en, de, fr, ja, …)".to_owned()
         } else {
             definition.languages.join(", ")
         };
@@ -937,7 +978,7 @@ pub fn model_selection(
     Ok(selection)
 }
 
-/// Refuses to stop Hex while it records, unless forced. `capture` is the
+/// Refuses to stop Superhex while it records, unless forced. `capture` is the
 /// listener's answer (idle when no listener runs or setup gates it); a
 /// listener that couldn't answer might be recording, so it refuses too.
 pub fn check_quit(
@@ -952,7 +993,7 @@ pub fn check_quit(
         return Err(ControlError::new(
             "meeting-active",
             format!(
-                "a meeting is {}; stop it first (`hex meetings stop`) or pass --force",
+                "a meeting is {}; stop it first (`superhex meetings stop`) or pass --force",
                 meeting.state
             ),
         ));
@@ -975,7 +1016,7 @@ pub fn check_quit(
     }
 }
 
-/// Carries out `hex vocabulary add|remove` on the saved list. The reply's
+/// Carries out `superhex vocabulary add|remove` on the saved list. The reply's
 /// `changed` says whether the list needs saving.
 pub fn edit_vocabulary(
     list: &mut Vec<VocabularyEntry>,
@@ -1349,7 +1390,7 @@ mod tests {
                     id: "1.scrawl".into(),
                     sent_to: Some(ScrawlCaptureSession {
                         session: "ses_1".into(),
-                        title: "Hex".into(),
+                        title: "Superhex".into(),
                     }),
                     ..ScrawlCaptureSummary::default()
                 }],
@@ -1370,7 +1411,7 @@ mod tests {
             ControlReply::Transcript {
                 text: "Ship it.".into(),
             },
-            ControlReply::error("busy", "Hex is busy"),
+            ControlReply::error("busy", "Superhex is busy"),
         ] {
             let response = ControlResponse::from(reply);
             let json = serde_json::to_string(&response).unwrap();
@@ -1462,7 +1503,7 @@ mod tests {
         assert_eq!(remembered.language, "de");
         let french = pick("whisper_large_v3_turbo", Some("fr")).unwrap();
         assert_eq!(french.language, "fr");
-        // Whisper's wildcard takes any language Hex knows, not any string.
+        // Whisper's wildcard takes any language Superhex knows, not any string.
         for (model, language) in [
             ("whisper_large_v3_turbo", "klingon"),
             ("sense_voice_small", "de"),

@@ -1,4 +1,4 @@
-//! Child processes Hex starts for its own work: the OpenCode CLI, curl, and
+//! Child processes Superhex starts for its own work: the OpenCode CLI, curl, and
 //! PowerShell. The native app detaches from its console, so on Windows each
 //! console program would otherwise open a terminal window of its own, and
 //! closing it would kill the child.
@@ -7,7 +7,7 @@ use std::ffi::OsStr;
 use std::process::Command;
 
 /// A command for a background child that never shows a window. Use it for
-/// every process Hex spawns without a visible purpose.
+/// every process Superhex spawns without a visible purpose.
 pub fn command(program: impl AsRef<OsStr>) -> Command {
     #[cfg_attr(not(windows), allow(unused_mut))]
     let mut command = Command::new(program);

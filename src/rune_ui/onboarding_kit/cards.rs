@@ -1,5 +1,5 @@
 //! Example macOS notifications to answer by voice, and the Messages
-//! group conversation `"Without Hex"` plays out in, drawn strictly with OpenCode
+//! group conversation `"Without Superhex"` plays out in, drawn strictly with OpenCode
 //! theme tokens.
 
 use rune::{

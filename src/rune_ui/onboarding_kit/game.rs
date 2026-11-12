@@ -8,7 +8,7 @@
 //!
 //! [`Play`] is the game, driven by dictation: the live words a streaming
 //! model sends while the shortcut is held, then the paste, which is the
-//! answer. The first run's `"Your turn"` feeds it Hex's own dictation; the
+//! answer. The first run's `"Your turn"` feeds it Superhex's own dictation; the
 //! playground story feeds it scripted answers.
 
 mod certificate;
@@ -694,7 +694,7 @@ impl Script {
 /// The game on the first run's `"Your turn"`.
 pub(crate) struct Session {
     play: Play,
-    /// A story's stand-in for Hex's dictation.
+    /// A story's stand-in for Superhex's dictation.
     script: Option<Script>,
     /// What's typed into the answer field so far, which it shows as live
     /// words; Return or a paste sends it.
@@ -782,7 +782,7 @@ fn plays(s: &Onboard) -> bool {
     s.interactive_try() && !s.practice_field
 }
 
-/// Moves the game on `"Your turn"` to `now`: Hex's dictation, or a story's
+/// Moves the game on `"Your turn"` to `now`: Superhex's dictation, or a story's
 /// script, answers the lit card. False when the step is the plain practice
 /// field instead.
 pub(super) fn step(s: &mut Onboard, now: f64) -> bool {
@@ -812,14 +812,14 @@ pub(super) fn step(s: &mut Onboard, now: f64) -> bool {
         }
         return true;
     }
-    // Hex's own dictation sounds its own tones; without it, the story
+    // Superhex's own dictation sounds its own tones; without it, the story
     // follows the physical shortcut and sounds them itself.
     let real = s.live.as_ref().map(|live| live.listening);
     let held = real.unwrap_or_else(|| physical_shortcut_held(&s.caps));
     match (s.live_hold_from, held) {
         (None, true) => {
             s.live_hold_from = Some(now);
-            // Hex pastes where the focus is when the dictation ends.
+            // Superhex pastes where the focus is when the dictation ends.
             s.practice.focused = true;
             if real.is_none() {
                 s.sfx.on_live_shortcut_down(now);
@@ -833,7 +833,7 @@ pub(super) fn step(s: &mut Onboard, now: f64) -> bool {
         }
         _ => {}
     }
-    // A try Hex couldn't use drops the words it sent.
+    // A try Superhex couldn't use drops the words it sent.
     let practice = s.live.as_ref().map(|live| live.practice);
     if practice != session.practice
         && matches!(
@@ -949,7 +949,7 @@ pub(super) fn page(p: Paint, s: &Onboard) -> Option<El> {
         s.live.as_ref().and_then(live::hint_copy)
     };
     let title = if s.flow == super::stories::Flow::FirstRun {
-        tr("With Hex")
+        tr("With Superhex")
     } else {
         tr("Clear your messages")
     };
@@ -1006,7 +1006,7 @@ pub(super) fn page(p: Paint, s: &Onboard) -> Option<El> {
             field,
         )
     };
-    // The answer field takes Hex's paste (and typing) out of sight: it
+    // The answer field takes Superhex's paste (and typing) out of sight: it
     // keeps its size, so it can hold the focus, in a clip too small to
     // show any of it.
     let field = el()

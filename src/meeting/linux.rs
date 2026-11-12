@@ -3,7 +3,7 @@
 //!
 //! `pw-record` captures the monitor (`stream.capture.sink`), which the
 //! session manager links to whatever the default output is, following it
-//! when it changes. It runs as a child process so Hex links no PipeWire
+//! when it changes. It runs as a child process so Superhex links no PipeWire
 //! library and a desktop without PipeWire fails only this source.
 
 use std::io::Read;
@@ -30,13 +30,13 @@ pub(super) fn ensure_system_audio() -> Result<()> {
         Ok(())
     } else {
         Err(eyre!(
-            "Install PipeWire's pw-record (the pipewire-audio package) so Hex can hear the other participants, then try again"
+            "Install PipeWire's pw-record (the pipewire-audio package) so Superhex can hear the other participants, then try again"
         ))
     }
 }
 
 /// Ends `command`'s process with the thread that starts it, so a helper
-/// never outlives a Hex that stopped without dropping it.
+/// never outlives a Superhex that stopped without dropping it.
 fn tied_to_thread(command: &mut Command) -> &mut Command {
     // SAFETY: `prctl` is async-signal-safe and touches only the child.
     unsafe {
@@ -87,7 +87,7 @@ impl MonitorSource {
                 "Capture",
                 "-P",
                 "{ stream.capture.sink = true node.name = hex-meeting-system-audio \
-                 node.description = \"Hex meeting system audio\" }",
+                 node.description = \"Superhex meeting system audio\" }",
                 "-",
             ])
             .stdin(Stdio::null())

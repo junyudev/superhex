@@ -2,7 +2,7 @@
 //! at a time receives `data: {"type":"meeting.finished","id":"<id>"}` once
 //! per meeting whose final transcript is written, and a comment keepalive
 //! between. Only the id is sent; clients read the rest with
-//! `hex meetings show <id>`. While the toggle is off the route answers
+//! `superhex meetings show <id>`. While the toggle is off the route answers
 //! `404 labs-off`, and a stream already open ends.
 
 use std::io::Write;

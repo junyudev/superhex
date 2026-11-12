@@ -1,5 +1,12 @@
 <!-- tallow -->
-# Hex Agent Guide
+# Superhex Agent Guide
+
+This fork is `junyudev/superhex`. For identity, paths, or source installation,
+read [the Superhex contract](docs/features/branding.md) before changing the
+referenced implementation. Install with `scripts/install-app.sh` (remote HEAD)
+or `--local` (this checkout). Keep source builds marked local with updates off.
+The upstream publication recipes below describe Hex distribution history;
+Superhex currently installs from source.
 
 ## Private Kit Tool
 
@@ -29,6 +36,11 @@ and keep consequential behavior explicit. Deterministic personal transcript
 transformations live in the explicit TypeScript user config (`~/.config/hex/hex.config.ts`). User-facing
 runtime settings persist in Application Support.
 
+This fork's owner explicitly chooses VoiceBuddy as macOS dictation's default
+backend, an exception to the Labs rule below. A usable configuration must
+first be imported by the person: without it, dictation stays local. The local
+`transcription` selection remains independent of this backend choice.
+
 Every build shows General, Output, History, and Labs. Labs holds features
 we're unsure about, especially ones people asked for that we built: **new or
 user-requested features land in Labs, off by default, not on by default.**
@@ -43,7 +55,7 @@ Meetings (beta), Voice Filter (Dev; locked on while its macOS driver is
 installed, and a stable build with the driver keeps its pane for Uninstall
 alone), Playground (Dev), Live text, Live chapters, Vocabulary biasing,
 Screen vocabulary (macOS), Switch
-model with keyboard language (#216), Mouse shortcuts (#209, macOS), Also
+model with keyboard language (#216), Also
 pause the browser (#301, macOS), Share dictation shortcut (#176, Windows),
 Unload model when idle (#442), Terminal paste (Windows), and Terminal paste
 shortcut (Windows, Linux). Externally contributed features land there too.
@@ -104,6 +116,13 @@ substitute for source inspection or a second roadmap.
 - `dictation`, `dictation/diagnostics`: warm pre-roll, growable capture, 16 kHz
   local-transcription resampling, and owner-only diagnostic WAV retention when
   `HEX_RETAIN_DICTATION_AUDIO` is set.
+- `dictation/voice_buddy`: macOS dictation's speech-service adapter, explicit
+  private configuration import, session-to-job live-text ownership, one automatic
+  whole-clip retry, and bounded volatile failure recovery. `dictation/backend`
+  is the window's plain-data contract. `dictation/capture_stream` feeds local
+  streams or service sessions; `dictation/jobs` admits both sources to the
+  existing ordered processing/output pipeline. Service work never runs on the
+  local transcription engine or the microphone thread.
 - `transcription/pause_segmenter`: pure 16 kHz pause detection that cuts meeting audio into
   rolling transcription chunks.
 - `dictation/audio`: the authoritative microphone timeline, lazy stream
@@ -138,8 +157,9 @@ substitute for source inspection or a second roadmap.
   cancellation and deadlines. It never runs an OpenCode executable or curl;
   without a service, features say "OpenCode isn't running".
 - `parakeet`: the strict-Metal `transcribe.cpp` adapter plus the dictation
-  worker that hands clips to the transcription engine and runs bounded,
-  ordered processing, output, paste, last-result, and meeting-delta work, plus
+  worker that hands local clips to the transcription engine and service waits
+  to `dictation/jobs`, then runs bounded, ordered processing, output, paste,
+  last-result, and meeting-delta work, plus
   `transcribe_with_words`, the capture path's word-timestamped foreground
   requests on the same engine.
 - `apple_speech`: the Swift `SpeechAnalyzer` bridge with per-locale support
@@ -432,11 +452,11 @@ substitute for source inspection or a second roadmap.
   low-level keyboard hook, clipboard paste, UI Automation context, While
   dictating (mute, lower, or pause other apps' audio) with idle-sleep
   prevention, and the login item.
-- `dictation/live_text`: Labs' live text of the recording in
-  progress: the recording's `Publisher` shows it and its drop clears it, and
-  each OS's host installs `rune_ui::live_text`, one click-through line just
-  past the HUD, as a watcher, placed where `rune_hud` last showed the HUD
-  (`rune_hud::live_text_place`).
+- `dictation/live_text`: the provisional-line board and Publisher, including
+  VoiceBuddy's Offline, Finishing and Polishing phases and the ownership rules
+  below. Local text needs Labs or practice demand; service text always publishes.
+  Each OS's host installs `rune_ui::live_text` as a watcher, placed where
+  `rune_hud` last showed the HUD (`rune_hud::live_text_place`).
 - `dictation/modes`: the mode runtime the Windows and Linux listeners share:
   mode selection by application and website, then global replacements, mode
   corrections, OpenCode rewriting, and transformations, and the History entry.
@@ -568,7 +588,7 @@ substitute for source inspection or a second roadmap.
   read as nothing chosen.
 - `labs`: the Labs feature registry (`labs::Feature`: name, settings key,
   description, audience, group), the runtime gates (`labs::live_text`, `live_chapters`,
-  `playground`, `vocabulary_biasing`, `mouse_shortcuts`), and
+  `playground`, `vocabulary_biasing`), and
   `hex labs [on|off <feature>]`. `dev_build`: whether this is a dev, local, test,
   or dev-channel build.
 - `capture_host`: Scrawl's capture engine (the `scrawl-capture` crate in
@@ -659,12 +679,34 @@ CoreAudio formats, AppleScript details, or event serialization.
   `meetings.retention` is omitted, not `null`. Do not omit optional fields
   whose absence restores a nonempty default, such as `paste_last_hotkey`.
 - On a new Mac, release dictation starts only after Microphone, Accessibility,
-  and the selected dictation model are ready. Hex never asks for Input
-  Monitoring: Accessibility also grants the listen-event access its shortcut
-  taps need (measured on macOS 26 and 27).
+  and speech are ready: a usable, chosen VoiceBuddy configuration or the
+  selected local model. Hex asks for Input Monitoring only from the explicit
+  mouse access action. Ordinary shortcut taps use Accessibility (measured on
+  macOS 26 and 27). Raw mouse observation checks `IOHIDCheckAccess` before
+  every open; only `RequestMouseAccess` calls `IOHIDRequestAccess`. Startup,
+  settings reload, and recording never prompt.
 - The dictation shortcut defaults to Option but supports modifier-only,
   modifier-plus-key, standalone Globe/Fn, and standalone function-key bindings.
   Capturing a new binding suspends global matching.
+- macOS mouse shortcuts are graduated: always recordable, with no Labs gate or
+  reset. Ignore retired `labs.mouse_shortcuts` and `mouse_shortcut_notice` keys.
+  The recorder's temporary global tap owns a captured down, drag, and up;
+  bare left/right clicks pass, modified primary clicks record, and buttons
+  held at start must lift first. Finish on release. Cancellation stops capture
+  immediately and drains only an owned release (two neutral samples or a 30 s
+  hard limit), then removes the tap; no filtering mouse tap stays idle.
+- Raw mouse input observes only Button-page usages 3–32 on physical pointer
+  devices, never keyboard elements or virtual pointers. Prefer a matching
+  standard event within 80 ms; otherwise persist `native_mouse` vendor,
+  product, and usage inside the ordinary Mouse key. Pin one HID interface,
+  seed unknown/held states, order edges by the HID value's Mach timestamp,
+  recover sampled releases, and release on removal or lost access. The runtime
+  monitor exists only for an active native binding. Do not change the keyboard
+  shortcut machine for HID: native edges use its existing input codes.
+- Mouse events reach the filtering session tap only with a mouse shortcut
+  bound; otherwise they stay on the passive tap (#1215, window dragging
+  between displays/Spaces). The 5 s tap health check moves their masks after
+  settings change. The recorder's temporary filtering tap is independent.
 - Every shortcut is a chord: the set of keys held together, any order and
   nothing else, each modifier key with its side (left, right, or any) plus at
   most one other key or mouse button. It is down on the edge that completes
@@ -832,7 +874,7 @@ CoreAudio formats, AppleScript details, or event serialization.
   or `toggle`. Toggle reuses the lock state on every platform: each press acts
   as the second tap of a double-tap, so release locks and the next shortcut
   press finishes. A modifier pressed alone never ends a key-chord capture. Double-tap settings apply to Hold only.
-- Streaming dictation is speculative on every OS: a hotkey capture's stream
+- Local streaming dictation is speculative on every OS: a hotkey capture's stream
   receives the capture's 16 kHz audio with each pause cut to its first 2.5 s
   and last 0.3 s (Parakeet drops words after pauses past its left context),
   the finish always carries the complete clip, and a failed, empty, overfed, late, or interrupted stream
@@ -844,6 +886,42 @@ CoreAudio formats, AppleScript details, or event serialization.
   stream holds the model's compute lease. Streams run only on GPU devices
   (Metal, Vulkan); models that cannot stream transcribe the whole clip after
   release. Dictation is never cut at pauses; meetings are.
+- VoiceBuddy applies only to `DictationWorker::submit` (paste, raw paste,
+  print, and programmatic dictation). Meetings, Annotate words, `/transcribe`,
+  `/streams`, benchmarks, and History's Transcribe again remain local. With
+  VoiceBuddy in effect, startup leaves the local engine empty; local consumers
+  activate through their existing paths. A local-model menu choice also chooses
+  Local. Keyboard-language switching applies only while Local is in effect.
+- Setting up is consent to send audio, so only the person's own action does
+  it: Set up (which asks the service for this installation's own identity),
+  Use it (the configuration found on this Mac), or Choose file…. Nothing
+  registers, imports, or scans at launch, on a settings reload, or while
+  recording. Store only validated durable fields in
+  `<support>/voice-buddy.json` (0600; folder 0700), through `app_paths` and
+  `durable`; imports are bounded and refuse a file that is itself a symlink.
+  Only explicit discovery reads
+  `~/Library/Application Support/MouseVoice/context.json`, and no keychain or
+  other-app scan. A registered identity belongs to this installation, comes
+  from secure random data, and reads no hardware identifier. Rejected
+  credentials
+  mark setup Broken in memory immediately; the finishing job persists that
+  refusal. A successful import clears it. Diagnostics omit service words and
+  configuration values; successful service output omits words from event logs.
+- A VoiceBuddy session starts only after an intentional hold. Feed the complete
+  normalized timeline, without the local pause cap. A connection failure never
+  changes capture; show Offline and keep the clip. Its live-text Publisher
+  travels into the job, shows Finishing/Polishing, and drops when text arrives;
+  discard, cancel, and silence drop it immediately. Local Publisher ownership
+  stays at the recording. An older job cannot replace a newer Publisher's line.
+- A retryable service failure gets one whole-clip retry, silently, keeping
+  Finishing. A final failure pastes nothing, emits the existing failed HUD
+  event and one error tone. Paste targets alone may retain the audio in memory:
+  at most eight clips, ten minutes, and 128 MiB total; at most 64 KiB of heard
+  text per clip. Evict oldest, and never persist a failed clip or put it in
+  History. Retry, Retry Local, and Paste Heard enter the normal ordered pipeline
+  as new jobs at current focus. Print and programmatic failures answer their
+  owner and retain nothing. Quitting cancels network tokens before draining
+  jobs and clears every held clip; it never waits for service deadlines.
 - Starting a new capture never cancels accepted dictation work. Pending jobs
   preserve submission-order output while capture remains immediately available.
 - Completing or pasting an older job must not reconcile or finish a newer
@@ -898,6 +976,8 @@ CoreAudio formats, AppleScript details, or event serialization.
   Settings window. Settings and the menu bar share one preparation owner; a newer
   choice supersedes uncommitted work, and preparation/save failures leave the old
   selection intact. Menu-bar selections never silently download or repair a model.
+  On macOS its first item is VoiceBuddy, checked when in effect; without a
+  usable configuration, choosing it opens Settings.
 - Cohere's advertised encoder input capacity is not its recommended inference
   window. Both GGUF adapters cap Cohere chunks at the reference processor's
   35 seconds (or a stricter advertised bound); capture duration remains unlimited.
@@ -1556,7 +1636,9 @@ New, unproven, user-requested, and externally contributed features
 its settings key, description, and group (`Feature::group`), a card on the Labs page, and a
 `hex settings` key; gate where the feature's work starts (worker, thread,
 capture), not just its UI. Never add a master switch or ship such a feature
-on by default. Remove it from Labs when it graduates or is dropped.
+on by default. Remove it from Labs when it graduates or is dropped. The
+owner-authorized VoiceBuddy backend default on this fork is the explicit
+exception; import remains necessary before any audio leaves the Mac.
 
 Use `scripts/check [filter]` for the local loop, not raw `cargo test`. It runs
 tests through cargo-nextest (`brew install cargo-nextest`) with

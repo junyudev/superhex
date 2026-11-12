@@ -5,7 +5,7 @@
 //!   typing`), never repeating an adjacent sample, each press at its own
 //!   pitch and level.
 //! - Tactile shortcut keycap press and release (`⌥` down / up).
-//! - Hex's real `#292` `DictationStart`, `DictationStop`, and `DictationDone`
+//! - Superhex's real `#292` `DictationStart`, `DictationStop`, and `DictationDone`
 //!   tones and the ready logo's three rising notes, played through
 //!   [`crate::feedback`], respecting
 //!   the user's sound set and feedback volume (`volume == 0` is silent;
@@ -160,12 +160,12 @@ impl SfxTrack {
             .sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
     }
 
-    /// Initial `"Setting up Hex"` hexagon bloom.
+    /// Initial `"Setting up Superhex"` hexagon bloom.
     pub(crate) fn on_download_start(&mut self, now: f64) {
         self.push(now + 0.08, Tone::Onboarding(OnboardingTone::Hexagon));
     }
 
-    /// `"Without Hex"` waiting to start: the hexagon settles into the top
+    /// `"Without Superhex"` waiting to start: the hexagon settles into the top
     /// pill.
     pub(crate) fn on_parked(&mut self, now: f64, had_model: bool) {
         if !had_model {
@@ -188,7 +188,7 @@ impl SfxTrack {
         self.push(now, Tone::Onboarding(OnboardingTone::ShortcutDown));
     }
 
-    /// The conversation on screen already, `"Without Hex"` from `from`:
+    /// The conversation on screen already, `"Without Superhex"` from `from`:
     /// the lines from before it land in it, each with its sound, in place
     /// of the row's dings.
     pub(crate) fn on_arrivals(&mut self, from: f64, scene: &typing::Scene) {
@@ -202,7 +202,7 @@ impl SfxTrack {
         }
     }
 
-    /// `"Without Hex"` from `from`: every keystroke, harder as panic builds
+    /// `"Without Superhex"` from `from`: every keystroke, harder as panic builds
     /// (a space-bar thud under the tap), a soft send, Jay's messages, a
     /// deadpan tick on `"Read"`, and the selected set's error on removal.
     /// The keys are always the mechanical clack, whatever the reader picked
@@ -304,7 +304,7 @@ impl SfxTrack {
         }
     }
 
-    /// The story winding back into `"With Hex"`, and `"Voice-first mode"`
+    /// The story winding back into `"With Superhex"`, and `"Voice-first mode"`
     /// called.
     pub(crate) fn on_rewind(&mut self, now: f64) {
         self.push(now, Tone::Onboarding(OnboardingTone::Rewind));
@@ -314,7 +314,7 @@ impl SfxTrack {
         );
     }
 
-    /// `"With Hex"`'s payoff from the shortcut at `from`: the answer
+    /// `"With Superhex"`'s payoff from the shortcut at `from`: the answer
     /// sending, each tapback and reply, and a triumphant sting under the
     /// first celebration, each with its own sound.
     pub(crate) fn on_hex_reply(&mut self, from: f64, beats: &triumph::HexBeats) {
@@ -354,7 +354,7 @@ impl SfxTrack {
         }
     }
 
-    /// `"With Hex"` or scripted `"Your turn"` dictation: physical shortcut
+    /// `"With Superhex"` or scripted `"Your turn"` dictation: physical shortcut
     /// down, real `DictationStart`, then shortcut up, `DictationStop`, and
     /// `DictationDone`.
     pub(crate) fn on_voice_take(&mut self, start: f64, take: &Take) {
@@ -435,7 +435,7 @@ impl SfxTrack {
         self.push(now, Tone::Onboarding(OnboardingTone::PermissionTick));
     }
 
-    /// `"With Hex"`'s score landing.
+    /// `"With Superhex"`'s score landing.
     pub(crate) fn on_score(&mut self, now: f64) {
         self.push(now + 0.05, Tone::Onboarding(OnboardingTone::AlmostReady));
     }
@@ -456,7 +456,7 @@ impl SfxTrack {
         }
     }
 
-    /// `"Hex is ready"` finale: one rising note as each of the logo's
+    /// `"Superhex is ready"` finale: one rising note as each of the logo's
     /// hexagons lands, resolving on the last; Reduced Motion shows the logo
     /// built, with only the last.
     pub(crate) fn on_ready(&mut self, now: f64, reduced: bool) {

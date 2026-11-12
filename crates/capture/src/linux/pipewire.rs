@@ -1,5 +1,5 @@
 //! One PipeWire video stream on the screen-cast portal's remote. `libpipewire-0.3` is loaded
-//! when a capture starts, so Hex neither builds nor ships against it, and nothing changes for
+//! when a capture starts, so Superhex neither builds nor ships against it, and nothing changes for
 //! a desktop without it until a capture is asked for.
 //!
 //! The stream offers two formats: 32-bit RGB as a linear DMA-BUF (what niri and most
@@ -722,7 +722,7 @@ impl Stream {
                 stream,
                 DIRECTION_INPUT,
                 node,
-                // Hex maps buffers itself (`Stream::map`), so a buffer PipeWire removes is never
+                // Superhex maps buffers itself (`Stream::map`), so a buffer PipeWire removes is never
                 // unmapped while the recorder still copies from it.
                 STREAM_FLAG_AUTOCONNECT,
                 params.as_mut_ptr(),

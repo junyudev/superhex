@@ -1,4 +1,4 @@
-; Per-user Windows installer for Hex. It installs exactly the managed layout
+; Per-user Windows installer for Superhex. It installs exactly the managed layout
 ; that .github/release/install-windows.ps1 creates and src/windows_updater.rs updates:
 ;
 ;   %APPDATA%\hex\versions\<version>\hex.exe
@@ -6,7 +6,7 @@
 ;   %APPDATA%\hex\bin\hex.com  (on the user's PATH)
 ;   %APPDATA%\hex\current-version
 ;   %APPDATA%\hex\install.json  (the direct-install receipt)
-;   Start Menu\Programs\Hex.lnk  (description "Hex managed install")
+;   Start Menu\Programs\Superhex.lnk  (description "Superhex managed install")
 ;
 ; so the app keeps updating itself from the release service afterwards. The
 ; uninstaller lives outside versions\ because the updater prunes old version
@@ -42,25 +42,25 @@
 [Setup]
 ; Keep this AppId forever: it names the Apps & Features entry that
 ; src/windows_updater.rs keeps current after self-updates.
-AppId={{6ED48C92-5177-41F4-B8D6-37B7B02CFDF4}
-AppName=Hex
+AppId={{D2816BB2-472C-4631-89DB-AF873CFCE1A8}
+AppName=Superhex
 AppVersion={#AppVersion}
-AppVerName=Hex {#AppVersion}
-AppPublisher=Anomaly Innovations, Inc.
-AppPublisherURL=https://anoma.ly/
-AppSupportURL=https://github.com/anomalyco/hex/issues
-AppUpdatesURL=https://github.com/anomalyco/hex/releases
+AppVerName=Superhex {#AppVersion}
+AppPublisher=junyudev
+AppPublisherURL=https://github.com/junyudev/superhex
+AppSupportURL=https://github.com/junyudev/superhex/issues
+AppUpdatesURL=https://github.com/junyudev/superhex/releases
 PrivilegesRequired=lowest
 ArchitecturesAllowed={#AllowedArchitectures}
 ArchitecturesInstallIn64BitMode={#AllowedArchitectures}
-DefaultDirName={userappdata}\hex
+DefaultDirName={userappdata}\superhex
 DisableDirPage=yes
 UsePreviousAppDir=no
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
 DisableWelcomePage=yes
 UninstallFilesDir={app}\uninstall
-UninstallDisplayName=Hex
+UninstallDisplayName=Superhex
 UninstallDisplayIcon={app}\uninstall\hex.ico
 SetupIconFile=..\..\resources\windows\hex.ico
 WizardStyle=modern
@@ -83,10 +83,10 @@ Source: "{#Console}"; DestDir: "{app}\bin"; DestName: "hex.com"; Flags: ignoreve
 Source: "..\..\resources\windows\hex.ico"; DestDir: "{app}\uninstall"; Flags: ignoreversion
 
 [Icons]
-Name: "{userprograms}\Hex"; Filename: "{app}\versions\{#AppVersion}\hex.exe"; Parameters: "app"; WorkingDir: "{app}\versions\{#AppVersion}"; Comment: "Hex managed install"
+Name: "{userprograms}\Superhex"; Filename: "{app}\versions\{#AppVersion}\hex.exe"; Parameters: "app"; WorkingDir: "{app}\versions\{#AppVersion}"; Comment: "Superhex managed install"
 
 [Run]
-Filename: "{app}\versions\{#AppVersion}\hex.exe"; Parameters: "app"; Description: "Open Hex"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\versions\{#AppVersion}\hex.exe"; Parameters: "app"; Description: "Open Superhex"; Flags: postinstall nowait skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\versions"
@@ -259,11 +259,11 @@ begin
   if CurUninstallStep = usUninstall then
   begin
     { Self-updates run from newer version directories this uninstaller did
-      not create, so stop any Hex running from the managed layout. }
+      not create, so stop any Superhex running from the managed layout. }
     StopManagedHex();
-    if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Hex', Command) and
+    if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Superhex', Command) and
        (Pos(LowerCase(ExpandConstant('{app}\versions\')), LowerCase(Command)) > 0) then
-      RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Hex');
+      RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Superhex');
     RemoveBinFromPath();
   end;
 end;

@@ -81,6 +81,7 @@ struct Fixture {
 
 impl Fixture {
     fn new(settings: AppSettings) -> Self {
+        crate::dictation::voice_buddy::configure(&settings);
         let (start, started) = mpsc::channel();
         let (release, releases) = mpsc::channel();
         let releases = Mutex::new(releases);
@@ -212,6 +213,13 @@ impl Fixture {
     }
 }
 
+fn local_settings() -> AppSettings {
+    AppSettings {
+        dictation_backend: crate::dictation::backend::DictationBackend::Local,
+        ..Default::default()
+    }
+}
+
 /// "Spanish" mapped to `model` in the language it would get from the picker.
 fn mapped_settings(model: TranscriptionModelId) -> AppSettings {
     let settings = AppSettings::default();
@@ -232,7 +240,7 @@ fn mapped_settings_in(model: TranscriptionModelId, language: &str) -> AppSetting
             )]
             .into(),
         },
-        ..Default::default()
+        ..local_settings()
     }
 }
 
@@ -326,7 +334,7 @@ fn hexs_own_window_applies_nothing_and_an_edit_waits_for_another_app() {
 
 #[test]
 fn hex_model_use_with_the_current_model_and_language_loads_nothing() {
-    let mut fixture = Fixture::new(AppSettings::default());
+    let mut fixture = Fixture::new(local_settings());
     let same = fixture.runtime.settings.transcription.clone();
     fixture.runtime.handle(Request::UseInstalledSelection(same));
     assert_eq!(fixture.runtime.preparation.status().model, None);
@@ -372,7 +380,7 @@ fn choosing_the_current_model_cancels_a_debounced_automatic_choice_without_loadi
 
 #[test]
 fn choosing_the_current_model_keeps_manual_preparation_when_switching_is_disabled() {
-    let settings = AppSettings::default();
+    let settings = local_settings();
     assert!(!settings.keyboard_model_switching.enabled);
     let mut fixture = Fixture::new(settings);
     fixture.start_manual();
@@ -432,4 +440,25 @@ fn a_due_source_choice_supersedes_manual_preparation_even_for_the_current_model(
             fixture.release();
         }
     }
+}
+
+#[test]
+fn choosing_local_from_the_service_choice_prepares_even_the_same_model() {
+    let mut fixture = Fixture::new(AppSettings::default());
+    let same = fixture.runtime.settings.transcription.clone();
+    fixture
+        .runtime
+        .handle(Request::UseInstalledSelection(same.clone()));
+    assert_eq!(fixture.started(), (same, true));
+    fixture.release();
+    assert!(!fixture.finished.recv_timeout(WAIT).unwrap());
+}
+
+#[test]
+fn choosing_the_service_supersedes_a_pending_local_model_preparation() {
+    let mut fixture = Fixture::new(local_settings());
+    fixture.start_manual();
+    fixture.runtime.reconcile_backend(&AppSettings::default());
+    fixture.release();
+    assert!(fixture.finished.recv_timeout(WAIT).unwrap());
 }

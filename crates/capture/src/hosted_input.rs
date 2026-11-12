@@ -1,7 +1,7 @@
 //! Input from a host's own event tap.
 //!
 //! Scrawl's app reads the mouse, keys and modifiers itself (a key tap, a global mouse monitor and
-//! an 8 ms poller). A host that runs the engine with `SharedResources::none()`, such as Hex,
+//! an 8 ms poller). A host that runs the engine with `SharedResources::none()`, such as Superhex,
 //! reports what its own tap sees instead, and these pure rules turn that into the
 //! [`InputEvent`]s Scrawl's taps and poller would have sent: `⇧` alone draws ink (a `⇧`-click is
 //! part of the drawing), and only `⌘`/`⌃` chords are logged, never ordinary typing.

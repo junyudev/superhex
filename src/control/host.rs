@@ -21,7 +21,7 @@ use crate::transcription::models::TranscriptionSelection;
 /// How long `model use` waits to confirm, inside the transport's deadline.
 const CONFIRM_WAIT: Duration = Duration::from_secs(8);
 
-/// What the running Hex published last.
+/// What the running Superhex published last.
 pub(crate) struct HostState {
     pub(crate) settings: AppSettings,
     pub(crate) listener: DesktopListenerSnapshot,
@@ -69,7 +69,7 @@ pub(crate) trait Host {
     /// Launch at login, after setting it when `enabled` is given; `None`
     /// when this OS has no login item.
     fn launch_at_login(&self, enabled: Option<bool>) -> Option<Result<bool, String>>;
-    /// Quits Hex (and, for `restart`, reopens it) once this reply is out.
+    /// Quits Superhex (and, for `restart`, reopens it) once this reply is out.
     fn quit(&self, restart: bool) -> Result<(), ControlError>;
     fn shortcut_rules(&self) -> settings::ShortcutRules;
     /// Annotate's commands, where this OS has a capture engine.
@@ -104,7 +104,7 @@ pub(crate) fn serve(
             }
         });
     if let Err(error) = spawned {
-        tracing::warn!(%error, "`hex` control commands will not reach this Hex");
+        tracing::warn!(%error, "`hex` control commands will not reach this Superhex");
     }
 }
 
@@ -122,6 +122,10 @@ fn command(host: &dyn Host, command: ControlCommand) -> ControlReply {
         |result: Result<ControlReply, ControlError>| result.unwrap_or_else(ControlReply::from);
     match command {
         ControlCommand::Status => reply(status(host)),
+        ControlCommand::DictationRetry => ControlReply::error(
+            "unsupported",
+            "VoiceBuddy dictation is available only on macOS",
+        ),
         ControlCommand::Quit { force } | ControlCommand::Restart { force } => {
             let restart = matches!(command, ControlCommand::Restart { .. });
             reply(
@@ -129,9 +133,9 @@ fn command(host: &dyn Host, command: ControlCommand) -> ControlReply {
                     .and_then(|()| host.quit(restart))
                     .map(|()| {
                         ControlReply::done(if restart {
-                            "Restarting Hex"
+                            "Restarting Superhex"
                         } else {
-                            "Quitting Hex"
+                            "Quitting Superhex"
                         })
                     }),
             )
@@ -224,8 +228,8 @@ fn command(host: &dyn Host, command: ControlCommand) -> ControlReply {
         }
         ControlCommand::OnboardingReset => host.onboarding_reset(),
         ControlCommand::HistoryClear => reply(clear_history(host)),
-        ControlCommand::CheckForUpdates => reply(host.state().and_then(|state| {
-            match state.update {
+        ControlCommand::CheckForUpdates => {
+            reply(host.state().and_then(|state| match state.update {
                 DesktopUpdateStatus::Managed => Err(ControlError::new(
                     "unsupported",
                     "updates are managed by your organization",
@@ -234,13 +238,13 @@ fn command(host: &dyn Host, command: ControlCommand) -> ControlReply {
                 | DesktopUpdateStatus::SourceBuild
                 | DesktopUpdateStatus::PackageManager => Err(ControlError::new(
                     "unavailable",
-                    "this Hex build doesn't update itself",
+                    "this Superhex build doesn't update itself",
                 )),
-                _ => host
-                    .check_for_updates()
-                    .map(|()| ControlReply::done("Checking for updates; Hex shows what it finds")),
-            }
-        })),
+                _ => host.check_for_updates().map(|()| {
+                    ControlReply::done("Checking for updates; Superhex shows what it finds")
+                }),
+            }))
+        }
         ControlCommand::LaunchAtLogin { enabled } => launch_at_login(host, enabled),
         ControlCommand::VocabularyList => reply(load().map(|settings| ControlReply::Vocabulary {
             entries: settings.vocabulary,
@@ -295,7 +299,7 @@ fn meeting_report() -> MeetingReport {
     }
 }
 
-/// `hex meetings record|stop`, as the tray's items do; waits a moment for
+/// `superhex meetings record|stop`, as the tray's items do; waits a moment for
 /// the recorder to confirm.
 fn meeting(stop: bool, title: Option<String>) -> ControlReply {
     use crate::meeting::MeetingRequest;
@@ -338,7 +342,7 @@ fn meeting(stop: bool, title: Option<String>) -> ControlReply {
         match (crate::meeting::runtime::state(), stop) {
             (MeetingMenuState::Recording { title, .. }, false) => {
                 return ControlReply::done(format!(
-                    "Recording “{title}”; `hex meetings stop` stops and transcribes it"
+                    "Recording “{title}”; `superhex meetings stop` stops and transcribes it"
                 ));
             }
             (MeetingMenuState::Transcribing | MeetingMenuState::Idle, true) => {
@@ -348,9 +352,9 @@ fn meeting(stop: bool, title: Option<String>) -> ControlReply {
         }
     }
     ControlReply::done(if stop {
-        "Asked the meeting to stop; `hex status` shows when it's transcribing"
+        "Asked the meeting to stop; `superhex status` shows when it's transcribing"
     } else {
-        "Hex is starting the recording; `hex status` shows when it's recording"
+        "Superhex is starting the recording; `superhex status` shows when it's recording"
     })
 }
 
@@ -417,7 +421,7 @@ fn commit(
     Ok(ControlReply::done(change.message))
 }
 
-/// `hex model use` (installed only) and `hex model install` (downloads
+/// `superhex model use` (installed only) and `superhex model install` (downloads
 /// first). Both switch once the model is ready.
 fn use_model(
     host: &dyn Host,
@@ -439,7 +443,7 @@ fn use_model(
         return Err(ControlError::new(
             "not-installed",
             format!(
-                "{} isn't installed; `hex model install {}` downloads it ({})",
+                "{} isn't installed; `superhex model install {}` downloads it ({})",
                 definition.name,
                 selection.model.as_str(),
                 definition.size_label()
@@ -449,8 +453,8 @@ fn use_model(
     host.choose_model(selection.clone())?;
     if !installed {
         return Ok(ControlReply::done(format!(
-            "Downloading {} ({}); Hex switches to it once it's ready. \
-             `hex status` shows progress, `hex model cancel` stops it",
+            "Downloading {} ({}); Superhex switches to it once it's ready. \
+             `superhex status` shows progress, `superhex model cancel` stops it",
             definition.name,
             definition.size_label()
         )));
@@ -493,7 +497,7 @@ fn wait_for_model(
         }
     }
     Ok(ControlReply::done(format!(
-        "Loading {name}; `hex status` shows when it's ready"
+        "Loading {name}; `superhex status` shows when it's ready"
     )))
 }
 
@@ -590,6 +594,7 @@ fn status(host: &dyn Host) -> Result<ControlReply, ControlError> {
         },
         capture,
         meeting: meeting_report(),
+        dictation: super::dictation_report(&settings),
         model: ModelReport {
             preparing: state
                 .transcription

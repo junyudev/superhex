@@ -1,4 +1,4 @@
-//! How `"Without Hex"` and `"With Hex"` are composed on the page: where the
+//! How `"Without Superhex"` and `"With Superhex"` are composed on the page: where the
 //! conversation, the keyboard and the heading sit, and where the fireworks
 //! have room. The run picks one layout ([`Layout::chosen`]), as it picks
 //! its scene, so the stage's geometry is known without an `Onboard`; the

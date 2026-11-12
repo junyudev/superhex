@@ -401,27 +401,4 @@ mod tests {
                 .all(|row| row.mode == ExtraDictationMode::HoldOrDoubleTap)
         );
     }
-
-    /// Turning Labs › Mouse shortcuts off unbinds an extra shortcut on a
-    /// mouse button, as it does the dictation shortcut's; the rows stay.
-    #[test]
-    fn the_mouse_repair_unbinds_extra_mouse_shortcuts() {
-        let mouse = HotkeyBinding {
-            modifiers: HotkeyModifiers::control_option(),
-            key: HotkeyKey::mouse(3),
-        };
-        let mut settings = AppSettings::default();
-        settings.add_extra_dictation_hotkey();
-        settings.extra_dictation_hotkeys[0].binding = Some(mouse.clone());
-        settings.labs.mouse_shortcuts = true;
-        settings.repair_mouse_shortcuts();
-        assert_eq!(
-            settings.extra_dictation_hotkeys[0].binding,
-            Some(mouse.clone())
-        );
-        settings.labs.mouse_shortcuts = false;
-        settings.repair_mouse_shortcuts();
-        assert_eq!(settings.extra_dictation_hotkeys.len(), 1);
-        assert_eq!(settings.extra_dictation_hotkeys[0].binding, None);
-    }
 }

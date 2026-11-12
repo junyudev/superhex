@@ -194,7 +194,7 @@ fn asks() -> [Ask; EXAMPLES] {
 
 /// The card's title.
 fn title() -> &'static str {
-    tr("Tell your agent how Hex should write")
+    tr("Tell your agent how Superhex should write")
 }
 
 fn example(index: usize) -> Example {

@@ -9,9 +9,9 @@
 # 10 fmt, 11 clippy, 12 tests, 13 code-shape, 14 Nix pins. NEXTEST_PROFILE=ci
 # selects CI's profile.
 # Tests build with the `capture` feature, so the debug-only capture
-# experiment's code (macOS) is tested too. `crates/capture` and
-# `crates/capture-core` sit outside the workspace (Cargo.toml), so on macOS
-# they are named to be linted and tested.
+# experiment's code (macOS) is tested too. `crates/capture`,
+# `crates/capture-core`, and `crates/voice-buddy` sit outside the workspace
+# (Cargo.toml), so on macOS they are named to be linted and tested.
 set -uo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -22,7 +22,7 @@ if [[ "$(uname -s)" == Darwin ]]; then
     # version. Not the full `cargo pkgid`: its path URL names this checkout,
     # which matches nothing once HiveMind runs cargo in a copy on another Mac.
     pkgid="$(cargo pkgid)"
-    packages=(-p "hex@${pkgid##*[#@]}" -p scrawl-router -p scrawl-capture -p capture-core)
+    packages=(-p "hex@${pkgid##*[#@]}" -p scrawl-router -p scrawl-capture -p capture-core -p voice-buddy)
 fi
 
 stage() {

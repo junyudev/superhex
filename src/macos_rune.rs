@@ -1,4 +1,4 @@
-//! Hex on macOS (`hex app`): one menu-bar process.
+//! Superhex on macOS (`superhex app`): one menu-bar process.
 //!
 //! - The main thread runs Rune's event loop (`rune::App`, windowless and
 //!   kept running, as an accessory app) and, beside it on the same AppKit
@@ -14,7 +14,7 @@
 //! - The listener (`recognition::listen`), the meeting controller, and the
 //!   local API keep their own threads.
 //!
-//! Closing the window hides it; Quit (menu bar, ⌘Q, `hex quit`, `hex restart`
+//! Closing the window hides it; Quit (menu bar, ⌘Q, `superhex quit`, `superhex restart`
 //! and the onboarding relaunch after scheduling the new copy, or Ctrl-C) ends
 //! the loop, then stops and joins everything and ends the process with
 //! `_exit` ([`crate::desktop::process_exit`]). AppKit's own terminate
@@ -55,6 +55,8 @@ use crate::rune_hud::DictationIndicatorUi;
 use crate::rune_ui::{Destination, Ui};
 
 mod activation;
+#[path = "dictation/backend_runtime.rs"]
+mod backend_runtime;
 mod control;
 mod launch;
 mod main_menu;
@@ -161,11 +163,11 @@ impl RuntimeHandle {
             // choice, so it cannot later undo the newer manual choice.
             self.requests
                 .send(Request::InputSourceChanged(source))
-                .map_err(|_| eyre!("Hex's runtime stopped"))?;
+                .map_err(|_| eyre!("Superhex's runtime stopped"))?;
         }
         self.requests
             .send(request)
-            .map_err(|_| eyre!("Hex's runtime stopped"))
+            .map_err(|_| eyre!("Superhex's runtime stopped"))
     }
 
     pub(crate) fn published(&self) -> Option<Arc<Published>> {
@@ -215,7 +217,7 @@ pub(crate) fn update_status() -> DesktopUpdateStatus {
     )
 }
 
-/// Quits Hex from any thread.
+/// Quits Superhex from any thread.
 pub(crate) fn quit() {
     if let Some(window) = WINDOW.get() {
         window.quit();
@@ -257,7 +259,7 @@ fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(|error| error.into_inner())
 }
 
-/// Asks a running 2.3.1 or Swift Hex to quit once this Hex is ready to
+/// Asks a running 2.3.1 or Swift Superhex to quit once this Superhex is ready to
 /// listen, so the two never answer the same shortcut. The old app stays
 /// installed.
 fn quit_legacy_hex() {
@@ -267,9 +269,9 @@ fn quit_legacy_hex() {
                 &NSString::from_str(bundle_id),
             ) {
                 if app.terminate() {
-                    tracing::info!(bundle_id, "asked the old Hex to quit");
+                    tracing::info!(bundle_id, "asked the old Superhex to quit");
                 } else {
-                    tracing::warn!(bundle_id, "the old Hex did not agree to quit");
+                    tracing::warn!(bundle_id, "the old Superhex did not agree to quit");
                 }
             }
         }
@@ -434,7 +436,7 @@ pub fn run(shutdown: &'static AtomicBool, listener: ListenerConfig, hidden: bool
     };
     RUNTIME
         .set(handle.clone())
-        .map_err(|_| eyre!("the Hex runtime already started"))?;
+        .map_err(|_| eyre!("the Superhex runtime already started"))?;
     let runtime_settings = settings.clone();
     let runtime = thread::Builder::new()
         .name("hex-runtime".into())
@@ -465,7 +467,7 @@ pub fn run(shutdown: &'static AtomicBool, listener: ListenerConfig, hidden: bool
     }
     let window = app.handle();
     let _ = WINDOW.set(window.clone());
-    // The status item is created inside the loop; Hex can't run without a
+    // The status item is created inside the loop; Superhex can't run without a
     // way back to its window, so a failed item opens the window there.
     // With the Dock icon shown, Hex starts windowless and opens the window
     // once AppKit says the launch wasn't a login item.
@@ -509,6 +511,11 @@ pub fn run(shutdown: &'static AtomicBool, listener: ListenerConfig, hidden: bool
     };
     let hud = crate::rune_hud::install(&mut app);
     crate::rune_ui::live_text::install(&mut app, crate::rune_hud::live_text_place);
+    crate::rune_ui::dictation_failed::install(
+        &mut app,
+        crate::rune_hud::live_text_place,
+        open_settings,
+    );
     // The capture capsule, picker, and ink.
     #[cfg(hex_capture)]
     let capture_overlays =
@@ -516,7 +523,7 @@ pub fn run(shutdown: &'static AtomicBool, listener: ListenerConfig, hidden: bool
     // Labs › Screenshots: its own picker and the thumbnail.
     #[cfg(hex_capture)]
     crate::screenshots::install(&mut app);
-    // `hex dictation` and `hex paste-last` go straight to the listener; the
+    // `superhex dictation` and `superhex paste-last` go straight to the listener; the
     // rest reach the main thread's pump.
     let (pump_calls, pump_call_receiver) = mpsc::sync_channel(8);
     let control_runtime = handle.clone();
@@ -670,7 +677,7 @@ struct Launch {
 }
 
 /// AppKit's terminate (the quit Apple event, logout) calls `exit` right after
-/// this notification, so Hex finishes there ([`crate::desktop::process_exit`]).
+/// this notification, so Superhex finishes there ([`crate::desktop::process_exit`]).
 fn observe_termination(target: &MenuTarget) {
     // SAFETY: the target outlives the observer (kept in LAUNCH, then PUMP,
     // for the app's life), and the selector matches its method.
@@ -699,7 +706,7 @@ fn start_main_thread_after(seconds: f64) {
 /// the pump's timer; the first call does, later ones do nothing.
 fn start_main_thread() {
     let Some(mtm) = MainThreadMarker::new() else {
-        tracing::error!("Hex's main-thread setup ran off the main thread");
+        tracing::error!("Superhex's main-thread setup ran off the main thread");
         return;
     };
     let Some(Launch { mut pump, target }) = LAUNCH.with(|slot| slot.borrow_mut().take()) else {
@@ -710,7 +717,7 @@ fn start_main_thread() {
     }) {
         Ok(actions) => Some(actions),
         Err(error) => {
-            tracing::error!(%error, "could not install Hex status item; opening the window");
+            tracing::error!(%error, "could not install Superhex status item; opening the window");
             show(&pump.window, Destination::Settings);
             None
         }
@@ -787,6 +794,11 @@ fn show_update_check(window: &rune::AppHandle<Ui>) {
     show(window, Destination::Settings);
 }
 
+/// Opens the window at Settings, from the main thread.
+fn open_settings() {
+    with_window(|window| show(window, Destination::Settings));
+}
+
 /// Opens the window in front, from the main thread.
 pub(crate) fn bring_window_forward() {
     with_window(bring_forward);
@@ -794,7 +806,7 @@ pub(crate) fn bring_window_forward() {
 
 fn bring_forward(window: &rune::AppHandle<Ui>) {
     // An open window always shows the Dock icon: hiding it
-    // would deactivate Hex and drop the window behind other apps.
+    // would deactivate Superhex and drop the window behind other apps.
     set_dock_icon_visible(true);
     if let Some(mtm) = MainThreadMarker::new() {
         let app = NSApplication::sharedApplication(mtm);
@@ -888,6 +900,7 @@ impl Pump {
         match action {
             StatusItemAction::OpenSettings => show(&self.window, Destination::Settings),
             StatusItemAction::OpenModels => show(&self.window, Destination::Models),
+            StatusItemAction::SelectVoiceBuddy => self.select_voice_buddy(),
             StatusItemAction::SelectModel(model) => {
                 let _ = self.runtime.send(Request::SelectInstalledModel(model));
                 self.model_menu_at = Instant::now();

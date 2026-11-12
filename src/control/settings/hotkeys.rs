@@ -7,9 +7,8 @@ use crate::app_settings::{
 
 use super::{ShortcutRules, invalid};
 
-/// Applies the checks a recorded shortcut meets: Labs › Mouse shortcuts
-/// where mouse buttons are recorded, the special-key rules, the OS's own
-/// rule for `slot`, and no key shared with another active shortcut.
+/// Applies the checks a recorded shortcut meets: the special-key rules, the
+/// OS's own rule for `slot`, and no key shared with another active shortcut.
 pub(super) fn check_shortcut(
     settings: &AppSettings,
     candidate: &AppSettings,
@@ -18,15 +17,6 @@ pub(super) fn check_shortcut(
     binding: &HotkeyBinding,
     shortcuts: &ShortcutRules,
 ) -> Result<(), crate::control::ControlError> {
-    if cfg!(target_os = "macos")
-        && !candidate.labs.mouse_shortcuts
-        && binding.key.as_ref().is_some_and(HotkeyKey::is_mouse)
-    {
-        return Err(invalid(
-            name,
-            "mouse buttons need Labs › Mouse shortcuts: hex labs on mouse-shortcuts",
-        ));
-    }
     if let Some(why) = special_key_refusal(candidate, binding) {
         return Err(invalid(name, &why));
     }

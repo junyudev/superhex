@@ -110,7 +110,7 @@ const QWENCLEO_RECORD: BenchmarkRecord = BenchmarkRecord {
     ..BenchmarkRecord::unrecorded(ErrorMetric::Wer, 19.85, "ar")
 };
 
-/// Hex's own run of transcribe.cpp's WER harness (`scripts/wer/run.py` and
+/// Superhex's own run of transcribe.cpp's WER harness (`scripts/wer/run.py` and
 /// `score.py`, language `he`, greedy, no timestamps) over the full FLEURS
 /// Hebrew test split on apollo. Stock Whisper large-v3-turbo scored 29.69%
 /// on the same run, so the fine-tune makes 38% fewer word errors; the
@@ -120,7 +120,7 @@ const IVRIT_WHISPER_RECORD: BenchmarkRecord = BenchmarkRecord {
     value: 18.45,
     language: "he",
     dataset: Some("FLEURS test"),
-    source: Some("Hex's run of the transcribe.cpp WER harness"),
+    source: Some("Superhex's run of the transcribe.cpp WER harness"),
     source_revision: Some("7045d1c"),
     utterances: Some(792),
     batch_size: Some(1),
@@ -132,7 +132,7 @@ const IVRIT_WHISPER_RECORD: BenchmarkRecord = BenchmarkRecord {
 /// (handy-computer/parakeet-ultra-gguf's card): LibriSpeech test-clean in
 /// full, batch 8, no timestamps, the `en` hint, decoded on CUDA at
 /// transcribe.cpp 021aa17d. The benchmark artifact's digest and the scorer
-/// versions are unrecorded; not measured in Hex.
+/// versions are unrecorded; not measured in Superhex.
 const PARAKEET_ULTRA_RECORD: BenchmarkRecord = BenchmarkRecord {
     metric: ErrorMetric::Wer,
     value: 1.80,
@@ -150,7 +150,7 @@ const PARAKEET_ULTRA_RECORD: BenchmarkRecord = BenchmarkRecord {
 /// (`catalog/orukeet.json`, handy-computer/orukeet-gguf's card): LibriSpeech
 /// test-clean in full, batch 8, no timestamps, the `en` hint, decoded on CUDA
 /// at transcribe.cpp 37273409. The benchmark file's digest and the scorer
-/// versions are unrecorded; not measured in Hex.
+/// versions are unrecorded; not measured in Superhex.
 const ORUKEET_RECORD: BenchmarkRecord = BenchmarkRecord {
     metric: ErrorMetric::Wer,
     value: 1.86,
@@ -164,7 +164,7 @@ const ORUKEET_RECORD: BenchmarkRecord = BenchmarkRecord {
     hardware: Some("CUDA"),
 };
 
-/// Hex's run of the same harness over LibriSpeech test-clean with the
+/// Superhex's run of the same harness over LibriSpeech test-clean with the
 /// `en-US` prompt on apollo. Its FLEURS test runs scored 7.91% English and
 /// 10.39% German with the language set, 8.77% and 10.46% with Auto.
 const NEMOTRON_3_5_ASR_RECORD: BenchmarkRecord = BenchmarkRecord {
@@ -172,7 +172,7 @@ const NEMOTRON_3_5_ASR_RECORD: BenchmarkRecord = BenchmarkRecord {
     value: 3.05,
     language: "en",
     dataset: Some("LibriSpeech test-clean"),
-    source: Some("Hex's run of the transcribe.cpp WER harness"),
+    source: Some("Superhex's run of the transcribe.cpp WER harness"),
     source_revision: Some("7045d1c"),
     utterances: Some(2_620),
     batch_size: Some(1),
@@ -180,7 +180,7 @@ const NEMOTRON_3_5_ASR_RECORD: BenchmarkRecord = BenchmarkRecord {
     hardware: Some("Radeon 8060S (Vulkan)"),
 };
 
-/// Hex's run of the same harness over the full FLEURS Russian test split
+/// Superhex's run of the same harness over the full FLEURS Russian test split
 /// on apollo (#952). Parakeet v3 scored 6.52% and Whisper large-v3-turbo
 /// (with `ru`) 5.36% on the same run; transcribe.cpp publishes 5.35%.
 const GIGAAM_V3_RECORD: BenchmarkRecord = BenchmarkRecord {
@@ -188,7 +188,7 @@ const GIGAAM_V3_RECORD: BenchmarkRecord = BenchmarkRecord {
     value: 5.37,
     language: "ru",
     dataset: Some("FLEURS test"),
-    source: Some("Hex's run of the transcribe.cpp WER harness"),
+    source: Some("Superhex's run of the transcribe.cpp WER harness"),
     source_revision: Some("7045d1c"),
     utterances: Some(775),
     batch_size: Some(1),
@@ -196,7 +196,7 @@ const GIGAAM_V3_RECORD: BenchmarkRecord = BenchmarkRecord {
     hardware: Some("Radeon 8060S (Vulkan)"),
 };
 
-/// Hex's run of the same harness over the full FLEURS Norwegian (Bokmål)
+/// Superhex's run of the same harness over the full FLEURS Norwegian (Bokmål)
 /// test split on apollo, with the `no` hint (#1150). On the same run Whisper
 /// large-v3-turbo scored 8.94%, NB-Whisper's distilled turbo beta 8.65%,
 /// its Medium converted to Q8_0 6.75%, and its Large (Q8_0, twice the size

@@ -25,6 +25,7 @@ pub enum StatusItemAction {
     OpenSettings,
     OpenModels,
     SelectModel(TranscriptionModelId),
+    SelectVoiceBuddy,
     CancelModelPreparation,
     PasteLast,
     /// Copy History entry `id` (Labs › Copy recent dictations).
@@ -73,6 +74,11 @@ objc2::define_class!(
             if let Some(model) = model_from_tag(sender.tag()) {
                 let _ = self.ivars().actions.try_send(StatusItemAction::SelectModel(model));
             }
+        }
+
+        #[unsafe(method(selectVoiceBuddy:))]
+        fn select_voice_buddy(&self, _sender: &AnyObject) {
+            let _ = self.ivars().actions.try_send(StatusItemAction::SelectVoiceBuddy);
         }
 
         #[unsafe(method(cancelModelPreparation:))]
@@ -359,6 +365,7 @@ struct StatusItemController {
     update_title: RefCell<String>,
     _menu: Retained<NSMenu>,
     target: Retained<StatusItemTarget>,
+    voice_buddy: Retained<NSMenuItem>,
     model_items: Vec<(TranscriptionModelId, Retained<NSMenuItem>)>,
     model_empty: Retained<NSMenuItem>,
     model_preparing: Retained<NSMenuItem>,
@@ -375,7 +382,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
         MainThreadMarker::new().ok_or_else(|| eyre!("status item requires the main thread"))?;
     let (actions, receiver) = sync_channel(8);
     let target = StatusItemTarget::new(actions, mtm);
-    let menu = NSMenu::initWithTitle(NSMenu::alloc(mtm), &NSString::from_str("Hex"));
+    let menu = NSMenu::initWithTitle(NSMenu::alloc(mtm), &NSString::from_str("Superhex"));
     let meeting_sections_menu =
         NSMenu::initWithTitle(NSMenu::alloc(mtm), &NSString::from_str("Copy Section"));
     let recent_menu = NSMenu::initWithTitle(
@@ -384,6 +391,8 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
     );
     let models = NSMenu::initWithTitle(NSMenu::alloc(mtm), &NSString::from_str("Speech Model"));
     models.setAutoenablesItems(false);
+    let voice_buddy = add_item(&models, &target, "VoiceBuddy", sel!(selectVoiceBuddy:), mtm);
+    models.addItem(&NSMenuItem::separatorItem(mtm));
     let model_items = MODELS
         .iter()
         .enumerate()
@@ -475,8 +484,8 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
     let button = item
         .button(mtm)
         .ok_or_else(|| eyre!("status item button is unavailable"))?;
-    let symbol = status_bar_icon(IDLE_ICON_PNG, "Hex")?;
-    let recording_symbol = status_bar_icon(RECORDING_ICON_PNG, "Hex is recording a meeting")?;
+    let symbol = status_bar_icon(IDLE_ICON_PNG, "Superhex")?;
+    let recording_symbol = status_bar_icon(RECORDING_ICON_PNG, "Superhex is recording a meeting")?;
     button.setImage(Some(&symbol));
     button.setImagePosition(NSCellImagePosition::ImageLeading);
     // SAFETY: the target answers `menuNeedsUpdate:` and outlives the menu's
@@ -513,6 +522,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
             update_title: RefCell::new("Check for Updates…".into()),
             _menu: menu,
             target,
+            voice_buddy,
             model_items,
             model_empty,
             model_preparing,
@@ -526,7 +536,7 @@ pub fn install() -> Result<Receiver<StatusItemAction>> {
 fn status_bar_icon(png: &[u8], accessibility_description: &str) -> Result<Retained<NSImage>> {
     let data = NSData::with_bytes(png);
     let image = NSImage::initWithData(NSImage::alloc(), &data)
-        .ok_or_else(|| eyre!("could not decode Hex status item icon"))?;
+        .ok_or_else(|| eyre!("could not decode Superhex status item icon"))?;
     image.setSize(NSSize::new(STATUS_ICON_POINTS, STATUS_ICON_POINTS));
     image.setTemplate(true);
     image.setAccessibilityDescription(Some(&NSString::from_str(accessibility_description)));
@@ -591,6 +601,10 @@ pub fn update_transcription(settings: &AppSettings, status: &PreparationStatus) 
         let Some(controller) = controller.as_ref() else {
             return;
         };
+        let selected = crate::dictation::voice_buddy::effective_backend(settings)
+            == crate::dictation::backend::DictationBackend::VoiceBuddy;
+        controller.voice_buddy.setState(isize::from(selected));
+        controller.voice_buddy.setEnabled(!selected);
         let entries = model_menu_entries(
             settings,
             status.model.is_some(),
@@ -700,7 +714,11 @@ fn icon_shown(hide: bool, meeting_active: bool) -> bool {
 /// Labs › Pause from menu bar's row: Pause Hex while shortcuts run, Resume
 /// Hex while they are paused or a resume waits for a neutral keyboard.
 fn pause_title(suspended: bool) -> &'static str {
-    if suspended { "Resume Hex" } else { "Pause Hex" }
+    if suspended {
+        "Resume Superhex"
+    } else {
+        "Pause Superhex"
+    }
 }
 
 /// A meeting title short enough for one menu line.
@@ -1017,7 +1035,7 @@ mod tests {
                 "Copy Section".into(),
                 "Record Meeting".into(),
                 "—".into(),
-                "Pause Hex".into(),
+                "Pause Superhex".into(),
                 "Paste Last Dictation".into(),
                 "Copy Recent Dictation".into(),
                 "Copy Last Meeting Transcript".into(),
@@ -1078,9 +1096,9 @@ mod tests {
     fn the_pause_row_reads_pause_or_resume() {
         // Suspended covers a pause and the resume that waits for a neutral
         // keyboard, so the row never says Pause Hex while keys are inert.
-        assert_eq!(pause_title(false), "Pause Hex");
-        assert_eq!(pause_title(true), "Resume Hex");
-        assert_eq!(Row::PauseHex.title().as_deref(), Some("Pause Hex"));
+        assert_eq!(pause_title(false), "Pause Superhex");
+        assert_eq!(pause_title(true), "Resume Superhex");
+        assert_eq!(Row::PauseHex.title().as_deref(), Some("Pause Superhex"));
         assert!(Row::PauseHex.action().is_some());
         assert!(Row::PauseHex.starts_hidden());
     }
@@ -1113,8 +1131,8 @@ mod tests {
     #[test]
     fn status_bar_icons_load_as_18pt_retina_templates() {
         for (png, description) in [
-            (IDLE_ICON_PNG, "Hex"),
-            (RECORDING_ICON_PNG, "Hex is recording a meeting"),
+            (IDLE_ICON_PNG, "Superhex"),
+            (RECORDING_ICON_PNG, "Superhex is recording a meeting"),
         ] {
             let icon = status_bar_icon(png, description).unwrap();
             assert!(icon.isTemplate());

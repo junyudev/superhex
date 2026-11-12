@@ -134,11 +134,22 @@ impl Runtime {
             Request::UseInstalledSelection(selection) => {
                 self.manual_choice();
                 // `hex model use` replies "already in use" on the same test.
-                if !same_model_and_language(&selection, &self.settings.transcription) {
+                // Choosing Local over the service still warms the model it
+                // already names: the service never loaded it.
+                if !same_model_and_language(&selection, &self.settings.transcription)
+                    || self.settings.dictation_backend
+                        != crate::dictation::backend::DictationBackend::Local
+                {
                     self.preparation.start(selection, true);
                 }
             }
             Request::InputSourceChanged(source) => {
+                // Keyboard-language switching applies only while Local is in effect.
+                if crate::dictation::voice_buddy::effective_backend(&self.settings)
+                    != crate::dictation::backend::DictationBackend::Local
+                {
+                    return;
+                }
                 if self
                     .keyboard_switcher
                     .source_changed(source, Instant::now())
@@ -161,6 +172,7 @@ impl Runtime {
     fn reload_settings(&mut self) {
         match AppSettings::load() {
             Ok(settings) => {
+                self.reconcile_backend(&settings);
                 if self
                     .keyboard_switcher
                     .configure(settings.keyboard_model_switching.clone(), Instant::now())
@@ -179,7 +191,7 @@ impl Runtime {
         }
     }
 
-    fn manual_choice(&mut self) {
+    pub(super) fn manual_choice(&mut self) {
         self.keyboard_switcher.manual_choice();
         self.app_switcher.manual_choice();
         if self.automatic_preparation {

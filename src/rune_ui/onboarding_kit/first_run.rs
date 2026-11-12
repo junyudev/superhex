@@ -1,10 +1,10 @@
 //! The first-run onboarding flow (`t405`), featuring:
 //!
 //! - Flat, crisp Rune 2D UI (no embossed cards or shader starbursts).
-//! - Hex's real `Dot scope` phosphor dot-matrix HUD (`rune_hud.wgsl`) on
-//!   `"Setting up Hex"`, `"With Hex"`, and `"Your turn"`.
+//! - Superhex's real `Dot scope` phosphor dot-matrix HUD (`rune_hud.wgsl`) on
+//!   `"Setting up Superhex"`, `"With Superhex"`, and `"Your turn"`.
 //! - Live interactive `"Your turn"` in desktop windows: pauses with a focused
-//!   [`rune_kit::TextArea`] so holding `⌥` and speaking into the running Hex
+//!   [`rune_kit::TextArea`] so holding `⌥` and speaking into the running Superhex
 //!   listener pastes real dictated words right into the card.
 //! - Calm permission grants and the escaping Accessibility panel (`permissions`).
 //! - Auditionable typing key-sound candidates and `#292` `feedback` tones (`sfx`).
@@ -156,8 +156,8 @@ fn corner_skip(p: Paint, s: &Onboard) -> Option<El> {
     })
 }
 
-/// Hex's shortcut didn't start after setup and Hex won't relaunch itself
-/// again: one line at the top with Reopen Hex.
+/// Superhex's shortcut didn't start after setup and Superhex won't relaunch itself
+/// again: one line at the top with Reopen Superhex.
 fn reopen(p: Paint, s: &Onboard) -> Option<El> {
     s.live.as_ref().filter(|live| live.reopen).map(|_| {
         row()
@@ -168,13 +168,13 @@ fn reopen(p: Paint, s: &Onboard) -> Option<El> {
             .center()
             .transition(arrives())
             .child(
-                text(tr("Hex's shortcut didn't start."))
+                text(tr("Superhex's shortcut didn't start."))
                     .key("why")
                     .font(LEAD)
                     .color(p.muted()),
             )
             .child(
-                Button::new(tr("Reopen Hex"))
+                Button::new(tr("Reopen Superhex"))
                     .variant(ButtonVariant::Neutral)
                     .on_press(live::reopen)
                     .build_push(p.k)
@@ -211,7 +211,7 @@ fn back(p: Paint, s: &Onboard) -> Option<El> {
     })
 }
 
-/// The model step: the models found on this computer, Hex's recommended
+/// The model step: the models found on this computer, Superhex's recommended
 /// one first and selected. A pick starts at once; Continue moves on once it
 /// is under way.
 fn models_page(p: Paint, s: &Onboard, live: &Live) -> El {
@@ -224,17 +224,23 @@ fn models_page(p: Paint, s: &Onboard, live: &Live) -> El {
         list = list.child(model_row(p, index, model));
     }
     let list = k.elevate(list, &k.elevation.raised);
+    let service = live.models.iter().any(|model| model.service);
+    let (title, line) = if service {
+        (
+            tr("Choose how Superhex hears you"),
+            tr("VoiceBuddy streams your voice to its service. A local model stays on this Mac."),
+        )
+    } else {
+        (
+            tr("Choose a speech model"),
+            tr("Superhex found speech models already on this computer."),
+        )
+    };
     col()
         .key("models")
         .gap(22.0)
         .items_center()
-        .child(heading(
-            p,
-            s,
-            "models-head",
-            tr("Choose a speech model"),
-            lead(p, tr("Hex found speech models already on this computer.")),
-        ))
+        .child(heading(p, s, "models-head", title, lead(p, line)))
         .child(s.motion.staggered(list, 1.0, 8.0))
         .child(action(continue_model_button(p)))
 }
@@ -248,7 +254,9 @@ fn model_row(p: Paint, index: usize, model: &ChoiceRow) -> El {
         })
         .build(p.k)
         .key("radio")
-        .grow(1.0);
+        .grow(1.0)
+        .min_w(0.0)
+        .shrink();
     let tag = model
         .recommended
         .then(|| Badge::new(tr("Recommended")).build(p.k).key("recommended"));
@@ -330,7 +338,7 @@ fn ready_page(p: Paint, s: &Onboard) -> El {
                             .key("try-again"),
                     )
                     .child(
-                        Button::new(tr("Start using Hex"))
+                        Button::new(tr("Start using Superhex"))
                             .variant(ButtonVariant::Contrast)
                             .on_press(live::finish)
                             .build_push(p.k)
@@ -443,7 +451,10 @@ fn download_page(p: Paint, s: &Onboard, waiting: bool) -> El {
             s,
             "waiting-head",
             tr("Almost ready"),
-            lead(p, tr("Finishing the speech model so Hex can hear you.")),
+            lead(
+                p,
+                tr("Finishing the speech model so Superhex can hear you."),
+            ),
         )
     } else {
         let subtitle = row()
@@ -470,7 +481,7 @@ fn download_page(p: Paint, s: &Onboard, waiting: bool) -> El {
                     .font(LEAD)
                     .color(p.muted()),
             );
-        heading(p, s, "download-head", tr("Setting up Hex"), subtitle)
+        heading(p, s, "download-head", tr("Setting up Superhex"), subtitle)
     };
 
     let pct = (d.fraction() * 100.0).round() as u32;
@@ -587,7 +598,7 @@ fn sketch_page(p: Paint, s: &Onboard) -> El {
             p,
             s,
             "without",
-            tr("Without Hex"),
+            tr("Without Superhex"),
             lead(p, super::sketches::lead(s).unwrap_or_default()),
         ))
         .children(super::sketches::card(p, s))
@@ -711,7 +722,7 @@ fn try_page(p: Paint, s: &Onboard) -> El {
             p,
             s,
             "try-heard",
-            tr("That's Hex"),
+            tr("That's Superhex"),
             lead(p, tr("It types wherever your cursor is, in any app.")),
         ),
         _ if warming => heading(p, s, "try", tr("Your turn"), lead(p, live::warming_copy())),
@@ -807,7 +818,7 @@ fn shortcut_capsule(p: Paint, caps: &[String], down: bool, cycles: bool) -> El {
 }
 
 /// Live interactive `"Your turn"` stage: real `Dot scope` HUD above a focused
-/// [`TextArea`] that receives real dictated pastes from the running Hex app (or
+/// [`TextArea`] that receives real dictated pastes from the running Superhex app (or
 /// direct typing).
 fn interactive_try_stage(p: Paint, s: &Onboard) -> El {
     let hud_el = if let Some(frame) = s.hud.frame() {

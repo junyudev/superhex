@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::Once;
@@ -18,11 +18,14 @@ use crate::meeting;
 use crate::paste::{PasteMode, Paster};
 use crate::suppression::InputActivity;
 use crate::transcription::WarmTranscriber;
-use crate::transcription::engine::{PendingTranscript, TranscriptionEngine};
+use crate::transcription::engine::TranscriptionEngine;
 use crate::transcription::gguf_session::{OfflineGgufSession, output_truncated};
 use crate::transcription::models::{
     TranscriptionModelId, TranscriptionSelection, model_path, validate,
 };
+#[path = "dictation/jobs.rs"]
+mod jobs;
+use jobs::Transcript as JobTranscript;
 
 pub struct Parakeet {
     session: OfflineGgufSession,
@@ -48,6 +51,7 @@ pub enum WorkerEvent {
         target: TranscriptionTarget,
         result: Result<String, String>,
         processing: Option<ProcessingObservation>,
+        remote: bool,
     },
     Stage {
         job_id: DictationJobId,
@@ -56,6 +60,11 @@ pub enum WorkerEvent {
     Pasted {
         kind: PasteKind,
         result: Result<String, String>,
+        remote: bool,
+    },
+    /// A job the person cancelled (VoiceBuddy's Cancel) answered nothing.
+    Cancelled {
+        job_id: DictationJobId,
     },
 }
 
@@ -99,7 +108,7 @@ pub enum TranscriptionTarget {
     /// pane's steps.
     RawPaste,
     Service,
-    /// `hex dictation stop --print`: processed as a paste, then handed to
+    /// `superhex dictation stop --print`: processed as a paste, then handed to
     /// the waiting command instead of pasted.
     Print,
     /// A printing stop of a raw dictation: the transcript as heard.
@@ -110,7 +119,9 @@ struct InferenceJob {
     job_id: DictationJobId,
     control: Arc<JobControl>,
     submitted_at: Instant,
-    transcript: PendingTranscript,
+    transcript: JobTranscript,
+    /// Remote waits begin at admission, before the ordered waiter reaches them.
+    _busy: Option<DictationInference>,
     audio_ms: u64,
     prepare_ms: u128,
     target: TranscriptionTarget,
@@ -164,6 +175,11 @@ struct CompletedTranscript {
 
 enum OutputJob {
     PreparePaste,
+    /// A job cancelled before its text was delivered: it keeps its place in
+    /// the output order and emits no output.
+    Cancelled {
+        job_id: DictationJobId,
+    },
     Completed {
         job_id: DictationJobId,
         control: Arc<JobControl>,
@@ -180,7 +196,7 @@ impl OutputJob {
     fn sequence(&self) -> u64 {
         match self {
             Self::PreparePaste => u64::MAX,
-            Self::Completed { job_id, .. } => job_id.0,
+            Self::Completed { job_id, .. } | Self::Cancelled { job_id } => job_id.0,
             Self::Paste { sequence, .. } => *sequence,
         }
     }
@@ -191,9 +207,17 @@ struct JobControl {
     /// A printing stop's reply; dropping the job unanswered tells it the
     /// dictation was cancelled or failed.
     print: Mutex<Option<crate::control::PrintReply>>,
+    remote_job: bool,
+    /// Cancelled by the person (or by quitting): the job's output is dropped.
+    cancelled: AtomicBool,
+    remote: Mutex<Option<voice_buddy::Canceller>>,
 }
 
 impl JobControl {
+    fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::Acquire)
+    }
+
     fn answer_print(&self, transcript: crate::control::PrintedTranscript) {
         if let Some(reply) = self
             .print
@@ -241,7 +265,7 @@ pub struct DictationWorker {
 
 struct WorkerState {
     next_sequence: u64,
-    jobs: BTreeSet<DictationJobId>,
+    jobs: BTreeMap<DictationJobId, Arc<JobControl>>,
     pending_pastes: usize,
     /// Labs › Return to app: the app in front when the capture started,
     /// which its output returns to (macOS).
@@ -273,7 +297,7 @@ impl DictationWorker {
         let (event_sender, events) = mpsc::channel();
         let state = Arc::new(Mutex::new(WorkerState {
             next_sequence: 0,
-            jobs: BTreeSet::new(),
+            jobs: BTreeMap::new(),
             pending_pastes: 0,
             return_to: None,
         }));
@@ -294,8 +318,11 @@ impl DictationWorker {
         };
         let engine = match engine {
             Ok(engine) => {
-                if !parked {
-                    let events = event_sender.clone();
+                let events = event_sender.clone();
+                if !parked
+                    && crate::dictation::voice_buddy::current_backend()
+                        == crate::dictation::backend::DictationBackend::Local
+                {
                     let _ = engine.run(move |model| {
                         prioritize_inference_thread();
                         match WarmTranscriber::load() {
@@ -341,7 +368,9 @@ impl DictationWorker {
         let inference_worker = thread::spawn({
             let output = output_jobs.clone();
             let events = event_sender.clone();
-            move || run_inference_worker(inference_receiver, &processor_jobs, &output, &events)
+            move || {
+                jobs::run_inference_worker(inference_receiver, &processor_jobs, &output, &events)
+            }
         });
 
         Self {
@@ -392,82 +421,6 @@ impl DictationWorker {
             TranscriptionTarget::Print
         };
         self.submit(clip, target, context, Some(print))
-    }
-
-    fn submit(
-        &self,
-        mut clip: DictationClip,
-        target: TranscriptionTarget,
-        context: ContextSnapshot,
-        print: Option<crate::control::PrintReply>,
-    ) -> Result<DictationJobId, &'static str> {
-        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
-        let job_id = DictationJobId(state.next_output_sequence()?);
-        // Labs › Return to app: only a paste returns to an app; a printing
-        // stop and the service never paste.
-        let return_to = matches!(
-            target,
-            TranscriptionTarget::Paste | TranscriptionTarget::RawPaste
-        )
-        .then(|| state.return_to.take())
-        .flatten();
-        let (Some(engine), Some(jobs)) = (&self.engine, &self.inference_jobs) else {
-            return Err("dictation worker is unavailable");
-        };
-        let control = Arc::new(JobControl {
-            print: Mutex::new(print),
-        });
-        let (_, selection) = crate::app_settings::transcription_selection();
-        let language = selection.language.clone();
-        let submitted_at = Instant::now();
-        let audio_ms = clip.duration_ms();
-        // Labs › Screen vocabulary: this capture's terms belong to its
-        // whole-clip run and no other job. Only a model that reads the terms
-        // gives up its live stream, whose vocabulary is fixed when it starts
-        // (before the window was read); a model that ignores them keeps it.
-        let screen_terms = context.screen_terms.clone();
-        let keeps_stream = screen_terms.is_empty() || !crate::dictation::vocabulary::uses_terms();
-        let stream = clip.take_stream().filter(|_| keeps_stream);
-        let _capture = clip.take_capture_marker();
-        let samples = clip.into_transcription_samples();
-        crate::dictation::diagnostics::persist(&samples);
-        let recording = match target {
-            TranscriptionTarget::Service => None,
-            _ => crate::history::Recording::keep(&samples),
-        };
-        let prepare_ms = submitted_at.elapsed().as_millis();
-        let offline = Box::new(move |model: &mut WarmTranscriber, samples: Vec<f32>| {
-            let _busy = DictationInference::begin();
-            let transcriber = model
-                .activate(&selection)
-                .map_err(|error| error.to_string())?;
-            crate::dictation::vocabulary::for_capture(&screen_terms, || {
-                transcriber.transcribe(samples)
-            })
-            .map_err(|error| error.to_string())
-        });
-        let transcript = engine
-            .finish_with(stream, samples, offline)
-            .map_err(|_| "dictation worker is unavailable")?;
-        jobs.try_send(InferenceJob {
-            job_id,
-            control,
-            submitted_at,
-            transcript,
-            audio_ms,
-            prepare_ms,
-            target,
-            context,
-            return_to,
-            language,
-            recording,
-        })
-        .map(|()| {
-            state.next_sequence += 1;
-            state.jobs.insert(job_id);
-            job_id
-        })
-        .map_err(queue_error)
     }
 
     /// The engine that streams hotkey captures while they are recorded.
@@ -542,7 +495,18 @@ impl DictationWorker {
     }
 
     fn shutdown(&mut self) {
-        // Accepted jobs still finish: the inference worker drains its queue.
+        // Network work is cancelled before draining; local accepted jobs keep
+        // their existing drain behavior.
+        for control in self
+            .state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .jobs
+            .values()
+        {
+            control.cancel_remote();
+        }
+        crate::dictation::voice_buddy::clear_failed();
         self.inference_jobs.take();
         join_worker(self.inference_worker.take(), "dictation inference");
         for worker in self.processor_workers.drain(..) {
@@ -583,7 +547,7 @@ fn run_output_worker(
             );
             let mut state = state.lock().unwrap_or_else(|error| error.into_inner());
             match &event {
-                WorkerEvent::Completed { job_id, .. } => {
+                WorkerEvent::Completed { job_id, .. } | WorkerEvent::Cancelled { job_id } => {
                     state.jobs.remove(job_id);
                 }
                 WorkerEvent::Pasted { .. } => {
@@ -747,7 +711,7 @@ fn wait_for_dictation_idle() -> Result<()> {
         thread::sleep(std::time::Duration::from_millis(50));
     }
     if crate::desktop::process_exit::quitting() {
-        return Err(eyre!("Hex is quitting"));
+        return Err(eyre!("Superhex is quitting"));
     }
     Ok(())
 }
@@ -786,107 +750,6 @@ fn transcribe_in_chunks(
     }
     merged.text = texts.join(" ");
     Ok(merged)
-}
-
-/// Waits for each accepted job's transcript in submission order, then hands
-/// it to processing. The engine thread runs the inference itself.
-fn run_inference_worker(
-    jobs: Receiver<InferenceJob>,
-    processor_jobs: &SyncSender<ProcessorJob>,
-    output: &SyncSender<OutputJob>,
-    events: &mpsc::Sender<WorkerEvent>,
-) {
-    while let Ok(job) = jobs.recv() {
-        let _busy = DictationInference::begin();
-        let _ = events.send(WorkerEvent::Stage {
-            job_id: job.job_id,
-            stage: DictationJobStage::Transcribing,
-        });
-        let total_started = job.submitted_at;
-        let queue_ms = total_started.elapsed().as_millis();
-        let inference_started = Instant::now();
-        let audio_ms = job.audio_ms;
-        let result = job.transcript.wait().map(|transcribed| {
-            tracing::info!(
-                source = transcribed.source.label(),
-                finish_ms = transcribed.finish_ms,
-                audio_ms,
-                "transcribed dictation"
-            );
-            let text = transcribed.text;
-            let corrected = if matches!(job.target, TranscriptionTarget::Service) {
-                text.clone()
-            } else {
-                text.trim().to_string()
-            };
-            tracing::debug!(
-                raw_transcript = text,
-                corrected_transcript = corrected,
-                "prepared local transcript"
-            );
-            corrected
-        });
-        let timings = JobTimings {
-            total_started,
-            queue_ms,
-            audio_ms,
-            prepare_ms: job.prepare_ms,
-            inference_ms: inference_started.elapsed().as_millis(),
-        };
-        let target = job.target;
-        match result {
-            Ok(text)
-                if matches!(
-                    target,
-                    TranscriptionTarget::Paste
-                        | TranscriptionTarget::CopyOnlyPaste
-                        | TranscriptionTarget::Print
-                ) && !text.trim().is_empty() =>
-            {
-                if processor_jobs
-                    .send(ProcessorJob {
-                        job_id: job.job_id,
-                        control: job.control,
-                        target,
-                        text,
-                        context: job.context,
-                        return_to: job.return_to,
-                        language: job.language,
-                        timings,
-                        recording: job.recording,
-                    })
-                    .is_err()
-                {
-                    break;
-                }
-            }
-            result => {
-                let application = job.context.application;
-                let recording = job.recording;
-                let result = result.map(|text| CompletedTranscript {
-                    raw: text.clone(),
-                    text,
-                    nothing: false,
-                    application,
-                    return_to: job.return_to,
-                    timings,
-                    processing: None,
-                    recording,
-                });
-                if output
-                    .send(OutputJob::Completed {
-                        job_id: job.job_id,
-                        control: job.control,
-                        target,
-                        result: Box::new(result),
-                    })
-                    .is_err()
-                {
-                    break;
-                }
-            }
-        }
-    }
 }
 
 fn join_worker(worker: Option<thread::JoinHandle<()>>, name: &str) {
@@ -998,11 +861,12 @@ fn queue_error(error: TrySendError<impl Sized>) -> &'static str {
 fn finish_output(
     job: OutputJob,
     paste: &mut impl FnMut(&str, PasteMode) -> Result<()>,
-    last_transcript: &mut Option<String>,
+    last_transcript: &mut Option<(String, bool)>,
     history: Option<&History>,
 ) -> WorkerEvent {
     match job {
         OutputJob::PreparePaste => unreachable!("paste preparation bypasses ordered output"),
+        OutputJob::Cancelled { job_id } => WorkerEvent::Cancelled { job_id },
         OutputJob::Completed {
             job_id,
             control,
@@ -1016,6 +880,7 @@ fn finish_output(
                 .and_then(|result| result.processing.clone());
             let result = result.and_then(|mut completed| {
                 let paste_started = Instant::now();
+                let remote = control.remote_job;
                 if !completed.nothing && !completed.text.trim().is_empty() {
                     match target {
                         TranscriptionTarget::Paste
@@ -1047,7 +912,7 @@ fn finish_output(
                                 && let Err(error) =
                                     crate::paste::return_to_app::bring_to_front(completed.return_to)
                             {
-                                *last_transcript = Some(completed.text.clone());
+                                *last_transcript = Some((completed.text.clone(), remote));
                                 tracing::warn!(
                                     %error,
                                     "a dictation found another app in front and couldn't return to its own"
@@ -1059,7 +924,7 @@ fn finish_output(
                             // for Paste last dictation, as above, so the
                             // dictation isn't lost.
                             paste(&completed.text, mode).inspect_err(|_| {
-                                *last_transcript = Some(completed.text.clone());
+                                *last_transcript = Some((completed.text.clone(), remote));
                             })
                         }
                         TranscriptionTarget::Service
@@ -1074,10 +939,10 @@ fn finish_output(
                             | TranscriptionTarget::RawCopyOnlyPaste
                             | TranscriptionTarget::RawPaste
                     ) {
-                        *last_transcript = Some(completed.text.clone());
+                        *last_transcript = Some((completed.text.clone(), remote));
                     }
                     if let Some(history) = history {
-                        record_history(history, target, &mut completed);
+                        record_history(history, target, &mut completed, remote);
                     }
                 }
                 tracing::info!(
@@ -1103,17 +968,23 @@ fn finish_output(
                     Err(error) => crate::control::PrintedTranscript::Failed(error.clone()),
                 });
             }
-            WorkerEvent::Completed {
-                job_id,
-                target,
-                result,
-                processing,
+            if control.is_cancelled() {
+                WorkerEvent::Cancelled { job_id }
+            } else {
+                WorkerEvent::Completed {
+                    job_id,
+                    target,
+                    result,
+                    processing,
+                    remote: control.remote_job,
+                }
             }
         }
         OutputJob::Paste { kind, .. } => {
             let result = match kind {
                 PasteKind::LastTranscript => last_transcript
-                    .as_deref()
+                    .as_ref()
+                    .map(|(text, _)| text.as_str())
                     .ok_or_else(|| "no previous transcript is available".to_string())
                     .and_then(|text| {
                         paste(text, PasteMode::Continue).map_err(|error| error.to_string())?;
@@ -1123,7 +994,12 @@ fn finish_output(
                     paste_meeting_delta(paste).map_err(|error| error.to_string())
                 }
             };
-            WorkerEvent::Pasted { kind, result }
+            WorkerEvent::Pasted {
+                kind,
+                result,
+                remote: matches!(kind, PasteKind::LastTranscript)
+                    && last_transcript.as_ref().is_some_and(|(_, remote)| *remote),
+            }
         }
     }
 }
@@ -1134,6 +1010,7 @@ fn record_history(
     history: &History,
     target: TranscriptionTarget,
     completed: &mut CompletedTranscript,
+    remote: bool,
 ) {
     let kind = match target {
         TranscriptionTarget::Paste | TranscriptionTarget::CopyOnlyPaste => HistoryKind::Dictation,
@@ -1151,7 +1028,11 @@ fn record_history(
         inference_ms: completed.timings.inference_ms as u64,
         total_ms: completed.timings.total_started.elapsed().as_millis() as u64,
         recording: completed.recording.take(),
-        model: crate::history::dictation_model(),
+        model: if remote {
+            Some("VoiceBuddy".into())
+        } else {
+            crate::history::dictation_model()
+        },
     };
     if let Err(error) = history.record(draft) {
         tracing::warn!(%error, "could not record dictation history");
@@ -1529,7 +1410,7 @@ mod tests {
     #[test]
     fn a_failed_paste_keeps_the_dictation_for_paste_last() {
         let text = "the dictation whose paste failed";
-        let mut last_transcript = Some("an older dictation".to_string());
+        let mut last_transcript = Some(("an older dictation".to_string(), false));
         let event = finish_output(
             OutputJob::Completed {
                 job_id: DictationJobId(1),
@@ -1561,7 +1442,10 @@ mod tests {
             event,
             WorkerEvent::Completed { result: Err(_), .. }
         ));
-        assert_eq!(last_transcript.as_deref(), Some(text));
+        assert_eq!(
+            last_transcript.as_ref().map(|(text, _)| text.as_str()),
+            Some(text)
+        );
     }
 
     #[test]
@@ -1629,7 +1513,10 @@ mod tests {
                 matches!(mode, PasteMode::CopyOnly),
                 "{target:?}: an interrupted dictation is copied, never pasted"
             );
-            assert_eq!(last_transcript.as_deref(), Some(text));
+            assert_eq!(
+                last_transcript.as_ref().map(|(text, _)| text.as_str()),
+                Some(text)
+            );
             let entries = history.recent(1);
             assert_eq!(entries.len(), 1);
             assert_eq!(entries[0].kind, kind, "{target:?}");
@@ -1678,7 +1565,7 @@ mod tests {
             event_sender,
             state: Arc::new(Mutex::new(WorkerState {
                 next_sequence: 1,
-                jobs: BTreeSet::from([DictationJobId(0)]),
+                jobs: BTreeMap::from([(DictationJobId(0), Arc::new(JobControl::default()))]),
                 pending_pastes: 0,
                 return_to: None,
             })),

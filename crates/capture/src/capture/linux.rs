@@ -1,7 +1,7 @@
 //! Linux capture: the screen-cast portal picks the screen or window and hands over a PipeWire
 //! stream, VA-API scales and encodes it on the GPU (`crate::linux`), and `ffmpeg` muxes the
 //! movie. Wayland gives an app no global pointer, key state, window list, or synthetic input,
-//! so those answer nothing here: the host (Hex) owns shortcuts and pasting, and the portal's
+//! so those answer nothing here: the host (Superhex) owns shortcuts and pasting, and the portal's
 //! own picker stands in for the window list. On X11 the screen and an area are read from the
 //! X server itself (`crate::linux::x11`: MIT-SHM, the pointer from XFixes) and encoded with
 //! x264, so desktops without a ScreenCast backend (i3) record too; a window still needs the
@@ -166,7 +166,7 @@ pub(super) fn is_helper_process(_pid: i32) -> bool {
 
 pub fn wait_for_modifiers_released(_max_wait_ms: u64) {}
 
-/// Hex pastes through its own Linux paste path.
+/// Superhex pastes through its own Linux paste path.
 pub fn post_synthetic_cmd_v() {}
 
 pub fn post_synthetic_click(_screen_x: f64, _screen_y: f64) {}

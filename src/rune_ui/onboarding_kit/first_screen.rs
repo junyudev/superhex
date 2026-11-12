@@ -1,4 +1,4 @@
-//! More on `"Setting up Hex"` than a title and a percentage: the details a
+//! More on `"Setting up Superhex"` than a title and a percentage: the details a
 //! download page owes you, how much is down and that your voice stays on
 //! this Mac.
 
@@ -45,7 +45,7 @@ pub(super) fn note(p: Paint, s: &Onboard) -> Option<El> {
             if s.live.as_ref().is_some_and(|live| live.mic_stays_open()) =>
         {
             let why = tr(
-                "macOS shows the mic as on because Hex keeps it warm, so dictation starts instantly.",
+                "macOS shows the mic as on because Superhex keeps it warm, so dictation starts instantly.",
             );
             let only = tr_fill(
                 if s.toggle {

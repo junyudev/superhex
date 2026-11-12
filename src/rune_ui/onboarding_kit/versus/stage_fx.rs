@@ -1,6 +1,6 @@
 //! What happens to the whole stage at once: the camera pushing in and
 //! shaking on autocorrect's hit, the autocorrect title slamming on, and the
-//! `"Voice-first mode"` call as `"With Hex"` takes over.
+//! `"Voice-first mode"` call as `"With Superhex"` takes over.
 
 use rune::icon;
 use rune_kit::glyphs;
@@ -167,8 +167,8 @@ const INTO_HUD: f64 = 0.24;
 const _: () = assert!(VOICE_CALL_AT + CALL_IN < HUD_RISES);
 const _: () = assert!(VOICE_CALL_AT + VOICE_CALL_HOLD < BEFORE_KEY);
 
-/// `"Voice-first mode"` blooming in across the keyboard as `"With Hex"`
-/// rewinds, then shrinking into the HUD. `"Without Hex"` has no call: the
+/// `"Voice-first mode"` blooming in across the keyboard as `"With Superhex"`
+/// rewinds, then shrinking into the HUD. `"Without Superhex"` has no call: the
 /// heading's chip already names the keyboard. Reduce Motion fades it in and
 /// out where it sits.
 pub(super) fn mode_call(p: Paint, s: &Onboard) -> Option<El> {
@@ -227,7 +227,7 @@ pub(super) fn mode_call(p: Paint, s: &Onboard) -> Option<El> {
 }
 
 /// The mode the heading names beside its title: the keyboard while
-/// `"Without Hex"` plays, the voice once `"With Hex"` takes over.
+/// `"Without Superhex"` plays, the voice once `"With Superhex"` takes over.
 pub(super) fn mode_chip(p: Paint, voice: bool) -> El {
     let k = p.k;
     let (glyph, copy, fill, ink) = if voice {

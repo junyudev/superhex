@@ -143,7 +143,7 @@ impl LinuxHotkey {
     pub(crate) fn portal_trigger(&self) -> Result<String> {
         if mouse_button(&self.key).is_some() {
             return Err(eyre!(
-                "Wayland's shortcuts portal cannot request mouse buttons; bind the hex commands in the desktop settings"
+                "Wayland's shortcuts portal cannot request mouse buttons; bind the superhex commands in the desktop settings"
             ));
         }
         let key = keysym_name(&self.key)?;
@@ -275,7 +275,7 @@ pub(crate) enum HotkeyEvent {
         flavour: DictationFlavour,
     },
     Finish,
-    /// `hex dictation stop --print` finished the dictation: its transcript
+    /// `superhex dictation stop --print` finished the dictation: its transcript
     /// goes to the reply instead of being pasted.
     FinishPrinting(crate::control::PrintReply),
     Cancel,
@@ -297,12 +297,12 @@ pub(crate) enum ShortcutCommand {
     DictationStart,
     DictationStop,
     DictationToggle,
-    /// `hex dictation cancel`: discards whatever records, in any mode.
+    /// `superhex dictation cancel`: discards whatever records, in any mode.
     DictationCancel,
     PasteLast,
-    /// `hex typed-text`: the typed-text shortcut's one job.
+    /// `superhex typed-text`: the typed-text shortcut's one job.
     TypedText,
-    /// `hex dictation start --raw` and `toggle --raw`.
+    /// `superhex dictation start --raw` and `toggle --raw`.
     DictationStartRaw,
     DictationToggleRaw,
 }
@@ -345,12 +345,12 @@ pub(crate) struct HotkeyOptions {
     /// Annotate's one key, while Annotate is on: tap to start and stop,
     /// hold to draw.
     pub(crate) capture: Option<LinuxHotkey>,
-    /// Toggle mode's cancel shortcut, which Hex takes only while a
+    /// Toggle mode's cancel shortcut, which Superhex takes only while a
     /// recording runs; `None` in Hold mode, which has no cancel.
     pub(crate) cancel: Option<LinuxHotkey>,
 }
 
-/// Whether Annotate draws now, so Escape is Hex's (it stops drawing).
+/// Whether Annotate draws now, so Escape is Superhex's (it stops drawing).
 fn annotate_drawing() -> bool {
     #[cfg(hex_capture)]
     return crate::capture_host::drawing();
@@ -366,7 +366,7 @@ pub(crate) struct HotkeyStatus {
     configurable: Arc<AtomicBool>,
     /// Settings asked for that dialog.
     configure: Arc<AtomicBool>,
-    /// The person disabled Hex: clear its shortcuts from the desktop's list
+    /// The person disabled Superhex: clear its shortcuts from the desktop's list
     /// when the listener stops.
     forget: Arc<AtomicBool>,
     keys: ShortcutKeys,
@@ -389,12 +389,12 @@ impl HotkeyStatus {
         self.configurable.load(Ordering::Acquire)
     }
 
-    /// Opens the desktop's dialog for Hex's shortcuts, when it has one.
+    /// Opens the desktop's dialog for Superhex's shortcuts, when it has one.
     pub(crate) fn configure(&self) {
         self.configure.store(true, Ordering::Release);
     }
 
-    /// Clears Hex's shortcuts from the desktop's list once the listener
+    /// Clears Superhex's shortcuts from the desktop's list once the listener
     /// stops, as Disable does; a restart for a settings change keeps them.
     pub(crate) fn forget_on_stop(&self) {
         self.forget.store(true, Ordering::Release);
@@ -409,15 +409,15 @@ impl HotkeyStatus {
 }
 
 /// How long after a Wayland shortcut's last event its modifiers may still be
-/// down. Hex cannot see them there, so this is the bounded estimate.
+/// down. Superhex cannot see them there, so this is the bounded estimate.
 const MODIFIER_GRACE: Duration = Duration::from_millis(250);
 /// The longest a press without its release holds a paste back, for desktops
 /// that drop the release.
 const HELD_LIMIT: Duration = Duration::from_secs(2);
 
-/// When the keys of a Hex shortcut may still be down. Some Wayland
+/// When the keys of a Superhex shortcut may still be down. Some Wayland
 /// compositors (Hyprland) add every held physical modifier to virtual
-/// keyboard input, turning a paste's Ctrl+V into Ctrl+Alt+V. Hex reads no
+/// keyboard input, turning a paste's Ctrl+V into Ctrl+Alt+V. Superhex reads no
 /// input devices, so the paste waits on the shortcut's own events: until a
 /// modifier shortcut's release (portal Deactivated) plus [`MODIFIER_GRACE`],
 /// and [`MODIFIER_GRACE`] after a `hex` command, whose keybinding is unknown.
@@ -471,7 +471,7 @@ impl ShortcutKeys {
             .held = 0;
     }
 
-    /// Whether a Hex shortcut is down now (pressed without its release), so
+    /// Whether a Superhex shortcut is down now (pressed without its release), so
     /// a newer capture owns the modifiers a paste sees held.
     pub(crate) fn any_held(&self) -> bool {
         self.0
@@ -503,7 +503,7 @@ impl ShortcutKeys {
 }
 
 /// Whether a portal trigger holds modifiers: the one the desktop granted,
-/// else the one Hex asked for.
+/// else the one Superhex asked for.
 fn trigger_has_modifiers(granted: Option<&str>, requested: &LinuxHotkey) -> bool {
     match granted.map(str::trim).filter(|trigger| !trigger.is_empty()) {
         Some(trigger) => crate::linux::portal::readable_trigger(trigger).contains('+'),
@@ -513,7 +513,7 @@ fn trigger_has_modifiers(granted: Option<&str>, requested: &LinuxHotkey) -> bool
 
 /// The portal id of a shortcut asking for `trigger`. A desktop keeps the
 /// trigger it stored for an id and ignores a later `preferred_trigger`
-/// (GNOME, KDE), so a shortcut changed in Hex gets a new id, which the
+/// (GNOME, KDE), so a shortcut changed in Superhex gets a new id, which the
 /// desktop binds to the new trigger (#575). An unchanged shortcut keeps its
 /// id, and with it any trigger the user assigned in the desktop.
 ///
@@ -528,9 +528,9 @@ fn portal_shortcut_id(base: &str, trigger: &str, desktop_assigns: bool) -> Strin
     format!("{base}-{}", trigger.replace('+', "-"))
 }
 
-/// The name Hex 3.3 and earlier gave `shortcut` on Hyprland, the trigger in
+/// The name Superhex 3.3 and earlier gave `shortcut` on Hyprland, the trigger in
 /// the id (`dictation-ALT-space`), which configs written then still bind.
-/// Hex binds it beside the bare id so those binds keep working while the
+/// Superhex binds it beside the bare id so those binds keep working while the
 /// recorded key is the one they were written for. Only the shortcuts 3.3
 /// had get one.
 fn hyprland_legacy_id(shortcut: Shortcut, trigger: &str) -> Option<String> {
@@ -541,7 +541,7 @@ fn hyprland_legacy_id(shortcut: Shortcut, trigger: &str) -> Option<String> {
     .then(|| portal_shortcut_id(shortcut.portal_id().0, trigger, false))
 }
 
-/// The trigger the desktop granted a shortcut, by the id Hex bound it under.
+/// The trigger the desktop granted a shortcut, by the id Superhex bound it under.
 fn granted_trigger<'a>(
     granted: &'a std::collections::HashMap<String, Option<String>>,
     ids: &[Option<String>; Shortcut::ALL.len()],
@@ -553,7 +553,7 @@ fn granted_trigger<'a>(
         .and_then(Option::as_deref)
 }
 
-/// What the desktop granted, as Settings shows it: each shortcut Hex asked
+/// What the desktop granted, as Settings shows it: each shortcut Superhex asked
 /// for. With `desktop_assigns` (Hyprland), a shortcut without a trigger is
 /// unconfirmed rather than refused.
 fn project_grants(
@@ -647,7 +647,7 @@ enum Input {
     Released(Shortcut),
     /// Escape, which only stops Annotate's drawing (#786).
     Escape,
-    /// The cancel shortcut, pressed while Hex held it.
+    /// The cancel shortcut, pressed while Superhex held it.
     Cancel,
     /// The backend can no longer tell which keys are down.
     Lost,
@@ -715,7 +715,7 @@ impl ShortcutState {
         matches!(self.capture, Capture::Idle | Capture::Armed)
     }
 
-    /// Whether the cancel shortcut is Hex's now: only in Toggle mode, and
+    /// Whether the cancel shortcut is Superhex's now: only in Toggle mode, and
     /// only while something records, so the key stays with every app
     /// otherwise.
     fn wants_cancel(&self) -> bool {
@@ -911,7 +911,7 @@ impl ShortcutState {
             }
             Input::Released(Shortcut::PasteLast) => None,
             // The typed-text job owns no capture state: pressing its shortcut
-            // or sending `hex typed-text` while idle asks for one job, and
+            // or sending `superhex typed-text` while idle asks for one job, and
             // while recording it does nothing at all.
             Input::Pressed(Shortcut::TypedText) | Input::Command(ShortcutCommand::TypedText) => {
                 self.idle().then_some(HotkeyEvent::TypedText)
@@ -944,7 +944,7 @@ impl ShortcutState {
 pub(crate) struct CommandQueue {
     commands: Arc<Mutex<Receiver<ListenerCommand>>>,
     /// Whether `hex` commands reach this listener: they go to the service,
-    /// never to a foreground `hex dictate` process.
+    /// never to a foreground `superhex dictate` process.
     connected: bool,
 }
 
@@ -958,7 +958,7 @@ impl From<Receiver<ListenerCommand>> for CommandQueue {
 }
 
 impl CommandQueue {
-    /// A queue nothing sends to: the foreground `hex dictate` listener.
+    /// A queue nothing sends to: the foreground `superhex dictate` listener.
     pub(crate) fn disconnected() -> Self {
         Self {
             commands: Arc::new(Mutex::new(mpsc::channel().1)),
@@ -1020,7 +1020,7 @@ impl Dispatcher {
 
     /// Feeds every queued `hex` command.
     fn commands(&mut self) {
-        // `hex dictate` has no queue anything sends to: only shortcuts remain.
+        // `superhex dictate` has no queue anything sends to: only shortcuts remain.
         if !self.commands.connected() {
             return;
         }
@@ -1301,10 +1301,10 @@ impl Backend {
         if let Err(error) = portal.forget_legacy_kde_shortcuts(&keep) {
             tracing::warn!(
                 error = format!("{error:#}"),
-                "could not remove Hex's old shortcuts from KDE"
+                "could not remove Superhex's old shortcuts from KDE"
             );
         }
-        // GNOME asks for approval whenever Hex binds shortcuts it hasn't
+        // GNOME asks for approval whenever Superhex binds shortcuts it hasn't
         // approved, as after a shortcut change; dismissing that dialog fails
         // the bind (#723), and Enable binds again, so the dialog returns.
         let granted = match portal.bind(&shortcuts, &self.stop) {
@@ -1319,7 +1319,7 @@ impl Backend {
                 tracing::warn!(
                     error = format!("{error:#}"),
                     desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
-                    "the shortcuts portal's backend could not bind Hex's shortcuts; dictation follows the hex commands, which reach the service listener (`hex start`) but not a foreground `hex dictate`"
+                    "the shortcuts portal's backend could not bind Superhex's shortcuts; dictation follows the superhex commands, which reach the service listener (`superhex start`) but not a foreground `superhex dictate`"
                 );
                 drop(portal);
                 self.wait_for_portal(&mut dispatcher, false)?;
@@ -1327,7 +1327,7 @@ impl Backend {
             }
             Err(error) => {
                 return Err(error.wrap_err(
-                    "the desktop did not approve Hex's shortcuts; choose Enable to ask again",
+                    "the desktop did not approve Superhex's shortcuts; choose Enable to ask again",
                 ));
             }
         };
@@ -1349,13 +1349,13 @@ impl Backend {
                 None if shortcut.unconfirmed => {
                     tracing::info!(
                         name = %shortcut.name,
-                        "the desktop assigns this Hex shortcut's key itself; Hex cannot confirm it"
+                        "the desktop assigns this Superhex shortcut's key itself; Superhex cannot confirm it"
                     );
                 }
                 None => {
                     tracing::warn!(
                         name = %shortcut.name,
-                        "the desktop did not grant a Hex shortcut"
+                        "the desktop did not grant a Superhex shortcut"
                     );
                 }
                 Some(_) => {}
@@ -1405,7 +1405,9 @@ impl Backend {
                         dispatcher.keys.released_all();
                         dispatcher.input(Input::Lost);
                         let _ = dispatcher.flush();
-                        return Err(eyre!("the desktop closed Hex's shortcuts portal session"));
+                        return Err(eyre!(
+                            "the desktop closed Superhex's shortcuts portal session"
+                        ));
                     }
                 };
                 dispatcher.input(input);
@@ -1434,7 +1436,7 @@ impl Backend {
         {
             tracing::warn!(
                 error = format!("{error:#}"),
-                "could not clear Hex's shortcuts from the desktop"
+                "could not clear Superhex's shortcuts from the desktop"
             );
         }
         Ok(())
@@ -1592,7 +1594,7 @@ mod tests {
         assert_eq!(test.events, [SECOND, Finish, START, Finish, SECOND, Finish]);
     }
 
-    /// #786: only the shortcuts Hex asked for show; a key the desktop still
+    /// #786: only the shortcuts Superhex asked for show; a key the desktop still
     /// keeps for the removed Cancel dictation stays out.
     #[test]
     fn only_requested_shortcuts_are_shown() {
@@ -2408,7 +2410,7 @@ mod tests {
         assert_eq!(test.events, [START, Cancel, START, Cancel, START, Finish]);
     }
 
-    /// Hold mode has no cancel: the key is never Hex's, even while a
+    /// Hold mode has no cancel: the key is never Superhex's, even while a
     /// recording runs, and a press of it ends nothing.
     #[test]
     fn cancel_is_ignored_in_hold_mode() {
@@ -2430,7 +2432,7 @@ mod tests {
         assert!(test.events.iter().all(|event| *event != Cancel));
     }
 
-    /// While nothing records, Hex doesn't take the cancel key, so it stays
+    /// While nothing records, Superhex doesn't take the cancel key, so it stays
     /// with the app in front.
     #[test]
     fn cancel_is_not_taken_while_idle() {
@@ -2495,7 +2497,7 @@ mod tests {
             [HotkeyEvent::TypedText, HotkeyEvent::TypedText]
         );
         assert_eq!(test.state.capture, Capture::Idle);
-        // Recording owns the shortcut and `hex typed-text`: no job and no
+        // Recording owns the shortcut and `superhex typed-text`: no job and no
         // state change.
         test.press(Shortcut::Dictation);
         test.events.clear();

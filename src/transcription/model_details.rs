@@ -1,7 +1,7 @@
 //! What a catalog model's details view shows beyond its card: the credit
 //! its licence asks for, links to its source and licence, the notice its
 //! publisher supplied, measured resource use, and benchmarks the publisher
-//! measured (never Hex). Only models that need more than the card have one.
+//! measured (never Superhex). Only models that need more than the card have one.
 
 use super::models::TranscriptionModelId;
 
@@ -13,7 +13,7 @@ pub struct ModelDetails {
     /// The NOTICE the publisher ships with the file.
     pub notice: &'static str,
     /// Peak memory while transcribing and where it was measured; `None`
-    /// when Hex hasn't measured it.
+    /// when Superhex hasn't measured it.
     pub peak_memory: Option<(&'static str, &'static str)>,
     /// Published error rates per language, in percent.
     pub published: &'static [(&'static str, f64)],

@@ -2,7 +2,7 @@
 //! `GetImage` where shared memory isn't offered, with the pointer drawn in from XFixes. It
 //! needs no portal and no PipeWire, so it works on any X11 desktop (i3 and friends ship no
 //! ScreenCast backend). Frames are 32-bit BGRX rows, the server's own layout on every
-//! little-endian X server Hex runs on.
+//! little-endian X server Superhex runs on.
 
 use anyhow::{Context, Result, bail, ensure};
 use x11rb::connection::Connection;
@@ -14,7 +14,7 @@ use x11rb::protocol::xproto::{ConnectionExt as _, ImageFormat};
 use x11rb::rust_connection::RustConnection;
 
 /// Whether this is an X11 session: `WAYLAND_DISPLAY` empty and `DISPLAY` set. A Wayland
-/// session with XWayland is never X11 here, as Hex's own session detection has it.
+/// session with XWayland is never X11 here, as Superhex's own session detection has it.
 pub fn session() -> bool {
     let set = |name: &str| std::env::var_os(name).is_some_and(|value| !value.is_empty());
     !set("WAYLAND_DISPLAY") && set("DISPLAY")
@@ -167,7 +167,7 @@ impl Grabber {
             .shm_attach(seg, id as u32, false)
             .map_err(anyhow::Error::from)
             .and_then(|cookie| Ok(cookie.check()?));
-        // Removed now, it goes once both sides detach, even if Hex dies.
+        // Removed now, it goes once both sides detach, even if Superhex dies.
         unsafe { libc::shmctl(id, libc::IPC_RMID, std::ptr::null_mut()) };
         let shm = Shm {
             seg,

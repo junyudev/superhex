@@ -1,4 +1,4 @@
-//! Without Hex, then with it, in one Messages conversation:
+//! Without Superhex, then with it, in one Messages conversation:
 //!
 //! 1. The Launch Room's row in a Messages list dings and pulses with an
 //!    unread badge; clicking it opens the conversation ([`super::inbox`]).
@@ -7,11 +7,11 @@
 //!    panic builds, and a finger slips onto Return: `"Yse, we're dead"`.
 //!    Silence, then `"Read"`. Every fix makes it worse until Jay removes you
 //!    from the group mid-word ([`typing::Scene`]).
-//! 3. `"With Hex"` in two beats: the disaster rewinds back to Jay's question,
-//!    then the keyboard melts away to `⌥`, Hex's real `Dot scope` HUD
+//! 3. `"With Superhex"` in two beats: the disaster rewinds back to Jay's question,
+//!    then the keyboard melts away to `⌥`, Superhex's real `Dot scope` HUD
 //!    (`rune_hud.wgsl`) rises, and the answer lands in about 1.5 seconds.
 //!    Jay is delighted.
-//! 4. The score: what answering by hand cost against Hex's time.
+//! 4. The score: what answering by hand cost against Superhex's time.
 //!
 //! One thing has the eye at a time; the rest dims, deeply only when the
 //! story freezes.
@@ -83,12 +83,12 @@ const STACK: usize = 5;
 const SLOW_THREAD: f32 = 0.42;
 /// How long a line that cuts in while you type stays at full brightness.
 const CUT_IN: f64 = 0.8;
-/// `"Without Hex"`'s field holds one line.
+/// `"Without Superhex"`'s field holds one line.
 const WITHOUT_LINES: usize = 1;
 /// From the stage settling to the button's clock: Jay's question arrives
 /// as the stage settles ([`typing::Scene`]'s lines before the button).
 const PRE_ROLL: f64 = 1.2;
-/// `"With Hex"`'s first beat: the disaster zips back out, newest first.
+/// `"With Superhex"`'s first beat: the disaster zips back out, newest first.
 pub(crate) const REWIND: f64 = 0.48;
 const REWIND_STAGGER: f64 = 0.045;
 /// The rewind keeps the field locked until the removal has peeled away.
@@ -96,7 +96,7 @@ const UNLOCK: f64 = 0.1;
 /// How long the field stays empty after a send, before its placeholder.
 const CLEAR: f64 = 0.22;
 /// The second beat: the keyboard melts to `⌥` and the HUD rises; then `⌥`
-/// goes down this long after `"With Hex"` begins.
+/// goes down this long after `"With Superhex"` begins.
 pub(crate) const BEFORE_KEY: f64 = 1.5;
 const MELT: f64 = 0.9;
 /// The keys start melting as the rewind settles, so the keyboard never
@@ -122,7 +122,7 @@ fn script() -> &'static Script<'static> {
     Script::chosen()
 }
 
-/// Your spoken line in `"With Hex"`.
+/// Your spoken line in `"With Superhex"`.
 fn take() -> &'static Take {
     script().take()
 }
@@ -140,7 +140,7 @@ fn field_origin() -> [f32; 2] {
     field_text_origin([CARD_X, card_bottom(lines)], lines)
 }
 
-/// Seconds into `"Without Hex"`, once it has started.
+/// Seconds into `"Without Superhex"`, once it has started.
 fn scene_time(s: &Onboard) -> Option<f64> {
     s.typing_from.map(|from| s.now - from)
 }
@@ -158,7 +158,7 @@ fn scene_over(s: &Onboard) -> bool {
     scene_time(s).is_some_and(|t| t >= s.scene.duration())
 }
 
-/// `"Without Hex"` is waiting for the Launch Room's row.
+/// `"Without Superhex"` is waiting for the Launch Room's row.
 pub(crate) fn waiting_to_start(s: &Onboard) -> bool {
     s.step == Step::Parked && s.typing_from.is_none()
 }
@@ -216,7 +216,7 @@ fn flights(s: &Onboard) -> Vec<(Flight, field_text::Slot<'static>)> {
         .map_or_else(Vec::new, |from| flights_from(s.streams(), from))
 }
 
-/// `"With Hex"`'s beats after the shortcut goes down: the answer sends once
+/// `"With Superhex"`'s beats after the shortcut goes down: the answer sends once
 /// its words have landed, then the scene's cheers ([`HexBeats::plan`]).
 pub(crate) fn hex_beats(streams: bool, timing: &Timing) -> HexBeats {
     HexBeats::plan(script(), send_at(take(), streams, timing), timing)
@@ -232,7 +232,7 @@ pub(crate) fn send_at(take: &'static Take, streams: bool, timing: &Timing) -> f6
 }
 
 /// From `Heard` to the score.
-/// When `"With Hex"` has finished, from the shortcut going down.
+/// When `"With Superhex"` has finished, from the shortcut going down.
 pub(crate) fn hex_done_secs(s: &Onboard) -> f64 {
     hex_beats(s.streams(), &s.timing).done
 }
@@ -241,7 +241,7 @@ pub(crate) fn reply_secs(s: &Onboard) -> f64 {
     hex_beats(s.streams(), &s.timing).done - (take().release + 0.1)
 }
 
-/// Seconds since the shortcut went down on `"With Hex"`.
+/// Seconds since the shortcut went down on `"With Superhex"`.
 fn take_time(s: &Onboard) -> Option<f64> {
     matches!(s.step, Step::Hearing | Step::Heard | Step::Done)
         .then_some(s.take_from)
@@ -271,12 +271,12 @@ pub(super) fn pushed_in(s: &Onboard) -> bool {
     s.step == Step::Parked && scene_time(s).is_some_and(|t| camera(s, t).0 > 1.0)
 }
 
-/// `"With Hex"`'s answer has left the field.
+/// `"With Superhex"`'s answer has left the field.
 pub(crate) fn hex_sent(s: &Onboard) -> bool {
     take_time(s).is_some_and(|t| t >= hex_beats(s.streams(), &s.timing).send)
 }
 
-/// How many `"Without Hex"` replies have been sent.
+/// How many `"Without Superhex"` replies have been sent.
 pub(super) fn sent_count(s: &Onboard) -> usize {
     match scene_time(s) {
         Some(t) if s.step == Step::Parked => s.scene.sent(t),
@@ -377,16 +377,16 @@ pub(super) fn heading(p: Paint, s: &Onboard) -> El {
             tr("Talk instead of typing").to_string(),
             line(
                 "lead-intro",
-                tr("Hold a key and talk. Hex types it wherever your cursor is.").into(),
+                tr("Hold a key and talk. Superhex types it wherever your cursor is.").into(),
             ),
         ),
         // The chip says it all; the line under it stays, empty, so the
-        // stage doesn't move when `"With Hex"` brings its own. Composed in
+        // stage doesn't move when `"With Superhex"` brings its own. Composed in
         // two lines (the playground's layouts only, so English), it says what you
-        // do, as `"With Hex"`'s does.
+        // do, as `"With Superhex"`'s does.
         Step::Parked if !scene_over(s) || s.demo_hears() => (
             "without",
-            tr("Without Hex").to_string(),
+            tr("Without Superhex").to_string(),
             if Layout::chosen().two_lines() {
                 line("lead-type", "Type it by hand.".to_string())
             } else {
@@ -395,14 +395,14 @@ pub(super) fn heading(p: Paint, s: &Onboard) -> El {
         ),
         Step::Parked => (
             "with",
-            tr("With Hex").to_string(),
+            tr("With Superhex").to_string(),
             line(
                 "lead-wait",
-                tr("Hex starts listening once the speech model has downloaded.").into(),
+                tr("Superhex starts listening once the speech model has downloaded.").into(),
             ),
         ),
         Step::YourTurn | Step::Hearing | Step::Heard => {
-            ("with", tr("With Hex").to_string(), hold())
+            ("with", tr("With Superhex").to_string(), hold())
         }
         _ if s.flow == Flow::FirstRun || s.flow == Flow::Versus => {
             let with = &script().with;
@@ -434,7 +434,7 @@ pub(super) fn heading(p: Paint, s: &Onboard) -> El {
     if Layout::chosen().split() {
         return split_heading(p, s, key, title, lead, mode);
     }
-    // The first run's download flies up past it from "Setting up Hex".
+    // The first run's download flies up past it from "Setting up Superhex".
     after_flight(col(), s)
         .key(key)
         .gap(8.0)
@@ -502,7 +502,7 @@ fn smoothstep(u: f32) -> f32 {
     u * u * (3.0 - 2.0 * u)
 }
 
-/// Seconds into `"With Hex"`, from the rewind.
+/// Seconds into `"With Superhex"`, from the rewind.
 fn hex_time(s: &Onboard) -> Option<f64> {
     (s.step >= Step::YourTurn)
         .then_some(s.voice_from)
@@ -730,7 +730,7 @@ pub(super) fn stage(p: Paint, s: &Onboard) -> El {
         Some(t) if !reduced && !voice_phase => s.scene.knock(t),
         _ => 0.0,
     };
-    // One card throughout, so `"With Hex"` rewinds the same thread.
+    // One card throughout, so `"With Superhex"` rewinds the same thread.
     let card = match since {
         Some(since) => with_hex_card(p, s, since),
         None => without_hex_card(p, s, focus, frozen, opening),
@@ -909,7 +909,7 @@ fn boss_typing(p: Paint, script: &'static Script<'static>, now: f64, reduced: bo
     )
 }
 
-/// `"Without Hex"`'s thread at `t`: every line so far, each at
+/// `"Without Superhex"`'s thread at `t`: every line so far, each at
 /// `opacity(line index, line)` with `"Read"` under the one it reads, and
 /// Jay's typing dots.
 /// The thread at scene time `t`. While the conversation opens out of its
@@ -991,7 +991,7 @@ fn thread_at(
     thread
 }
 
-/// The conversation as `"Without Hex"` stands now, Jay's question already
+/// The conversation as `"Without Superhex"` stands now, Jay's question already
 /// there before the button.
 fn without_hex_card(p: Paint, s: &Onboard, focus: Focus, frozen: bool, opening: Option<f64>) -> El {
     let t = thread_time(s).unwrap_or(-1e-3);
@@ -1091,7 +1091,7 @@ fn scene_card(
     )
 }
 
-/// The same question, answered by voice, `since` seconds into `"With Hex"`.
+/// The same question, answered by voice, `since` seconds into `"With Superhex"`.
 /// It opens on the rewind: the disaster zips back out, newest first, until
 /// Jay's question is all that's left.
 fn with_hex_card(p: Paint, s: &Onboard, since: f64) -> El {
@@ -1246,7 +1246,7 @@ fn with_hex_card(p: Paint, s: &Onboard, since: f64) -> El {
     )
 }
 
-/// What the keyboard is lit to at scene time `t` in `"Without Hex"`: up
+/// What the keyboard is lit to at scene time `t` in `"Without Superhex"`: up
 /// while you type and through Return's flash, back while Jay talks, and down
 /// only when the story freezes.
 fn keyboard_target(s: &Onboard, t: f64) -> f32 {

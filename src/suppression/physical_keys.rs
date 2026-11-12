@@ -29,6 +29,12 @@ use std::time::Duration;
 
 use objc2_core_foundation::{CFDictionary, CFNumber, CFRetained, CFString};
 
+use super::mouse::ffi::{
+    CFRelease, IOHIDCheckAccess, IOHIDElementGetDevice, IOHIDElementGetUsage,
+    IOHIDElementGetUsagePage, IOHIDManagerCreate, IOHIDManagerRegisterDeviceRemovalCallback,
+    IOHIDManagerScheduleWithRunLoop, IOHIDManagerUnscheduleFromRunLoop, IOHIDValueGetElement,
+    IOHIDValueGetIntegerValue, IOHIDValueGetTimeStamp,
+};
 use crate::app_settings::{CAPS_LOCK_USAGE, PhysicalModifierKeys, physical_key_bit};
 use crate::audio::CaptureInstant;
 
@@ -56,46 +62,19 @@ type IohidValueCallback = unsafe extern "C" fn(
     sender: *mut c_void,
     value: *mut c_void,
 );
-type IohidDeviceCallback = unsafe extern "C" fn(
-    context: *mut c_void,
-    result: i32,
-    sender: *mut c_void,
-    device: *mut c_void,
-);
 
+// The IOKit declarations shared with the mouse monitor live once in
+// `mouse::ffi`; this file declares only the symbols it alone uses.
 #[link(name = "IOKit", kind = "framework")]
 unsafe extern "C" {
-    fn IOHIDManagerCreate(allocator: *const c_void, options: u32) -> *mut c_void;
     fn IOHIDManagerSetDeviceMatching(manager: *mut c_void, matching: *const c_void);
     fn IOHIDManagerRegisterInputValueCallback(
         manager: *mut c_void,
         callback: IohidValueCallback,
         context: *mut c_void,
     );
-    fn IOHIDManagerRegisterDeviceRemovalCallback(
-        manager: *mut c_void,
-        callback: IohidDeviceCallback,
-        context: *mut c_void,
-    );
-    fn IOHIDManagerScheduleWithRunLoop(
-        manager: *mut c_void,
-        run_loop: *mut c_void,
-        mode: *const c_void,
-    );
-    fn IOHIDManagerUnscheduleFromRunLoop(
-        manager: *mut c_void,
-        run_loop: *mut c_void,
-        mode: *const c_void,
-    );
     fn IOHIDManagerOpen(manager: *mut c_void, options: u32) -> i32;
     fn IOHIDManagerClose(manager: *mut c_void, options: u32) -> i32;
-    fn IOHIDCheckAccess(request_type: u32) -> u32;
-    fn IOHIDValueGetElement(value: *mut c_void) -> *mut c_void;
-    fn IOHIDElementGetDevice(element: *mut c_void) -> *mut c_void;
-    fn IOHIDElementGetUsagePage(element: *mut c_void) -> u32;
-    fn IOHIDElementGetUsage(element: *mut c_void) -> u32;
-    fn IOHIDValueGetTimeStamp(value: *mut c_void) -> u64;
-    fn IOHIDValueGetIntegerValue(value: *mut c_void) -> isize;
 }
 
 #[link(name = "CoreFoundation", kind = "framework")]
@@ -107,7 +86,6 @@ unsafe extern "C" {
         return_after_source_handled: u8,
     ) -> i32;
     fn CFRunLoopStop(run_loop: *mut c_void);
-    fn CFRelease(value: *const c_void);
     static kCFRunLoopCommonModes: *const c_void;
     static kCFRunLoopDefaultMode: *const c_void;
 }
@@ -186,11 +164,11 @@ unsafe extern "C" fn value_changed(
         return;
     }
     // SAFETY: `element` belongs to the live value.
-    if unsafe { IOHIDElementGetUsagePage(element) } != KEYBOARD_USAGE_PAGE {
+    if unsafe { IOHIDElementGetUsagePage(element.cast_mut()) } != KEYBOARD_USAGE_PAGE {
         return;
     }
     // SAFETY: as above; HID usage values fit in 16 bits.
-    let Ok(usage) = u16::try_from(unsafe { IOHIDElementGetUsage(element) }) else {
+    let Ok(usage) = u16::try_from(unsafe { IOHIDElementGetUsage(element.cast_mut()) }) else {
         return;
     };
     let Some(bit) = physical_key_bit(usage) else {
@@ -238,8 +216,8 @@ unsafe extern "C" fn value_changed(
 unsafe extern "C" fn device_removed(
     context: *mut c_void,
     _result: i32,
-    _sender: *mut c_void,
-    device: *mut c_void,
+    _sender: *const c_void,
+    device: *const c_void,
 ) {
     if context.is_null() || device.is_null() {
         return;
@@ -384,7 +362,7 @@ fn run(
     // them, and every argument is a live Core Foundation object.
     let status = unsafe {
         IOHIDManagerRegisterInputValueCallback(manager, value_changed, context_ptr);
-        IOHIDManagerRegisterDeviceRemovalCallback(manager, device_removed, context_ptr);
+        IOHIDManagerRegisterDeviceRemovalCallback(manager, Some(device_removed), context_ptr);
         IOHIDManagerScheduleWithRunLoop(manager, run_loop, kCFRunLoopCommonModes);
         IOHIDManagerOpen(manager, HID_OPTIONS_NONE)
     };

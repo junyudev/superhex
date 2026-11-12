@@ -39,7 +39,7 @@ pub(super) enum Target {
 
 /// The meeting summary picker's default entry, and the field while it is
 /// chosen.
-pub(super) const SUMMARY_AUTOMATIC: &str = "Hex picks a fast model";
+pub(super) const SUMMARY_AUTOMATIC: &str = "Superhex picks a fast model";
 
 pub(super) struct Models {
     state: ModelCatalogState,

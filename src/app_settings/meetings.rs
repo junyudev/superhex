@@ -192,7 +192,7 @@ impl MeetingRetention {
 #[serde(default)]
 pub struct CalendarSettings {
     /// Set once the user clicks Connect calendar and macOS grants access;
-    /// Hex never asks for calendar access before that.
+    /// Superhex never asks for calendar access before that.
     pub connected: bool,
     /// Calendars left out of reminders, by EventKit identifier. Every
     /// calendar is included by default, so new ones are too.
@@ -284,7 +284,7 @@ pub fn known_meeting_providers(
     )
 }
 
-/// What Hex does when it detects a call from a provider.
+/// What Superhex does when it detects a call from a provider.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MeetingPolicy {
@@ -359,7 +359,7 @@ pub fn meetings_enabled() -> bool {
 pub fn meetings_off_reason() -> &'static str {
     match crate::labs::Feature::Meetings.managed() {
         Some(lock) => lock.refusal(),
-        None => "Meetings are off; turn them on with `hex settings set meetings.enabled on`",
+        None => "Meetings are off; turn them on with `superhex settings set meetings.enabled on`",
     }
 }
 
@@ -392,7 +392,7 @@ pub fn meeting_provider_choices() -> Vec<MeetingProviderChoice> {
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 /// [`MeetingSettings::retention`] for the running meeting controller.
 /// The retention the user chose, `None` until they choose. A process that
-/// never loaded settings (`hex mcp`, `hex meetings`) reads it from
+/// never loaded settings (`superhex mcp`, `superhex meetings`) reads it from
 /// `settings.json` without migrating or writing anything.
 pub fn meeting_retention() -> Option<MeetingRetention> {
     match MEETING_RETENTION.load(Ordering::Acquire) {

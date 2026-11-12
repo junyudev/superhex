@@ -183,7 +183,7 @@ fn pane_meeting(
         transcript,
         imported: manifest.imported,
         // Sections come from the transcript lines, not the merged turns, as
-        // the menu bar and `hex meetings show --chapter` read them.
+        // the menu bar and `superhex meetings show --chapter` read them.
         kept_for: (!meeting.status.is_active())
             .then(|| {
                 crate::meeting::retention_for(manifest, crate::app_settings::meeting_retention())

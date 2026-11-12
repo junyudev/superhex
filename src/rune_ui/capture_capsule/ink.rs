@@ -426,7 +426,7 @@ impl InkOverlay {
         // gives an `OnDemand` overlay the keyboard. Everywhere else it stays
         // click-through until drawing.
         let xwayland = takes_xwayland_pointer();
-        let spec = OverlaySpec::new("Hex ink", (1440.0, 900.0), view)
+        let spec = OverlaySpec::new("Superhex ink", (1440.0, 900.0), view)
             .options(OverlayOptions {
                 placement: Some(OverlayPlacement::FullScreen),
                 display: DisplayTarget::Primary,

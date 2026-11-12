@@ -2,19 +2,19 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy", "scipy"]
 # ///
-"""Hex's feedback sound sets, made reproducibly.
+"""Superhex's feedback sound sets, made reproducibly.
 
 Run: uv run scripts/sounds/synth.py   (rewrites resources/audio/sounds/)
 
 Each set is a folder of start, stop, done, cancel, error and success WAVs:
 
 - signature: one voice, a kalimba-like FM tine, and one motif, D - B - A - D:
-  up a major sixth, a step down, home ("hex" is six, so the sixth is Hex's
+  up a major sixth, a step down, home ("hex" is six, so the sixth is Superhex's
   interval). Start, stop and done play the motif in order across a
   dictation; cancel collapses the sixth; error turns it minor; success plays
   the whole motif and lands on a D sixth chord.
-- classic: the tones Hex played before the signature set, decoded from the
-  original MP3s in git (start, stop and cancel only; Hex plays no done tone,
+- classic: the tones Superhex played before the signature set, decoded from the
+  original MP3s in git (start, stop and cancel only; Superhex plays no done tone,
   macOS Basso for errors, and signature's success for this set).
 - click: mechanical key clicks.
 - soft: warm sine blips in A major.
@@ -29,7 +29,7 @@ leading silence), begins and ends at zero with raised-cosine edges, and is
 normalized so its loudest 400 ms window (BS.1770 K-weighted, EBU momentary
 loudness) reads its target in TARGETS, the same in every set, so a volume
 setting sounds as loud whichever set is chosen. The targets match the sounds
-Hex first shipped: start -25.5 LUFS like the classic start clicks, stop like
+Superhex first shipped: start -25.5 LUFS like the classic start clicks, stop like
 the classic swish, error like macOS Basso. A mono sound plays in both
 speakers, so the stereo classic sounds are measured per channel, which puts
 their start 2.5 dB and stop 3 dB under the targets their summed loudness once
@@ -485,7 +485,7 @@ ONBOARDING_TARGETS = {
 
 
 def onboarding():
-    """Quiet harmonic motion cues in Hex's D-major sixth world. Tactile keycap
+    """Quiet harmonic motion cues in Superhex's D-major sixth world. Tactile keycap
     and shortcut foley WAVs (`key_*`, `shortcut_*`) live alongside these in
     `resources/audio/sounds/onboarding/` and are kept intact."""
     D5, Fs5, A5, B5, D6 = map(hz, ["D5", "F#5", "A5", "B5", "D6"])

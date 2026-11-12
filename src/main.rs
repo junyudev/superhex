@@ -1,8 +1,8 @@
-// A GUI program on Windows, so launching Hex opens no console window (#850).
+// A GUI program on Windows, so launching Superhex opens no console window (#850).
 // Commands run from a terminal attach to it (`windows::attach_parent_console`).
 #![cfg_attr(all(target_os = "windows", not(test)), windows_subsystem = "windows")]
 
-/// The version Hex reports: the release version, or `0.0.0-dev-local-<commit>`
+/// The version Superhex reports: the release version, or `0.0.0-dev-local-<commit>`
 /// for a build outside the Release workflow (build.rs).
 const VERSION: &str = env!("HEX_BUILD_VERSION");
 
@@ -83,21 +83,21 @@ use std::sync::atomic::AtomicBool;
 #[cfg(target_os = "macos")]
 use clap::{Parser, Subcommand, ValueEnum};
 use color_eyre::Result;
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", debug_assertions))]
 use color_eyre::eyre::eyre;
 
 #[cfg(target_os = "macos")]
 #[derive(Parser)]
 #[command(
-    name = "hex",
+    name = "superhex",
     version = crate::VERSION,
     about = "Local, observable voice control",
     long_about = "Local, observable voice control.\n\n\
         Control commands (status, dictation, meetings record, settings, model, window, …) drive \
-        the one running Hex over its owner-only local API and never launch it, except `start` \
+        the one running Superhex over its owner-only local API and never launch it, except `start` \
         and `restart`. Every one takes --json for a versioned reply (docs/cli.md). Exit codes: \
-        0 done or nothing to change, 1 refused or failed, 2 usage, 3 Hex isn't running.",
-    after_help = "Run `hex <command> --help` for details, or `hex settings list` for every setting."
+        0 done or nothing to change, 1 refused or failed, 2 usage, 3 Superhex isn't running.",
+    after_help = "Run `superhex <command> --help` for details, or `superhex settings list` for every setting."
 )]
 struct Cli {
     #[command(subcommand)]
@@ -218,7 +218,7 @@ enum DevCommand {
         #[arg(required = true)]
         wavs: Vec<PathBuf>,
     },
-    /// Render offline audio through the Hex Microphone voice filter.
+    /// Render offline audio through the Superhex Microphone voice filter.
     VoiceFilter {
         #[command(subcommand)]
         command: VoiceFilterCommand,
@@ -309,7 +309,7 @@ fn main() -> Result<()> {
         rune::prewarm_gpu();
     }
     // A window of its own: no data folder, log, lock, or settings, so it
-    // runs beside the installed Hex.
+    // runs beside the installed Superhex.
     #[cfg(hex_capture)]
     if let Some(Command::CapsulePlayground { rune_args }) = &cli.command {
         keyboard::initialize_layout()?;
@@ -317,7 +317,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
     // Control and read commands (status, settings, history, meetings, mcp,
-    // labs, …) talk to the running Hex or read files: no data folder, log,
+    // labs, …) talk to the running Superhex or read files: no data folder, log,
     // lock, GUI, or permission setup of their own, so an agent may run them
     // over SSH while the app is running.
     let cli = match cli.command {
@@ -375,8 +375,8 @@ fn main() -> Result<()> {
             output,
         );
     }
-    // A headless render (`hex app -- --snap …`) draws fixtures: no data
-    // folder, log, lock, or settings, so it never touches the user's Hex.
+    // A headless render (`superhex app -- --snap …`) draws fixtures: no data
+    // folder, log, lock, or settings, so it never touches the user's Superhex.
     if let Some(Command::App { rune_args, .. }) = &cli.command
         && !rune_args.is_empty()
     {
@@ -386,7 +386,9 @@ fn main() -> Result<()> {
     let log_dir = app_paths::init_process_logging(&SHUTDOWN)?;
 
     let event_path = log_dir.join("live.ndjson");
-    let bundled_service = executable_name.as_deref() == Some(std::ffi::OsStr::new("hex-service"));
+    let bundled_service = executable_name
+        .as_deref()
+        .is_some_and(|name| name == "superhex-service" || name == "hex-service");
     let command = cli.command.unwrap_or({
         if bundled_watcher {
             Command::App {
@@ -610,7 +612,7 @@ fn open_app(event_path: PathBuf, device: Option<String>, hidden: bool) -> Result
 }
 
 /// A copy installed as `hex-meetings-mcp` only serves meetings: its
-/// arguments are those of `hex mcp`, and it never falls back to listening.
+/// arguments are those of `superhex mcp`, and it never falls back to listening.
 #[cfg(target_os = "macos")]
 fn mcp_alias_arguments(mut arguments: Vec<std::ffi::OsString>) -> Vec<std::ffi::OsString> {
     let alias = arguments
@@ -625,10 +627,10 @@ fn mcp_alias_arguments(mut arguments: Vec<std::ffi::OsString>) -> Vec<std::ffi::
 
 #[cfg(target_os = "macos")]
 fn is_bundled_app_executable(name: Option<&std::ffi::OsStr>) -> bool {
-    name.is_some_and(|name| name == "hex")
+    name.is_some_and(|name| name == "superhex" || name == "hex")
 }
 
-/// Whether this launch runs the app: `hex app` without `--hidden` or Rune's
+/// Whether this launch runs the app: `superhex app` without `--hidden` or Rune's
 /// own (headless) flags, or the bundled executable with no command. A
 /// menu-bar-only or login launch counts too, though it opens no window and
 /// Rune drops the prewarmed GPU: whether the window opens depends on
@@ -842,7 +844,11 @@ mod tests {
 
     #[test]
     fn the_packaged_executable_launches_the_app() {
+        assert!(is_bundled_app_executable(Some("superhex".as_ref())));
         assert!(is_bundled_app_executable(Some("hex".as_ref())));
+        assert!(!is_bundled_app_executable(Some(
+            "superhex-service".as_ref()
+        )));
         assert!(!is_bundled_app_executable(Some("hex-service".as_ref())));
     }
 
@@ -855,12 +861,15 @@ mod tests {
             opens_app(Cli::parse_from(arguments).command.as_ref(), bundled)
         };
         assert!(opens(&["hex"]));
-        assert!(opens(&["/Applications/Hex.app/Contents/MacOS/hex"]));
+        assert!(opens(&[
+            "/Applications/Superhex.app/Contents/MacOS/superhex"
+        ]));
         assert!(opens(&["hex", "app"]));
         assert!(opens(&["hex", "app", "--device", "MacBook Pro Microphone"]));
         assert!(!opens(&["hex", "app", "--", "--snap", "/tmp/a.png"]));
         assert!(!opens(&["hex", "app", "--hidden"]));
         assert!(!opens(&["hex-service"]));
+        assert!(!opens(&["superhex-service"]));
         assert!(!opens(&["hex-meetings-mcp"]));
         for command in [
             &["status"][..],

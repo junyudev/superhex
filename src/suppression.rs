@@ -16,6 +16,7 @@ use crate::audio::CaptureInstant;
 use crate::dictation::{BOTH_SIDES_WINDOW, DOUBLE_TAP_WINDOW, MINIMUM_HOLD_DURATION};
 
 mod hotkey;
+pub(crate) mod mouse;
 pub(crate) mod physical_keys;
 pub(crate) mod secure_input;
 mod tap;
@@ -562,8 +563,8 @@ unsafe extern "C" fn physical_event_callback(
     event
 }
 
-/// Whether a HID key press can reveal a chord Hex would otherwise miss.
-/// Escape ends no dictation, and Hex's own shortcuts act through their session events.
+/// Whether a HID key press can reveal a chord Superhex would otherwise miss.
+/// Escape ends no dictation, and Superhex's own shortcuts act through their session events.
 fn is_chord_evidence(code: u16, flags: u64, hotkeys: RuntimeHotkeys) -> bool {
     // The Globe key's own event is the shortcut itself for the dictation
     // shortcuts that can hold Fn: the main, second, raw, and extra ones. Any
@@ -697,6 +698,9 @@ unsafe extern "C" fn event_callback(
     {
         crate::capture_host::capsule_key(crate::capture_host::CapsuleKey::Press);
     }
+    if mouse::consume_standard(event_type, event) {
+        return ptr::null_mut();
+    }
     if matches!(
         event_type,
         EVENT_LEFT_MOUSE_DRAGGED | EVENT_RIGHT_MOUSE_DRAGGED | EVENT_OTHER_MOUSE_DRAGGED
@@ -801,7 +805,7 @@ unsafe extern "C" fn event_callback(
         context.takes_escape.load(Ordering::Acquire),
     );
     context.activity.observe(input, suppress);
-    // A key Hex consumed (its shortcuts, Escape) was never the app's chord.
+    // A key Superhex consumed (its shortcuts, Escape) was never the app's chord.
     #[cfg(hex_capture)]
     if let Some(key) = capture_key
         && !suppress
@@ -1092,8 +1096,8 @@ impl ShortcutSuppression {
         self.key_presses.clear();
     }
 
-    /// Whether the tap keeps `input` from the app in front: Hex's shortcuts,
-    /// Escape while Hex takes it, and `hotkeys.cancel`, which the caller
+    /// Whether the tap keeps `input` from the app in front: Superhex's shortcuts,
+    /// Escape while Superhex takes it, and `hotkeys.cancel`, which the caller
     /// leaves set only while a toggled recording runs.
     fn process_all(
         &mut self,

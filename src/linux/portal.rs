@@ -1,11 +1,11 @@
 //! The desktop's portals (`org.freedesktop.portal.*`) over a private bus
-//! connection. `PortalBus` registers Hex with the portal and answers
+//! connection. `PortalBus` registers Superhex with the portal and answers
 //! requests; `Portal` is the GlobalShortcuts client and
 //! `linux_remote_desktop` the RemoteDesktop one.
 //!
-//! `Portal` binds all of Hex's shortcuts in one session, once, and reports
+//! `Portal` binds all of Superhex's shortcuts in one session, once, and reports
 //! their presses and releases. Desktops keep one shortcut set per app (KDE
-//! replaces it with each BindShortcuts call), so Hex never binds a second
+//! replaces it with each BindShortcuts call), so Superhex never binds a second
 //! set or changes this one while running. Desktops also keep the trigger
 //! they stored for an id over a later `preferred_trigger` (GNOME, KDE), so
 //! `linux_input` names each shortcut by the trigger it asks for. Dropping a bus closes its
@@ -31,21 +31,21 @@ const DESKTOP_PATH: &str = "/org/freedesktop/portal/desktop";
 const SHORTCUTS: &str = "org.freedesktop.portal.GlobalShortcuts";
 const REQUEST: &str = "org.freedesktop.portal.Request";
 const SESSION: &str = "org.freedesktop.portal.Session";
-/// Hex's Linux app id: the portal names host apps by their desktop entry,
-/// `anomaly.hex.desktop`, and Hex's windows report it as their Wayland
+/// Superhex's Linux app id: the portal names host apps by their desktop entry,
+/// `io.github.junyudev.superhex.desktop`, and Superhex's windows report it as their Wayland
 /// app_id and X11 WM_CLASS. GNOME's shortcuts provider before 51 rejects ids
 /// that are not reverse-DNS (#579), so this matches the macOS bundle
 /// identifier.
-pub(crate) const APP_ID: &str = "anomaly.hex";
+pub(crate) const APP_ID: &str = "io.github.junyudev.superhex";
 /// The app id and entry name before #579.
 const LEGACY_APP_ID: &str = "hex";
 const LEGACY_ENTRY: &str = "hex.desktop";
-const MANAGED_MARK: &str = "X-Hex-Managed=true";
+const MANAGED_MARK: &str = "X-Superhex-Managed=true";
 const CALL_TIMEOUT: Duration = Duration::from_secs(5);
 /// A request can wait for the user to approve a desktop dialog.
 const RESPONSE_TIMEOUT: Duration = Duration::from_secs(60);
 /// BindShortcuts waits as long as the desktop's approval dialog may
-/// reasonably stay open. Giving up closes Hex's session, and KDE then keeps
+/// reasonably stay open. Giving up closes Superhex's session, and KDE then keeps
 /// every shortcut with no key and never asks again (#898).
 const APPROVAL_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 /// How often a pending request checks for cancellation.
@@ -59,7 +59,7 @@ const KGLOBALACCEL: &str = "org.kde.kglobalaccel";
 const KGLOBALACCEL_PATH: &str = "/kglobalaccel";
 const KGLOBALACCEL_INTERFACE: &str = "org.kde.KGlobalAccel";
 
-/// One shortcut Hex asks the desktop for.
+/// One shortcut Superhex asks the desktop for.
 pub(crate) struct Shortcut {
     pub(crate) id: String,
     pub(crate) description: &'static str,
@@ -72,7 +72,7 @@ pub(crate) struct Shortcut {
 pub(crate) enum Event {
     Pressed(String),
     Released(String),
-    /// The user changed Hex's shortcuts in the desktop: the trigger each
+    /// The user changed Superhex's shortcuts in the desktop: the trigger each
     /// one now has, by id, or `None` when it has none.
     Changed(HashMap<String, Option<String>>),
     /// The desktop closed the session.
@@ -166,7 +166,7 @@ pub(crate) fn is_backend_failure(error: &color_eyre::eyre::Report) -> bool {
     error.downcast_ref::<BackendFailure>().is_some()
 }
 
-/// A private session-bus connection registered with the portal as Hex.
+/// A private session-bus connection registered with the portal as Superhex.
 pub(crate) struct PortalBus {
     runtime: tokio::runtime::Runtime,
     connection: Connection,
@@ -179,8 +179,8 @@ pub(crate) struct PortalBus {
     /// The portal interface this bus serves and its version.
     interface: &'static str,
     pub(crate) version: u32,
-    /// The portal knows Hex as `anomaly.hex` (xdg-desktop-portal 1.20 and
-    /// newer register host apps); older ones may not know Hex's app id.
+    /// The portal knows Superhex as `io.github.junyudev.superhex` (xdg-desktop-portal 1.20 and
+    /// newer register host apps); older ones may not know Superhex's app id.
     pub(crate) registered: bool,
 }
 
@@ -261,17 +261,17 @@ impl PortalBus {
             &(APP_ID, HashMap::<&str, Variant<'_>>::new()),
         ) {
             if !unknown(&error) {
-                // The portal finds the app id through anomaly.hex.desktop and the caller's
+                // The portal finds the app id through io.github.junyudev.superhex.desktop and the caller's
                 // /proc entry, which setgid wrappers such as newgrp make unreadable.
                 let fix = match written {
                     Some(entry) => format!(
-                        "Hex wrote {}; restart xdg-desktop-portal (systemctl --user restart xdg-desktop-portal) so it reads it",
+                        "Superhex wrote {}; restart xdg-desktop-portal (systemctl --user restart xdg-desktop-portal) so it reads it",
                         entry.display()
                     ),
-                    None => "run Hex without setuid or setgid wrappers such as newgrp".into(),
+                    None => "run Superhex without setuid or setgid wrappers such as newgrp".into(),
                 };
                 return Err(eyre!(
-                    "the desktop portal could not identify Hex ({error}); {fix}"
+                    "the desktop portal could not identify Superhex ({error}); {fix}"
                 ));
             }
         } else {
@@ -491,7 +491,7 @@ impl Drop for PortalBus {
 /// time, so none sees another's half-done write.
 static ENTRY_WRITES: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-/// Tidies Hex's launcher entry at startup: see [`DesktopEntries::tidy`].
+/// Tidies Superhex's launcher entry at startup: see [`DesktopEntries::tidy`].
 pub(crate) fn tidy_desktop_entries() -> Result<()> {
     let _writing = ENTRY_WRITES
         .lock()
@@ -504,15 +504,15 @@ pub(crate) fn tidy_desktop_entries() -> Result<()> {
 }
 
 /// The portal identifies a host app by a desktop entry named for its id,
-/// `anomaly.hex.desktop`, which installs ship: see [`DesktopEntries::ensure`].
-/// What Hex's launcher entry starts: the same stable path as Launch at
+/// `io.github.junyudev.superhex.desktop`, which installs ship: see [`DesktopEntries::ensure`].
+/// What Superhex's launcher entry starts: the same stable path as Launch at
 /// login, so a version manager's upgrade doesn't strand it (#810).
 fn executable() -> Result<String> {
     let executable = crate::linux::login_item::launcher()?;
     executable
         .to_str()
         .map(str::to_owned)
-        .ok_or_else(|| eyre!("Hex's executable path is not UTF-8"))
+        .ok_or_else(|| eyre!("Superhex's executable path is not UTF-8"))
 }
 
 fn ensure_desktop_entry() -> Result<Option<PathBuf>> {
@@ -537,14 +537,14 @@ pub(crate) fn system_data_dirs() -> Vec<PathBuf> {
         .collect()
 }
 
-/// Hex's launcher entry: the user's `applications` directory, which Hex may
+/// Superhex's launcher entry: the user's `applications` directory, which Superhex may
 /// write, and the system ones from `XDG_DATA_DIRS`, which packages own.
 struct DesktopEntries {
     applications: PathBuf,
     system: Vec<PathBuf>,
 }
 
-/// A desktop entry on disk. Hex reads and replaces only regular files.
+/// A desktop entry on disk. Superhex reads and replaces only regular files.
 enum Entry {
     Missing,
     File(String),
@@ -585,11 +585,11 @@ impl DesktopEntries {
         self.system.iter().any(|dir| dir.join(name).exists())
     }
 
-    /// Moves Hex's own managed `hex.desktop` (the name before #579) to
-    /// `anomaly.hex.desktop`, keeping its Exec lines, unless the user put an
+    /// Moves Superhex's own managed `hex.desktop` (the name before #579) to
+    /// `io.github.junyudev.superhex.desktop`, keeping its Exec lines, unless the user put an
     /// entry of their own there; then removes a hidden fallback that would
-    /// shadow a package's entry of the same id, or names Hex's icon in an
-    /// entry Hex wrote with the generic one (#652). Returns the entry it wrote.
+    /// shadow a package's entry of the same id, or names Superhex's icon in an
+    /// entry Superhex wrote with the generic one (#652). Returns the entry it wrote.
     fn tidy(&self) -> Result<Option<PathBuf>> {
         let entry = self.entry();
         let current = read_entry(&entry)?;
@@ -608,7 +608,7 @@ impl DesktopEntries {
             }
             std::fs::remove_file(&legacy)
                 .wrap_err_with(|| format!("could not remove {}", legacy.display()))?;
-            tracing::info!(entry = %entry.display(), "moved Hex's desktop entry to its app id");
+            tracing::info!(entry = %entry.display(), "moved Superhex's desktop entry to its app id");
             return Ok(replace.then_some(entry));
         }
         if let Entry::File(current) = &current
@@ -618,22 +618,22 @@ impl DesktopEntries {
         {
             std::fs::remove_file(&entry)
                 .wrap_err_with(|| format!("could not remove {}", entry.display()))?;
-            tracing::info!(entry = %entry.display(), "removed Hex's fallback desktop entry");
+            tracing::info!(entry = %entry.display(), "removed Superhex's fallback desktop entry");
         } else if let Entry::File(current) = &current
             && managed(current)
             && with_icon(current) != *current
         {
             write_entry(&self.applications, &entry, &with_icon(current))
                 .wrap_err_with(|| format!("could not write {}", entry.display()))?;
-            tracing::info!(entry = %entry.display(), "named Hex's icon in its desktop entry");
+            tracing::info!(entry = %entry.display(), "named Superhex's icon in its desktop entry");
         }
         Ok(None)
     }
 
-    /// Points Hex's own launcher entry at `executable` when the program it
+    /// Points Superhex's own launcher entry at `executable` when the program it
     /// starts is gone, as after a version manager (mise, asdf) removes the
     /// version that wrote it. An entry whose program is still there is left
-    /// as it is, and so is any entry Hex didn't write.
+    /// as it is, and so is any entry Superhex didn't write.
     fn repoint(&self, executable: &str) -> Result<()> {
         let entry = self.entry();
         let Entry::File(current) = read_entry(&entry)? else {
@@ -647,11 +647,11 @@ impl DesktopEntries {
         {
             return Ok(());
         }
-        // A package now ships Hex's entry: the stranded fallback only hid it.
+        // A package now ships Superhex's entry: the stranded fallback only hid it.
         if !program.is_file() && self.shipped(&format!("{APP_ID}.desktop")) {
             std::fs::remove_file(&entry)
                 .wrap_err_with(|| format!("could not remove {}", entry.display()))?;
-            tracing::info!(entry = %entry.display(), "removed Hex's stranded desktop entry");
+            tracing::info!(entry = %entry.display(), "removed Superhex's stranded desktop entry");
             return Ok(());
         }
         let repointed = desktop_entry(executable, no_display(&current));
@@ -660,14 +660,14 @@ impl DesktopEntries {
         }
         write_entry(&self.applications, &entry, &repointed)
             .wrap_err_with(|| format!("could not write {}", entry.display()))?;
-        tracing::info!(entry = %entry.display(), "pointed Hex's desktop entry at this Hex");
+        tracing::info!(entry = %entry.display(), "pointed Superhex's desktop entry at this Superhex");
         Ok(())
     }
 
     /// After [`Self::tidy`], with no entry anywhere, writes a minimal one
     /// that runs `executable`, marked managed so an install may replace it,
     /// and hidden from launchers when an older package's or the user's own
-    /// `hex.desktop` already shows Hex. Returns the entry it wrote.
+    /// `hex.desktop` already shows Superhex. Returns the entry it wrote.
     fn ensure(&self, executable: &str) -> Result<Option<PathBuf>> {
         let moved = self.tidy()?;
         self.repoint(executable)?;
@@ -725,7 +725,7 @@ fn write_entry(applications: &Path, entry: &Path, contents: &str) -> Result<()> 
     Ok(())
 }
 
-/// `entry` with every `Icon=` naming Hex's icon (`anomaly.hex` in hicolor).
+/// `entry` with every `Icon=` naming Superhex's icon (`io.github.junyudev.superhex` in hicolor).
 pub(crate) fn with_icon(entry: &str) -> String {
     let mut named = String::with_capacity(entry.len());
     for line in entry.lines() {
@@ -740,7 +740,7 @@ pub(crate) fn with_icon(entry: &str) -> String {
 }
 
 /// An old managed entry under the new name, keeping its Exec lines, naming
-/// Hex's windows for X11 launchers, and showing Hex's icon.
+/// Superhex's windows for X11 launchers, and showing Superhex's icon.
 fn moved_entry(old: &str) -> String {
     let mut entry = String::with_capacity(old.len() + 32);
     for line in old
@@ -759,7 +759,7 @@ fn moved_entry(old: &str) -> String {
 /// `NoDisplay`, not `Hidden`: the portal refuses an app whose entry is Hidden.
 fn desktop_entry(executable: &str, hidden: bool) -> String {
     format!(
-        "[Desktop Entry]\nType=Application\nName=Hex\nComment=Local voice dictation\nExec={}\nIcon={APP_ID}\nTerminal=false\nCategories=Utility;Accessibility;\nStartupWMClass={APP_ID}\n{}{MANAGED_MARK}\n",
+        "[Desktop Entry]\nType=Application\nName=Superhex\nComment=Local voice dictation\nExec={}\nIcon={APP_ID}\nTerminal=false\nCategories=Utility;Accessibility;\nStartupWMClass={APP_ID}\n{}{MANAGED_MARK}\n",
         exec_argument(executable),
         if hidden { "NoDisplay=true\n" } else { "" }
     )
@@ -796,13 +796,13 @@ impl Portal {
         Ok(PortalBus::open(SHORTCUTS, stop)?.map(|bus| Self { bus, session: None }))
     }
 
-    /// Whether the desktop can show its dialog for Hex's shortcuts
+    /// Whether the desktop can show its dialog for Superhex's shortcuts
     /// (`ConfigureShortcuts`, version 2).
     pub(crate) fn configurable(&self) -> bool {
         self.bus.version >= 2
     }
 
-    /// Opens the desktop's dialog for Hex's shortcuts; changes arrive as
+    /// Opens the desktop's dialog for Superhex's shortcuts; changes arrive as
     /// `Event::Changed`.
     pub(crate) fn configure(&self) -> Result<()> {
         let session = self
@@ -815,7 +815,7 @@ impl Portal {
         )
     }
 
-    /// Binds Hex's shortcuts and returns the trigger the desktop describes
+    /// Binds Superhex's shortcuts and returns the trigger the desktop describes
     /// for each one it bound, by id.
     pub(crate) fn bind(
         &mut self,
@@ -842,11 +842,11 @@ impl Portal {
         bound
     }
 
-    /// Clears the shortcuts GNOME keeps listed for Hex once its session
+    /// Clears the shortcuts GNOME keeps listed for Superhex once its session
     /// closes (#575). GNOME Settings stores exactly the set an app binds and
     /// asks for approval only for shortcuts it has not stored, so binding none
     /// in a fresh session empties the list without a dialog; binding them again
-    /// asks again. Only on GNOME: KDE would drop keys the person chose for Hex's
+    /// asks again. Only on GNOME: KDE would drop keys the person chose for Superhex's
     /// shortcuts (#482).
     pub(crate) fn forget(mut self) -> Result<()> {
         if !gnome() {
@@ -858,20 +858,20 @@ impl Portal {
         let stop = AtomicBool::new(false);
         let session = self.bus.create_session(&stop)?;
         self.bind_session(session, &[], &stop)?;
-        tracing::info!("cleared Hex's shortcuts from GNOME Settings");
+        tracing::info!("cleared Superhex's shortcuts from GNOME Settings");
         Ok(())
     }
 
-    /// Before #579 Hex registered with the portal as `hex`, and before #492
+    /// Before #579 Superhex registered with the portal as `hex`, and before #492
     /// its Cancel dictation id `cancel` asked for Escape. KDE keeps every
-    /// shortcut a portal app bound under that app's id, so an upgraded Hex
+    /// shortcut a portal app bound under that app's id, so an upgraded Superhex
     /// left `hex`'s set (Cancel dictation on Escape among it) grabbed with
     /// nothing able to rebind it, taking Escape from every app (#624).
     /// Removes that set, the [`STALE_KDE_ACTIONS`], and every other action
     /// under the current id that `keep` (the ids about to be bound) doesn't
-    /// name from KDE's global shortcuts. A shortcut changed in Hex gets a new
+    /// name from KDE's global shortcuts. A shortcut changed in Superhex gets a new
     /// id, and KDE keeps the old one holding its key, so the new id could
-    /// never take that key back (#898). Only on KDE, only Hex's entries.
+    /// never take that key back (#898). Only on KDE, only Superhex's entries.
     pub(crate) fn forget_legacy_kde_shortcuts(&self, keep: &[&str]) -> Result<()> {
         if !desktop_is("KDE") {
             return Ok(());
@@ -885,7 +885,7 @@ impl Portal {
                     "allActionsForComponent",
                     &(vec![component],),
                 )
-                .wrap_err("could not list Hex's old KDE shortcuts")
+                .wrap_err("could not list Superhex's old KDE shortcuts")
         };
         let legacy = list(LEGACY_APP_ID)?;
         let current = list(APP_ID)?;
@@ -899,9 +899,15 @@ impl Portal {
                     "unregister",
                     &(component, action),
                 )
-                .wrap_err_with(|| format!("could not remove Hex's old KDE shortcut {action}"))?;
+                .wrap_err_with(|| {
+                    format!("could not remove Superhex's old KDE shortcut {action}")
+                })?;
             if removed {
-                tracing::info!(component, action, "removed an old Hex shortcut from KDE");
+                tracing::info!(
+                    component,
+                    action,
+                    "removed an old Superhex shortcut from KDE"
+                );
             }
         }
         // Shortcuts a bind left unapproved, which KDE keeps with no key: gone,
@@ -922,7 +928,7 @@ impl Portal {
                     "shortcutKeys",
                     &(vec![APP_ID, action.as_str()],),
                 )
-                .wrap_err_with(|| format!("could not read Hex's KDE shortcut {action}"))?;
+                .wrap_err_with(|| format!("could not read Superhex's KDE shortcut {action}"))?;
             if keys.iter().any(|(keys,)| keys.iter().any(|key| *key != 0)) {
                 continue;
             }
@@ -935,11 +941,11 @@ impl Portal {
                     "unregister",
                     &(APP_ID, action.as_str()),
                 )
-                .wrap_err_with(|| format!("could not remove Hex's KDE shortcut {action}"))?;
+                .wrap_err_with(|| format!("could not remove Superhex's KDE shortcut {action}"))?;
             if removed {
                 tracing::info!(
                     action,
-                    "removed a Hex shortcut KDE kept without a key after its dialog went unanswered; KDE asks again"
+                    "removed a Superhex shortcut KDE kept without a key after its dialog went unanswered; KDE asks again"
                 );
             }
         }
@@ -1003,7 +1009,7 @@ impl Portal {
 }
 
 /// The shortcut ids of a KDE bind whose approval dialog was dismissed,
-/// canceled, or abandoned (Hex stopped while it was open), kept in
+/// canceled, or abandoned (Superhex stopped while it was open), kept in
 /// Application Support until the next bind on KDE (#898).
 mod kde_unapproved {
     use std::path::PathBuf;
@@ -1021,7 +1027,7 @@ mod kde_unapproved {
             .map(|shortcut| format!("{}\n", shortcut.id))
             .collect::<String>();
         if let Err(error) = std::fs::write(&path, ids) {
-            tracing::warn!(%error, "could not note Hex's unapproved KDE shortcuts");
+            tracing::warn!(%error, "could not note Superhex's unapproved KDE shortcuts");
         }
     }
 
@@ -1040,7 +1046,7 @@ mod kde_unapproved {
 }
 
 /// The KDE actions to remove before binding: every action of the pre-#579
-/// `hex` component, then every action under `anomaly.hex` that `keep` doesn't
+/// `hex` component, then every action under `io.github.junyudev.superhex` that `keep` doesn't
 /// name, the [`STALE_KDE_ACTIONS`] included. Each action is kglobalaccel's
 /// `[component, action, …]` id.
 fn superseded_kde_actions<'a>(
@@ -1070,7 +1076,7 @@ fn superseded_kde_actions<'a>(
 pub(crate) const MISSING_SHORTCUTS_PORTAL: &str = "no GlobalShortcuts portal; dictation follows the hex commands, \
 which reach the service listener (`hex start`) but not a foreground `hex dictate`. \
 If this desktop has one, xdg-desktop-portal may have started before the desktop session and picked the wrong \
-backend: restart it (systemctl --user restart xdg-desktop-portal) and Hex binds its shortcuts at its next check";
+backend: restart it (systemctl --user restart xdg-desktop-portal) and Superhex binds its shortcuts at its next check";
 
 /// Looks for the shortcuts portal again from time to time, after 15 s and
 /// then doubling up to every 2 minutes. A portal started before the
@@ -1108,7 +1114,9 @@ impl PortalProbe {
         {
             match self.running.take().map(std::thread::JoinHandle::join) {
                 Some(Ok(Ok(Some(portal)))) => {
-                    tracing::info!("the GlobalShortcuts portal appeared; binding Hex's shortcuts");
+                    tracing::info!(
+                        "the GlobalShortcuts portal appeared; binding Superhex's shortcuts"
+                    );
                     return Ok(Some(portal));
                 }
                 Some(Ok(Err(error))) if !self.warned => {
@@ -1137,9 +1145,9 @@ impl PortalProbe {
 
 const GNOME_SHORTCUTS: &str = "org.gnome.settings-daemon.global-shortcuts";
 
-/// Before #579 Hex registered with the portal as `hex`. GNOME Settings keeps
-/// that set listed beside `anomaly.hex`, and nothing can bind or clear it
-/// through the portal again (GNOME 49 and later refuse the id), so Hex removes
+/// Before #579 Superhex registered with the portal as `hex`. GNOME Settings keeps
+/// that set listed beside `io.github.junyudev.superhex`, and nothing can bind or clear it
+/// through the portal again (GNOME 49 and later refuse the id), so Superhex removes
 /// it from GNOME's own settings once (#575). Only on GNOME, only that entry.
 pub(crate) fn forget_legacy_gnome_shortcuts() -> Result<()> {
     use crate::linux::gsettings::{gsettings, string_list, string_list_text};
@@ -1172,7 +1180,7 @@ pub(crate) fn forget_legacy_gnome_shortcuts() -> Result<()> {
         "applications",
         &string_list_text(&kept),
     ])?;
-    tracing::info!("removed Hex's pre-#579 shortcuts from GNOME Settings");
+    tracing::info!("removed Superhex's pre-#579 shortcuts from GNOME Settings");
     Ok(())
 }
 
@@ -1183,7 +1191,7 @@ pub(crate) fn gnome() -> bool {
 
 /// Whether the desktop keeps Alt+Space for itself: GNOME's window menu
 /// (#723) and KDE Plasma's KRunner (#898), which the KDE portal's approval
-/// dialog flags as a conflict and then leaves Hex without.
+/// dialog flags as a conflict and then leaves Superhex without.
 pub(crate) fn desktop_takes_alt_space() -> bool {
     gnome() || desktop_is("KDE")
 }
@@ -1191,7 +1199,7 @@ pub(crate) fn desktop_takes_alt_space() -> bool {
 /// Whether the desktop assigns portal shortcuts their keys in its own
 /// configuration and describes no trigger in the portal's answer. Hyprland's
 /// portal returns an empty description for every shortcut, bound or not
-/// (`bind = …, global, anomaly.hex:…` in its config), so an empty one there
+/// (`bind = …, global, io.github.junyudev.superhex:…` in its config), so an empty one there
 /// is no refusal.
 pub(crate) fn desktop_assigns_triggers() -> bool {
     desktop_is("Hyprland")
@@ -1241,7 +1249,7 @@ mod tests {
     use super::*;
 
     /// A session the desktop already ended answers Close with UnknownMethod
-    /// or UnknownObject (GNOME 46, #739); Hex counts it as closed.
+    /// or UnknownObject (GNOME 46, #739); Superhex counts it as closed.
     #[test]
     fn a_vanished_session_counts_as_closed() {
         let gone = |error: zbus::fdo::Error| unknown(&zbus::Error::FDO(Box::new(error)));
@@ -1253,7 +1261,7 @@ mod tests {
     }
 
     /// A bind the backend failed falls back to the `hex` commands; one the
-    /// person dismissed or Hex canceled stays a refusal (#1014).
+    /// person dismissed or Superhex canceled stays a refusal (#1014).
     #[test]
     fn only_backend_failures_count_as_a_missing_portal() {
         let failed = color_eyre::eyre::Report::new(BackendFailure(
@@ -1279,15 +1287,18 @@ mod tests {
         assert!(desktop_entry("/opt/hex", false).contains("\nExec=\"/opt/hex\"\n"));
         assert!(!desktop_entry("/opt/hex", false).contains("NoDisplay"));
         assert!(desktop_entry("/opt/hex", true).contains("\nNoDisplay=true\n"));
-        assert!(desktop_entry("/opt/hex", false).contains("\nStartupWMClass=anomaly.hex\n"));
+        assert!(
+            desktop_entry("/opt/hex", false)
+                .contains("\nStartupWMClass=io.github.junyudev.superhex\n")
+        );
     }
 
     #[test]
     fn a_moved_entry_keeps_its_commands_and_names_the_window_class() {
-        let old = "[Desktop Entry]\nName=Hex\nExec=\"/home/a/.local/bin/hex\"\nStartupWMClass=hex\nX-Hex-Managed=true\n\n[Desktop Action quit]\nExec=\"/home/a/.local/bin/hex\" quit\n";
+        let old = "[Desktop Entry]\nName=Superhex\nExec=\"/home/a/.local/bin/hex\"\nStartupWMClass=hex\nX-Superhex-Managed=true\n\n[Desktop Action quit]\nExec=\"/home/a/.local/bin/hex\" quit\n";
         assert_eq!(
             moved_entry(old),
-            "[Desktop Entry]\nStartupWMClass=anomaly.hex\nName=Hex\nExec=\"/home/a/.local/bin/hex\"\nX-Hex-Managed=true\n\n[Desktop Action quit]\nExec=\"/home/a/.local/bin/hex\" quit\n"
+            "[Desktop Entry]\nStartupWMClass=io.github.junyudev.superhex\nName=Superhex\nExec=\"/home/a/.local/bin/hex\"\nX-Superhex-Managed=true\n\n[Desktop Action quit]\nExec=\"/home/a/.local/bin/hex\" quit\n"
         );
     }
 
@@ -1305,21 +1316,23 @@ mod tests {
         (root, entries)
     }
 
-    const OLD: &str =
-        "[Desktop Entry]\nName=Hex\nExec=\"/home/a/.local/bin/hex\"\nX-Hex-Managed=true\n";
+    const OLD: &str = "[Desktop Entry]\nName=Superhex\nExec=\"/home/a/.local/bin/hex\"\nX-Superhex-Managed=true\n";
 
     #[test]
     fn entries_hex_wrote_name_its_icon() {
         let (root, entries) = entries("icon");
         std::fs::write(
             entries.entry(),
-            "[Desktop Entry]\nIcon=audio-input-microphone\nX-Hex-Managed=true\n",
+            "[Desktop Entry]\nIcon=audio-input-microphone\nX-Superhex-Managed=true\n",
         )
         .unwrap();
         entries.tidy().unwrap();
         let named = std::fs::read_to_string(entries.entry()).unwrap();
-        assert!(named.contains("\nIcon=anomaly.hex\n"), "{named}");
-        assert!(desktop_entry("/opt/hex", false).contains("\nIcon=anomaly.hex\n"));
+        assert!(
+            named.contains("\nIcon=io.github.junyudev.superhex\n"),
+            "{named}"
+        );
+        assert!(desktop_entry("/opt/hex", false).contains("\nIcon=io.github.junyudev.superhex\n"));
         // Someone else's entry keeps its icon.
         std::fs::write(entries.entry(), "[Desktop Entry]\nIcon=mine\n").unwrap();
         entries.tidy().unwrap();
@@ -1339,7 +1352,7 @@ mod tests {
         assert!(!entries.applications.join("hex.desktop").exists());
         let moved = std::fs::read_to_string(entries.entry()).unwrap();
         assert!(moved.contains("Exec=\"/home/a/.local/bin/hex\"\n"));
-        assert!(moved.contains("StartupWMClass=anomaly.hex\n"));
+        assert!(moved.contains("StartupWMClass=io.github.junyudev.superhex\n"));
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -1352,7 +1365,7 @@ mod tests {
         entries.ensure("/opt/hex").unwrap();
         assert!(user.exists());
         assert!(entries.entry().is_symlink());
-        // A symlinked old entry is the user's too, even with Hex's mark.
+        // A symlinked old entry is the user's too, even with Superhex's mark.
         std::fs::remove_file(entries.entry()).unwrap();
         let target = root.join("managed.desktop");
         std::fs::write(&target, OLD).unwrap();
@@ -1363,7 +1376,7 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
     }
 
-    /// Hex's own entry whose program is gone points at this Hex; one whose
+    /// Superhex's own entry whose program is gone points at this Superhex; one whose
     /// program is there, or the user's, stays (#810).
     #[test]
     fn a_stranded_fallback_follows_hex() {
@@ -1392,9 +1405,9 @@ mod tests {
             std::fs::read_to_string(entries.entry()).unwrap(),
             desktop_entry(program, false)
         );
-        // A package ships Hex's entry now: the stranded fallback goes.
+        // A package ships Superhex's entry now: the stranded fallback goes.
         std::fs::write(
-            entries.system[0].join("anomaly.hex.desktop"),
+            entries.system[0].join("io.github.junyudev.superhex.desktop"),
             "[Desktop Entry]\n",
         )
         .unwrap();
@@ -1431,7 +1444,7 @@ mod tests {
         std::fs::remove_dir_all(root).unwrap();
         let (root, provided) = entries("provided");
         std::fs::write(
-            provided.system[0].join("anomaly.hex.desktop"),
+            provided.system[0].join("io.github.junyudev.superhex.desktop"),
             "[Desktop Entry]\n",
         )
         .unwrap();
@@ -1459,7 +1472,7 @@ mod tests {
         assert_eq!(entries.ensure("/opt/hex").unwrap(), None);
         assert!(entries.entry().exists());
         std::fs::write(
-            entries.system[0].join("anomaly.hex.desktop"),
+            entries.system[0].join("io.github.junyudev.superhex.desktop"),
             "[Desktop Entry]\n",
         )
         .unwrap();
@@ -1498,14 +1511,14 @@ mod tests {
         std::thread::sleep(Duration::from_millis(20));
         signals
             .send(Signal::Session(
-                "hex-session".into(),
+                "superhex-session".into(),
                 Event::Pressed("dictation".into()),
             ))
             .unwrap();
         let (events, disconnected, waited) = waiter.join().unwrap();
         assert!(!disconnected);
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].0, "hex-session");
+        assert_eq!(events[0].0, "superhex-session");
         assert_eq!(events[0].1, Event::Pressed("dictation".into()));
         assert!(waited < Duration::from_secs(1));
     }
@@ -1523,7 +1536,7 @@ mod tests {
         assert!(disconnected);
     }
 
-    /// A shortcut changed in Hex gets a new id; on KDE the old id keeps its
+    /// A shortcut changed in Superhex gets a new id; on KDE the old id keeps its
     /// key until removed, so the new one could never take it (#898).
     #[test]
     fn kde_actions_hex_no_longer_binds_are_removed() {
@@ -1531,7 +1544,7 @@ mod tests {
             vec![
                 component.to_string(),
                 action.to_string(),
-                "Hex".to_string(),
+                "Superhex".to_string(),
                 action.to_string(),
             ]
         };

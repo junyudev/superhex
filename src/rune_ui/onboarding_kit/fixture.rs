@@ -95,7 +95,7 @@ impl Take {
 }
 
 /// Confident 1.5 s spoken answer when the investors are in the room: what
-/// `"Without Hex"` choked on, then the rest of the thought.
+/// `"Without Superhex"` choked on, then the rest of the thought.
 pub(crate) const ANSWER_JAY: Take = Take {
     updates: &[
         (0.16, "Yes,"),

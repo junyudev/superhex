@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-/// Pluggable logging and metric sink for hosts (such as Hex routing to `tracing`).
+/// Pluggable logging and metric sink for hosts (such as Superhex routing to `tracing`).
 ///
 /// Both methods must be non-blocking. [`Sink::metric`] is only called on one-shot capture
 /// lifecycle milestones (`sck_ready_ms`, `audio_ready_ms`, `bundle_ready_ms`), never on

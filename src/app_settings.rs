@@ -23,6 +23,7 @@ mod hotkeys;
 mod labs;
 mod meeting_folder;
 mod meetings;
+mod native_mouse;
 mod persistence;
 mod screenshots;
 #[cfg(target_os = "linux")]
@@ -40,6 +41,9 @@ pub use hotkeys::*;
 pub use labs::*;
 pub use meeting_folder::default_meeting_output_folder;
 pub use meetings::*;
+pub use native_mouse::NativeMouseButton;
+#[cfg(target_os = "macos")]
+pub use native_mouse::native_mouse_bindings;
 #[cfg_attr(not(target_os = "macos"), allow(unused_imports))]
 pub use screenshots::{
     ScreenshotSettings, screenshot_hotkey, screenshot_record_hotkey, screenshot_settings,
@@ -124,8 +128,8 @@ impl Default for ExperimentalSettings {
     }
 }
 
-/// Whether the Voice Filter runs: the listener streams the Hex Microphone
-/// and Hex watches its driver. Its Labs toggle (`experimental.hex_microphone`,
+/// Whether the Voice Filter runs: the listener streams the Superhex Microphone
+/// and Superhex watches its driver. Its Labs toggle (`experimental.hex_microphone`,
 /// or `HEX_EXPERIMENTAL_MIC`) or an installed driver turns it on, so a driver
 /// apps already use keeps receiving audio.
 pub fn voice_filter_enabled(setting: bool, driver_installed: bool) -> bool {
@@ -267,6 +271,11 @@ pub struct AppSettings {
     pub double_tap_lock: bool,
     pub double_tap_only: bool,
     pub shortcut_mode: crate::dictation::ShortcutMode,
+    /// Who turns dictation into text: VoiceBuddy by default on macOS, or the
+    /// model in `transcription`, which meetings and captures always use.
+    pub dictation_backend: crate::dictation::backend::DictationBackend,
+    #[serde(alias = "mouse_voice")]
+    pub voice_buddy: crate::dictation::backend::VoiceBuddyPreferences,
     pub dictation_hotkey: HotkeyBinding,
     /// Retired Voice Action shortcut, kept untouched in `settings.json`.
     #[serde(
@@ -277,7 +286,7 @@ pub struct AppSettings {
     )]
     pub retired_edit_hotkey: Option<serde_json::Value>,
     pub paste_last_hotkey: Option<HotkeyBinding>,
-    /// Toggle mode's cancel shortcut: discards the recording. Hex takes it
+    /// Toggle mode's cancel shortcut: discards the recording. Superhex takes it
     /// only while a toggled recording runs; Hold mode has no cancel.
     pub cancel_hotkey: HotkeyBinding,
     /// Dictate without processing: records like the dictation shortcut and
@@ -330,21 +339,17 @@ pub struct AppSettings {
     pub labs: LabsSettings,
     /// Labs › Screenshots' shortcut and folder (macOS).
     pub screenshots: ScreenshotSettings,
-    /// Start listening when Hex opens (Windows and Linux, where the
+    /// Start listening when Superhex opens (Windows and Linux, where the
     /// listener can be off).
     pub enable_on_launch: bool,
     /// Paste with Ctrl-Shift-V for terminals (Linux and Windows).
     pub paste_with_shift: bool,
-    /// Hex keeps its own GNOME custom keyboard shortcuts, on GNOME without a
+    /// Superhex keeps its own GNOME custom keyboard shortcuts, on GNOME without a
     /// shortcuts portal (Linux, #781).
     pub gnome_keyboard_shortcuts: bool,
     /// Let other apps see the dictation shortcut's key presses too
     /// (Windows), so a push-to-talk key can drive both.
     pub share_dictation_shortcut: bool,
-    /// A mouse-button shortcut went back to its default because Labs ›
-    /// Mouse shortcuts is off; the window says so once, then clears it.
-    #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub mouse_shortcut_notice: bool,
     /// The interface language code; `None` follows the system language.
     pub ui_language: Option<String>,
     pub indicator_position: IndicatorPosition,
@@ -372,7 +377,7 @@ const STREAMING_ENGLISH_MIGRATION: &str = "streaming-english-model";
 /// Annotate became a default feature: on for everyone once.
 #[cfg(hex_capture)]
 const ANNOTATE_DEFAULT_MIGRATION: &str = "annotate-on-by-default";
-/// Settings saved by an `anomaly.hex` build. Up to 2.3.1 Hex was
+/// Settings saved by an `io.github.junyudev.superhex` build. Up to 2.3.1 Superhex was
 /// `com.kitlangton.hex2` and used the same folder, so a file without this
 /// ID may carry onboarding finished under grants macOS no longer gives the
 /// new identity; the macOS launch checks setup once
@@ -433,6 +438,8 @@ impl Default for AppSettings {
             double_tap_lock: DEFAULT_DOUBLE_TAP_LOCK,
             double_tap_only: false,
             shortcut_mode: crate::dictation::ShortcutMode::Hold,
+            dictation_backend: Default::default(),
+            voice_buddy: Default::default(),
             dictation_hotkey: HotkeyBinding::default(),
             retired_edit_hotkey: None,
             paste_last_hotkey: Some(HotkeyBinding::paste_last_default()),
@@ -462,7 +469,6 @@ impl Default for AppSettings {
             paste_with_shift: false,
             gnome_keyboard_shortcuts: false,
             share_dictation_shortcut: false,
-            mouse_shortcut_notice: false,
             ui_language: None,
             indicator_position: IndicatorPosition::default(),
             updates: UpdateSettings::default(),
@@ -565,6 +571,10 @@ impl AppSettings {
         crate::transcription::models::validate(&selection)?;
         let mut candidate = self.clone();
         candidate.remember_transcription(selection);
+        #[cfg(target_os = "macos")]
+        {
+            candidate.dictation_backend = crate::dictation::backend::DictationBackend::Local;
+        }
         self.commit_with(candidate, save)
     }
 
@@ -622,7 +632,7 @@ impl AppSettings {
     /// Reads Scrawl's settings into `capture`, never writing Scrawl's
     /// files: `engine` is `~/.config/scrawl/config.json` (transcriber,
     /// captures folder, retention) and `app` is the app's shortcut file.
-    /// Missing or unreadable values keep Hex's defaults.
+    /// Missing or unreadable values keep Superhex's defaults.
     #[cfg(hex_capture)]
     fn import_scrawl_settings(&mut self, engine: Option<&[u8]>, app: Option<&[u8]>) {
         if let Some(config) = engine.and_then(|bytes| {
@@ -784,6 +794,8 @@ impl AppSettings {
         );
         crate::labs::apply(&self.labs);
         screenshots::apply_screenshots(self);
+        #[cfg(target_os = "macos")]
+        crate::dictation::voice_buddy::configure(self);
         #[cfg(hex_capture)]
         {
             *CAPTURE_SETTINGS
@@ -839,6 +851,8 @@ impl AppSettings {
             runtime: self.runtime_hotkeys(),
             settings: Some(Arc::new(self.clone())),
         };
+        #[cfg(target_os = "macos")]
+        native_mouse::apply(self);
         // An import that can't run stays saved; the listener runs the
         // default model until it is fixed.
         set_transcription_selection(&crate::transcription::custom_models::runnable(
@@ -949,7 +963,7 @@ impl AppSettings {
         self.migrations.iter().any(|applied| applied == id)
     }
 
-    /// Whether these settings come from before the `anomaly.hex` identity.
+    /// Whether these settings come from before the `io.github.junyudev.superhex` identity.
     #[cfg(target_os = "macos")]
     pub(crate) fn predates_anomaly_identity(&self) -> bool {
         !self.has_migration(ANOMALY_IDENTITY_MIGRATION)
@@ -1056,7 +1070,7 @@ impl AppSettings {
     /// Labs › Second dictation shortcut's binding while it takes effect:
     /// its toggle on, bound, sharing no key with another active shortcut,
     /// and, on Linux and Windows, naming a key (both register a key). On
-    /// macOS a shortcut without a key can still run. Otherwise Hex matches,
+    /// macOS a shortcut without a key can still run. Otherwise Superhex matches,
     /// suppresses, registers, and checks nothing for it.
     pub fn active_second_dictation_hotkey(&self) -> Option<&HotkeyBinding> {
         if !self.labs.second_dictation_shortcut {
@@ -1191,7 +1205,7 @@ impl AppSettings {
     }
 }
 
-/// A shortcut Settings and `hex settings` record.
+/// A shortcut Settings and `superhex settings` record.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HotkeySlot {
     Dictation,
@@ -1402,7 +1416,7 @@ pub fn shortcuts_suspended() -> bool {
 }
 
 /// The Dock policy while no Settings window is open. An open window always
-/// shows the icon: hiding it deactivates Hex asynchronously, which would drop
+/// shows the icon: hiding it deactivates Superhex asynchronously, which would drop
 /// that window behind other applications.
 pub fn dock_icon_visible(show_dock_icon: bool, status_item_available: bool) -> bool {
     show_dock_icon || !status_item_available
@@ -1436,7 +1450,7 @@ pub fn set_dock_icon_visible(visible: bool) -> bool {
 #[cfg(target_os = "macos")]
 pub fn hide_application() {
     let Some(marker) = MainThreadMarker::new() else {
-        tracing::warn!("cannot hide Hex outside the main thread");
+        tracing::warn!("cannot hide Superhex outside the main thread");
         return;
     };
     NSApplication::sharedApplication(marker).hide(None);
@@ -1681,9 +1695,9 @@ mod tests {
             ..AppSettings::default()
         })
         .unwrap();
-        file["transcription"]["recognition_hints"] = "Hex, rune\nKaffar".into();
+        file["transcription"]["recognition_hints"] = "Superhex, rune\nKaffar".into();
         file["transcription_recents"] = serde_json::json!([
-            {"model": "parakeet_v3", "language": "de", "recognition_hints": "Old; Hex"},
+            {"model": "parakeet_v3", "language": "de", "recognition_hints": "Old; Superhex"},
             {"model": "qwen3_asr06_b", "language": "en", "recognition_hints": "Rodolfo"},
         ]);
         fs::write(&dir.path, serde_json::to_vec(&file).unwrap()).unwrap();
@@ -1693,7 +1707,7 @@ mod tests {
             .iter()
             .map(|entry| entry.term.as_str())
             .collect();
-        assert_eq!(terms, ["Rune", "Hex", "Kaffar", "Rodolfo", "Old"]);
+        assert_eq!(terms, ["Rune", "Superhex", "Kaffar", "Rodolfo", "Old"]);
         assert_eq!(loaded.vocabulary[0].sounds_like, ["rune's"]);
         assert_eq!(loaded.sound_effect_volume, 0.25);
         let written = fs::read_to_string(&dir.path).unwrap();
@@ -1770,6 +1784,7 @@ mod tests {
         let key = |label: &str| HotkeyKey {
             code: u16::from(label.as_bytes()[0]),
             label: label.to_uppercase(),
+            native_mouse: None,
         };
         let record = HotkeyBinding {
             modifiers: HotkeyModifiers {
@@ -1849,6 +1864,7 @@ mod tests {
             key: Some(HotkeyKey {
                 code: 7,
                 label: "E".into(),
+                native_mouse: None,
             }),
         };
 
@@ -1873,31 +1889,6 @@ mod tests {
         // Any other chord stays saved.
         let (_, loaded) = load(replay.clone(), None);
         assert_eq!(loaded.screenshots.record_hotkey, Some(replay));
-
-        // macOS puts Annotate's mouse-button shortcut back on its default
-        // with Labs › Mouse shortcuts off, so a record shortcut saved on that
-        // default is cleared after the reset, not before it.
-        #[cfg(target_os = "macos")]
-        {
-            let mut settings = AppSettings::default();
-            settings.labs.mouse_shortcuts = false;
-            settings.capture.hotkey = HotkeyBinding {
-                modifiers: HotkeyModifiers::default(),
-                key: HotkeyKey::mouse(3),
-            };
-            settings.screenshots.record_hotkey = Some(HotkeyBinding::capture_default());
-            fs::write(&dir.path, serde_json::to_vec(&settings).unwrap()).unwrap();
-            assert!(
-                !settings.hotkey_in_use(
-                    HotkeySlot::ScreenshotRecord,
-                    &HotkeyBinding::capture_default()
-                ),
-                "the reset, not the saved shortcut, makes the two share a key"
-            );
-            let loaded = AppSettings::load_from(&dir.path).unwrap();
-            assert_eq!(loaded.capture.hotkey, HotkeyBinding::capture_default());
-            assert_eq!(loaded.screenshots.record_hotkey, None);
-        }
     }
 
     /// Labs › Transform typed text: its binding takes effect only on Linux
@@ -2054,12 +2045,10 @@ mod tests {
         let loaded = AppSettings::load_from(&dir.path).unwrap();
         assert_eq!(loaded.dictation_hotkey, HotkeyBinding::default());
 
-        let mut settings = AppSettings {
+        let settings = AppSettings {
             dictation_hotkey: back_button.clone(),
             ..AppSettings::default()
         };
-        // macOS keeps a mouse shortcut only with Labs › Mouse shortcuts on.
-        settings.labs.mouse_shortcuts = true;
         fs::write(&dir.path, serde_json::to_vec(&settings).unwrap()).unwrap();
         let loaded = AppSettings::load_from(&dir.path).unwrap();
         assert_eq!(loaded.dictation_hotkey, back_button);
@@ -2076,23 +2065,37 @@ mod tests {
     }
 
     #[test]
-    fn mouse_shortcuts_go_back_to_their_default_while_their_labs_toggle_is_off() {
-        let mouse = HotkeyBinding {
-            modifiers: HotkeyModifiers::default(),
-            key: HotkeyKey::mouse(3),
+    fn graduated_mouse_shortcuts_survive_old_labs_settings() {
+        let dir = TestSettingsDir::new("graduated-mouse-shortcut");
+        let native = NativeMouseButton {
+            vendor: 6421,
+            product: 44572,
+            usage: 5,
         };
-        let mut settings = AppSettings {
-            dictation_hotkey: mouse.clone(),
-            ..Default::default()
-        };
-        settings.labs.mouse_shortcuts = true;
-        settings.repair_mouse_shortcuts();
-        assert_eq!(settings.dictation_hotkey, mouse);
-        assert!(!settings.mouse_shortcut_notice);
-        settings.labs.mouse_shortcuts = false;
-        settings.repair_mouse_shortcuts();
-        assert_eq!(settings.dictation_hotkey, HotkeyBinding::default());
-        assert!(settings.mouse_shortcut_notice);
+        for (on, key) in [false, true]
+            .into_iter()
+            .flat_map(|on| [HotkeyKey::mouse(3), native.key()].map(move |key| (on, key)))
+        {
+            let mouse = HotkeyBinding {
+                modifiers: HotkeyModifiers::default(),
+                key,
+            };
+            let mut value = serde_json::to_value(AppSettings {
+                dictation_hotkey: mouse.clone(),
+                ..Default::default()
+            })
+            .unwrap();
+            value["labs"]["mouse_shortcuts"] = on.into();
+            value["mouse_shortcut_notice"] = true.into();
+            fs::write(&dir.path, serde_json::to_vec(&value).unwrap()).unwrap();
+            let loaded = AppSettings::load_from(&dir.path).unwrap();
+            assert_eq!(loaded.dictation_hotkey, mouse);
+            assert!(
+                serde_json::to_value(loaded).unwrap()["labs"]
+                    .get("mouse_shortcuts")
+                    .is_none()
+            );
+        }
     }
 
     #[test]
@@ -2139,7 +2142,7 @@ mod tests {
             settings
                 .meetings
                 .resolved_output_folder()
-                .ends_with("Hex Meetings")
+                .ends_with("Superhex Meetings")
         );
         assert!(settings.text_replacements.is_empty());
     }
@@ -2767,6 +2770,11 @@ mod tests {
             .save_transcription_with(candidate.clone(), |_| Ok(()))
             .unwrap();
         assert_eq!(settings.transcription, candidate);
+        #[cfg(target_os = "macos")]
+        assert_eq!(
+            settings.dictation_backend,
+            crate::dictation::backend::DictationBackend::Local
+        );
         assert_eq!(
             settings.dictation_processing.default_mode.name,
             "Unsaved mode"
@@ -2898,6 +2906,7 @@ mod tests {
                 function: true,
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: 49,
                 label: "Space".into(),
             }),
@@ -2934,6 +2943,7 @@ mod tests {
                     ..Default::default()
                 },
                 key: Some(HotkeyKey {
+                    native_mouse: None,
                     code: 0,
                     label: "A".into(),
                 }),
@@ -2988,6 +2998,7 @@ mod tests {
                 ..Default::default()
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: 0,
                 label: "A".into(),
             }),
@@ -3128,6 +3139,7 @@ mod tests {
             key: Some(HotkeyKey {
                 code: 96,
                 label: "F5".into(),
+                native_mouse: None,
             }),
         });
         let saved_on_dvorak = settings.paste_last_hotkey.clone().unwrap();
@@ -3211,6 +3223,7 @@ mod tests {
                 ..Default::default()
             },
             key: Some(HotkeyKey {
+                native_mouse: None,
                 code: 0,
                 label: "A".into(),
             }),

@@ -106,8 +106,7 @@ impl Feature {
             | Self::AnnotateReplay
             | Self::GnomeAnnotate
             | Self::CopyCaptureZip => Group::Annotate,
-            Self::MouseShortcuts
-            | Self::SecondDictationShortcut
+            Self::SecondDictationShortcut
             | Self::MoreDictationShortcuts
             | Self::TerminalPasteShortcut
             | Self::SidedChords

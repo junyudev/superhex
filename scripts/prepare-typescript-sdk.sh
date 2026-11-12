@@ -11,7 +11,7 @@ if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "arm64" ]; then
 fi
 
 "$root/scripts/prepare-service-app.sh" >/dev/null
-source="$root/target/HEX Service.app/Contents/MacOS/hex-service"
+source="$root/target/Superhex Service.app/Contents/MacOS/superhex-service"
 mkdir -p "$(dirname -- "$destination")"
 cp "$source" "$destination"
 chmod 755 "$destination"

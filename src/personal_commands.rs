@@ -32,9 +32,9 @@ use io::Capabilities;
 use script::Script;
 pub use trust::Permissions;
 
-/// The config file names Hex looks for, in the config folder.
+/// The config file names Superhex looks for, in the config folder.
 const CONFIG_FILES: [&str; 2] = ["hex.config.ts", "hex.config.js"];
-/// Files Hex owns in the config folder and rewrites when they differ.
+/// Files Superhex owns in the config folder and rewrites when they differ.
 const MANAGED_FILES: [(&str, &str); 2] = [
     ("hex.d.ts", include_str!("personal_commands/hex.d.ts")),
     ("AGENTS.md", include_str!("personal_commands/AGENTS.md")),
@@ -293,7 +293,7 @@ pub fn workspace_configured() -> bool {
         .is_ok_and(|workspace| matches!(find_config(&workspace), Ok(Some(_)) | Err(_)))
 }
 
-/// Creates the config folder with Hex's typings and agent notes, and a
+/// Creates the config folder with Superhex's typings and agent notes, and a
 /// starter `hex.config.ts` unless a config already exists.
 pub fn initialize_workspace() -> Result<PathBuf> {
     let workspace = crate::app_paths::personal_commands_workspace()?;
@@ -301,7 +301,7 @@ pub fn initialize_workspace() -> Result<PathBuf> {
     Ok(workspace)
 }
 
-/// Loads `~/.config/hex`'s config as Hex does and summarizes its transformations.
+/// Loads `~/.config/hex`'s config as Superhex does and summarizes its transformations.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn check_workspace() -> Result<String> {
     let workspace = crate::app_paths::personal_commands_workspace()?;
@@ -359,7 +359,7 @@ fn initialize_workspace_at(workspace: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Writes the typings and agent notes this build of Hex ships, where they
+/// Writes the typings and agent notes this build of Superhex ships, where they
 /// differ, so an existing folder follows app updates.
 fn refresh_managed_files(workspace: &Path) -> Result<()> {
     for (name, contents) in MANAGED_FILES {

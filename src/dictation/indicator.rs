@@ -45,6 +45,10 @@ pub enum DictationIndicatorEvent {
     Submitted {
         job_id: u64,
     },
+    /// Recovery work has no recording to finish; leave an active capture alone.
+    Queued {
+        job_id: u64,
+    },
     Transcribing {
         job_id: u64,
     },
@@ -324,6 +328,10 @@ impl IndicatorModel {
             }
             DictationIndicatorEvent::Submitted { job_id } => {
                 self.capturing = false;
+                self.jobs.insert(job_id);
+                self.show_pipeline(now);
+            }
+            DictationIndicatorEvent::Queued { job_id } => {
                 self.jobs.insert(job_id);
                 self.show_pipeline(now);
             }
@@ -731,5 +739,38 @@ mod tests {
         assert_eq!(active_phase(true, 2), Some(Phase::Recording));
         assert_eq!(active_phase(false, 2), Some(Phase::Transcribing));
         assert_eq!(active_phase(false, 0), None);
+    }
+    #[test]
+    fn queuing_and_failing_a_retry_does_not_finish_a_new_recording() {
+        let now = Instant::now();
+        let mut model = IndicatorModel::new(Tuning::default(), now);
+        model.handle(DictationIndicatorEvent::Started, now, false);
+        model.handle(DictationIndicatorEvent::Queued { job_id: 7 }, now, false);
+        assert!(model.capturing);
+        assert_eq!(model.phase, Phase::Recording);
+        assert!(model.jobs.contains(&7));
+        model.handle(
+            DictationIndicatorEvent::JobFailed {
+                job_id: 7,
+                message: None,
+            },
+            now,
+            false,
+        );
+        assert!(model.capturing);
+        assert!(model.jobs.is_empty());
+        assert_eq!(model.phase, Phase::Recording);
+        model.handle(DictationIndicatorEvent::Discarded, now, false);
+        model.handle(DictationIndicatorEvent::Queued { job_id: 8 }, now, false);
+        assert_eq!(model.phase, Phase::Transcribing);
+        model.handle(
+            DictationIndicatorEvent::JobFailed {
+                job_id: 8,
+                message: None,
+            },
+            now,
+            false,
+        );
+        assert_eq!(model.phase, Phase::Failed);
     }
 }

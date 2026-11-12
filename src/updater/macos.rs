@@ -1,12 +1,12 @@
-//! macOS installs: a `Hex.app` this user can replace updates itself. The
+//! macOS installs: a `Superhex.app` this user can replace updates itself. The
 //! update ZIP is unpacked beside the installed bundle (same volume), its code
 //! signature must satisfy Anomaly's Developer ID requirement for
-//! `anomaly.hex` and be notarized, and on "Restart to update" (or quit) the
+//! `io.github.junyudev.superhex` and be notarized, and on "Restart to update" (or quit) the
 //! two bundles swap atomically (`renamex_np` with `RENAME_SWAP`). The old
 //! bundle stays beside it until the new version launches and removes it. A
 //! read-only, translocated, or root-owned location links to the DMG instead
 //! of escalating. Administrators turn updates off with `DisableUpdates` in
-//! the `anomaly.hex` defaults domain.
+//! the `io.github.junyudev.superhex` defaults domain.
 
 use std::ffi::CString;
 use std::fs;
@@ -21,14 +21,14 @@ use super::Method;
 
 pub const TARGET: &str = "macos-arm64";
 pub const DOWNLOAD_TARGET: &str = "macos-arm64-dmg";
-const BUNDLE_ID: &str = "anomaly.hex";
+const BUNDLE_ID: &str = "io.github.junyudev.superhex";
 /// A Developer ID application from Anomaly's team (5NZ4Q7NXJ4), identified
-/// as `anomaly.hex`, and notarized. The release build checks its artifacts
+/// as `io.github.junyudev.superhex`, and notarized. The release build checks its artifacts
 /// against the same file.
 const REQUIREMENT: &str = include_str!("../../app/update-requirement.txt");
 /// Unpacked updates (and, after a swap, the replaced bundle) live in
 /// `.<name>-update-<version>` beside the installed bundle.
-const STAGING_PREFIX: &str = ".Hex-update-";
+const STAGING_PREFIX: &str = ".Superhex-update-";
 
 /// An unpacked, verified bundle and the installed bundle it replaces.
 #[derive(Clone, Debug)]
@@ -37,7 +37,7 @@ pub struct Staged {
     installed: PathBuf,
 }
 
-/// The running `Hex.app`, when this executable is inside one.
+/// The running `Superhex.app`, when this executable is inside one.
 fn installed_bundle() -> Option<PathBuf> {
     let executable = std::env::current_exe().ok()?.canonicalize().ok()?;
     let bundle = executable.parent()?.parent()?.parent()?;
@@ -75,7 +75,7 @@ pub fn running_sha256() -> Option<String> {
     None
 }
 
-/// Hex replaces the bundle by renaming it inside its parent directory, so
+/// Superhex replaces the bundle by renaming it inside its parent directory, so
 /// both must be writable by this user, on a writable volume, and not a
 /// Gatekeeper App Translocation copy.
 fn replaceable(bundle: &Path) -> bool {
@@ -116,19 +116,20 @@ fn remove_staging(parent: &Path) {
             .is_some_and(|name| name.starts_with(STAGING_PREFIX))
             && let Err(error) = fs::remove_dir_all(entry.path())
         {
-            tracing::warn!(%error, path = %entry.path().display(), "could not remove an earlier Hex update");
+            tracing::warn!(%error, path = %entry.path().display(), "could not remove an earlier Superhex update");
         }
     }
 }
 
 pub fn stage(archive: &Path, version: &str) -> Result<Staged> {
-    let installed = installed_bundle().ok_or_else(|| eyre!("Hex is not running from Hex.app"))?;
+    let installed =
+        installed_bundle().ok_or_else(|| eyre!("Superhex is not running from Superhex.app"))?;
     let parent = installed
         .parent()
-        .ok_or_else(|| eyre!("Hex.app has no parent folder"))?;
+        .ok_or_else(|| eyre!("Superhex.app has no parent folder"))?;
     let staging = parent.join(format!("{STAGING_PREFIX}{version}"));
     unpack(archive, &staging)?;
-    let update = staging.join("Hex.app");
+    let update = staging.join("Superhex.app");
     let result = verify_bundle(&update, version, REQUIREMENT);
     if let Err(error) = result {
         let _ = fs::remove_dir_all(&staging);
@@ -203,7 +204,7 @@ fn swap(staged: &Staged) -> Result<()> {
     // Both paths are NUL-terminated and outlive the call.
     if unsafe { libc::renamex_np(from.as_ptr(), to.as_ptr(), libc::RENAME_SWAP) } != 0 {
         return Err(std::io::Error::last_os_error())
-            .wrap_err("could not swap in the updated Hex.app");
+            .wrap_err("could not swap in the updated Superhex.app");
     }
     Ok(())
 }
@@ -222,7 +223,7 @@ pub fn restart_into(staged: &Staged) -> Result<()> {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .wrap_err("could not schedule the updated Hex")?;
+        .wrap_err("could not schedule the updated Superhex")?;
     Ok(())
 }
 
@@ -256,9 +257,9 @@ mod tests {
         assert!(status.success());
     }
 
-    /// A minimal ad-hoc signed `Hex.app` with `identifier` and `version`.
+    /// A minimal ad-hoc signed `Superhex.app` with `identifier` and `version`.
     fn bundle(root: &Path, identifier: &str, version: &str) -> PathBuf {
-        let bundle = root.join("Hex.app");
+        let bundle = root.join("Superhex.app");
         fs::create_dir_all(bundle.join("Contents/MacOS")).unwrap();
         fs::copy("/usr/bin/true", bundle.join("Contents/MacOS/hex")).unwrap();
         fs::write(
@@ -286,27 +287,31 @@ mod tests {
         let root = temporary("verify");
         let app = bundle(&root, BUNDLE_ID, "9.9.9");
         // An ad-hoc signature satisfies a plain identifier requirement…
-        verify_bundle(&app, "9.9.9", "identifier \"anomaly.hex\"").unwrap();
+        verify_bundle(&app, "9.9.9", "identifier \"io.github.junyudev.superhex\"").unwrap();
         // …but never Anomaly's Developer ID requirement.
         let error = verify_bundle(&app, "9.9.9", REQUIREMENT).unwrap_err();
         assert!(error.to_string().contains("code signature"), "{error}");
-        assert!(verify_bundle(&app, "9.9.8", "identifier \"anomaly.hex\"").is_err());
+        assert!(
+            verify_bundle(&app, "9.9.8", "identifier \"io.github.junyudev.superhex\"").is_err()
+        );
         let other = bundle(&root.join("other"), "com.kitlangton.hex2", "9.9.9");
         assert!(verify_bundle(&other, "9.9.9", "identifier \"com.kitlangton.hex2\"").is_err());
         // A modified bundle no longer satisfies its signature.
         fs::write(app.join("Contents/MacOS/hex"), b"tampered").unwrap();
-        assert!(verify_bundle(&app, "9.9.9", "identifier \"anomaly.hex\"").is_err());
+        assert!(
+            verify_bundle(&app, "9.9.9", "identifier \"io.github.junyudev.superhex\"").is_err()
+        );
         let _ = fs::remove_dir_all(root);
     }
 
     #[test]
     fn the_swap_exchanges_bundles_and_launch_cleanup_removes_the_old_one() {
         let root = temporary("swap");
-        let installed = root.join("Hex.app");
+        let installed = root.join("Superhex.app");
         fs::create_dir_all(installed.join("Contents")).unwrap();
         fs::write(installed.join("Contents/version"), "old").unwrap();
         let staging = root.join(format!("{STAGING_PREFIX}9.9.9"));
-        let update = staging.join("Hex.app");
+        let update = staging.join("Superhex.app");
         fs::create_dir_all(update.join("Contents")).unwrap();
         fs::write(update.join("Contents/version"), "new").unwrap();
 
@@ -334,7 +339,7 @@ mod tests {
     fn a_zip_unpacks_beside_the_bundle_and_replaces_older_staging() {
         let root = temporary("unpack");
         let app = bundle(&root.join("source"), BUNDLE_ID, "9.9.9");
-        let archive = root.join("Hex.zip");
+        let archive = root.join("Superhex.zip");
         let status = Command::new("/usr/bin/ditto")
             .args(["-c", "-k", "--keepParent"])
             .arg(&app)
@@ -347,9 +352,9 @@ mod tests {
         unpack(&archive, &staging).unwrap();
         assert!(!staging.join("stale").exists());
         verify_bundle(
-            &staging.join("Hex.app"),
+            &staging.join("Superhex.app"),
             "9.9.9",
-            "identifier \"anomaly.hex\"",
+            "identifier \"io.github.junyudev.superhex\"",
         )
         .unwrap();
         let _ = fs::remove_dir_all(root);
@@ -358,11 +363,11 @@ mod tests {
     #[test]
     fn translocated_and_read_only_locations_are_not_replaceable() {
         let root = temporary("replaceable");
-        let app = root.join("Hex.app");
+        let app = root.join("Superhex.app");
         fs::create_dir_all(&app).unwrap();
         assert!(replaceable(&app));
-        assert!(!replaceable(&root.join("AppTranslocation/x/Hex.app")));
-        assert!(!replaceable(Path::new("/System/Applications/Hex.app")));
+        assert!(!replaceable(&root.join("AppTranslocation/x/Superhex.app")));
+        assert!(!replaceable(Path::new("/System/Applications/Superhex.app")));
         let _ = fs::remove_dir_all(root);
     }
 }

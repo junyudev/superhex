@@ -42,7 +42,7 @@ impl CaptureNeed {
 pub enum NeedState {
     /// Not granted.
     Off,
-    /// Granted, but this Hex can use it only once it restarts.
+    /// Granted, but this Superhex can use it only once it restarts.
     Restart,
 }
 
@@ -160,13 +160,13 @@ pub fn allow(need: CaptureNeed) {
 #[cfg(not(target_os = "macos"))]
 pub fn allow(_need: CaptureNeed) {}
 
-/// The helper's Restart Hex. Main thread only.
+/// The helper's Restart Superhex. Main thread only.
 #[cfg(target_os = "macos")]
 pub fn restart() {
     if crate::desktop::onboarding::spawn_relaunch() {
         crate::macos_rune::quit();
     } else {
-        tracing::warn!("could not restart Hex for a capture permission");
+        tracing::warn!("could not restart Superhex for a capture permission");
     }
 }
 

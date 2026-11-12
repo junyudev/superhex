@@ -17,7 +17,6 @@ pub enum Feature {
     TerminalPaste,
     KeyboardModelSwitching,
     AppModelSwitching,
-    MouseShortcuts,
     PauseBrowser,
     ShareShortcut,
     UnloadIdle,
@@ -86,7 +85,7 @@ pub enum Feature {
 }
 
 impl Feature {
-    pub const ALL: [Self; 78] = [
+    pub const ALL: [Self; 77] = [
         Self::Meetings,
         Self::VoiceFilter,
         Self::Playground,
@@ -99,7 +98,6 @@ impl Feature {
         Self::TerminalPaste,
         Self::KeyboardModelSwitching,
         Self::AppModelSwitching,
-        Self::MouseShortcuts,
         Self::PauseBrowser,
         Self::ShareShortcut,
         Self::UnloadIdle,

@@ -1,6 +1,6 @@
-//! Hex's first run: the onboarding story, the one onboarding on every OS.
+//! Superhex's first run: the onboarding story, the one onboarding on every OS.
 //! A new install (or an upgrade whose setup isn't ready) opens it at
-//! launch, and Run setup again and `hex onboarding reset` replay it. The
+//! launch, and Run setup again and `superhex onboarding reset` replay it. The
 //! window's tour ([`onboarding`](super::super::onboarding)) is the state
 //! machine underneath: it starts the model download, asks for the
 //! permissions, relaunches when macOS needs it, watches the practice
@@ -8,7 +8,7 @@
 //! over the window and feeds them that real state each frame.
 //!
 //! When the Hugging Face cache holds a compatible model, the download page
-//! becomes the model step (`found_choice`): one list, Hex's recommended
+//! becomes the model step (`found_choice`): one list, Superhex's recommended
 //! model first and selected, then the models found. Picking ours downloads
 //! it; picking a found one uses it in place, and the story moves on without
 //! a download. Back on the next pages returns to the list. Nothing found
@@ -44,7 +44,7 @@ const STALL_AFTER: f64 = 30.0;
 
 /// What the real first run reports to the story's pages.
 pub(crate) struct Live {
-    /// Hex's own dictation records.
+    /// Superhex's own dictation records.
     pub(crate) listening: bool,
     /// The listener runs but its model, microphone, and shortcuts aren't up
     /// yet, so the practice waits instead of inviting a hold.
@@ -64,17 +64,17 @@ pub(crate) struct Live {
     /// General's "Turn off the mic when not dictating" was on when the
     /// first run opened, so the microphone opens only while you dictate.
     pub(crate) release_microphone: bool,
-    /// Every permission is on and one applies only after Hex restarts.
+    /// Every permission is on and one applies only after Superhex restarts.
     pub(crate) restart: bool,
     /// macOS asks for Microphone and Accessibility; Windows only shows the
     /// Microphone row while its privacy switch is off.
     pub(crate) accessibility_row: bool,
     /// macOS 27 calls Accessibility "Device Control and Data Access".
     pub(crate) accessibility_renamed: bool,
-    /// The shortcut listener failed after setup and Hex won't relaunch by
-    /// itself again: Reopen Hex.
+    /// The shortcut listener failed after setup and Superhex won't relaunch by
+    /// itself again: Reopen Superhex.
     pub(crate) reopen: bool,
-    /// macOS needed a restart and Hex couldn't relaunch itself.
+    /// macOS needed a restart and Superhex couldn't relaunch itself.
     pub(crate) relaunch_failed: bool,
     /// The desktop's paste permission on GNOME and KDE Wayland: the
     /// permissions page explains it and asks before the practice pastes.
@@ -300,7 +300,7 @@ pub(in crate::rune_ui) fn open(ui: &mut Ui) {
     };
     // Replaces the previous run's label; an English-only run clears it.
     set_other_label(other.map(|other| transcription_models::language_name(&other.language)));
-    let had_model = installed(ui, &choice);
+    let had_model = installed(ui, &choice) || super::super::voice_buddy::in_effect(ui);
     let status = ui.platform.setup_status(had_model);
     let mic_granted = status.microphone == crate::desktop::onboarding::PermissionState::Ready;
     let granted = granted(status, ui.platform.paste);
@@ -368,9 +368,9 @@ pub(in crate::rune_ui) fn open(ui: &mut Ui) {
 /// A page of the first run, for scenes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::rune_ui) enum Page {
-    /// `"Setting up Hex"`, or the model step when models were found.
+    /// `"Setting up Superhex"`, or the model step when models were found.
     Download,
-    /// The demo, finished: `"With Hex"`'s happy ending.
+    /// The demo, finished: `"With Superhex"`'s happy ending.
     Demo,
     /// The first permission the run still asks for: the microphone, else
     /// Accessibility (or the desktop's paste permission).
@@ -451,7 +451,7 @@ pub(in crate::rune_ui) fn fixture_resume(ui: &mut Ui, page: Page) {
     poll(ui, &mut tx);
 }
 
-/// "Run setup again" and `hex onboarding reset`: forgets that onboarding
+/// "Run setup again" and `superhex onboarding reset`: forgets that onboarding
 /// finished and opens it now. Settings, history, models, and permissions
 /// stay as they are, so the run finds them ready and passes their steps.
 pub(crate) fn restart(ui: &mut Ui, tx: &mut Tx) -> Result<(), String> {
@@ -464,7 +464,7 @@ pub(crate) fn restart(ui: &mut Ui, tx: &mut Tx) -> Result<(), String> {
     open(ui);
     tx.settle();
     if ui.first_run.is_none() {
-        return Err("Hex could not open onboarding".into());
+        return Err("Superhex could not open onboarding".into());
     }
     Ok(())
 }
@@ -485,6 +485,11 @@ pub(in crate::rune_ui) fn poll(ui: &mut Ui, tx: &mut Tx) -> bool {
     };
     let started = found_choice::started(ui, tour_model);
     let scanning = ui.found.scanning();
+    // A cancelled file dialog or a refused file asks again.
+    let stalled = found_choice::voice_buddy_pick_stalled(ui);
+    if stalled {
+        ui.found.picked = None;
+    }
     let caps = ui.settings.dictation_hotkey.keycaps();
     let toggle = ui.settings.shortcut_mode == crate::dictation::ShortcutMode::Toggle;
     let release_microphone = ui.settings.release_microphone_while_idle;
@@ -528,7 +533,7 @@ pub(in crate::rune_ui) fn poll(ui: &mut Ui, tx: &mut Tx) -> bool {
             }
         }
     };
-    // A model picked from the list is the one Hex uses, whatever the
+    // A model picked from the list is the one Superhex uses, whatever the
     // language capsule last chose.
     let (choice_installed, status) = (
         checked.installed || tour_model == ItemStatus::Ready,
@@ -604,7 +609,7 @@ pub(in crate::rune_ui) fn poll(ui: &mut Ui, tx: &mut Tx) -> bool {
         ModelStep::None if offered && downloading_page => live.model_step = ModelStep::Choosing,
         ModelStep::Choosing if !offered => live.model_step = ModelStep::None,
         // A pick that failed asks again.
-        ModelStep::Chosen if downloading_page && tour_model == ItemStatus::Failed => {
+        ModelStep::Chosen if downloading_page && (tour_model == ItemStatus::Failed || stalled) => {
             live.model_step = ModelStep::Choosing;
         }
         _ => {}
@@ -649,7 +654,7 @@ pub(in crate::rune_ui) fn poll(ui: &mut Ui, tx: &mut Tx) -> bool {
         s.replay.show(download, now);
     }
 
-    // Hex's state arrives between frames, so the first run keeps polling;
+    // Superhex's state arrives between frames, so the first run keeps polling;
     // a fixture shows one moment and stays still.
     advance_to(s, now, tx);
     let ready = s.step == Step::Ready;
@@ -682,7 +687,7 @@ pub(in crate::rune_ui) fn overlay(ui: &Ui, p: Paint, reduced: bool) -> Option<El
             .children(strip)
             .key("first-run")
             .role("dialog")
-            .label(tr("Setting up Hex"))
+            .label(tr("Setting up Superhex"))
             .absolute(0.0, 0.0)
             .on_press(|_: &mut Ui| {}),
     )
@@ -704,7 +709,7 @@ pub(super) fn press_continue(ui: &mut Ui) {
 }
 
 /// Skip on the demo or the practice: passes over that part to the next
-/// step setup still needs. It never records completion; only Hex is ready
+/// step setup still needs. It never records completion; only Superhex is ready
 /// (or Continue without a model) does.
 pub(in crate::rune_ui) fn skip(ui: &mut Ui) {
     if let Some(s) = ui.first_run.as_mut() {
@@ -726,10 +731,11 @@ pub(in crate::rune_ui) fn continue_without_model(ui: &mut Ui) {
     onboarding::close(ui, true);
 }
 
-/// "Start using Hex": closes the first run and the tour under it, and
+/// "Start using Superhex": closes the first run and the tour under it, and
 /// records the tour finished once setup is ready.
 pub(super) fn finish(ui: &mut Ui) {
-    let installed = ui.picker.selected_installed(&ui.settings);
+    let installed =
+        ui.picker.selected_installed(&ui.settings) || super::super::voice_buddy::in_effect(ui);
     let ready = ui.platform.setup_status(installed).ready();
     onboarding::close(ui, ready);
 }
@@ -796,7 +802,7 @@ pub(super) fn back_to_models(ui: &mut Ui) {
     }
 }
 
-/// "Reopen Hex" once the listener failed and Hex won't relaunch itself.
+/// "Reopen Superhex" once the listener failed and Superhex won't relaunch itself.
 pub(super) fn reopen(ui: &mut Ui) {
     onboarding::input(ui, Input::Reopen);
 }
@@ -842,7 +848,7 @@ pub(super) fn paste_later(ui: &mut Ui) {
     }
 }
 
-/// "Restart Hex" once macOS applies a grant only after a restart.
+/// "Restart Superhex" once macOS applies a grant only after a restart.
 pub(super) fn restart_hex(ui: &mut Ui) {
     onboarding::input(ui, Input::Restart);
 }
@@ -864,14 +870,14 @@ pub(super) fn practice_changed(ui: &mut Ui, tx: &mut Tx) {
 /// What the practice says in place of the shortcut invitation while the
 /// listener loads its model, microphone, and shortcuts.
 pub(super) fn warming_copy() -> &'static str {
-    tr("Getting Hex ready to listen…")
+    tr("Getting Superhex ready to listen…")
 }
 
 /// What the practice dictation's last try needs said.
 pub(super) fn hint_copy(live: &Live) -> Option<&'static str> {
     Some(match live.practice {
         Practice::TooShort => "Keep holding the shortcut while you talk, then let go.",
-        Practice::NothingHeard => tr("Hex didn't hear any words. Try again a little louder."),
+        Practice::NothingHeard => tr("Superhex didn't hear any words. Try again a little louder."),
         Practice::Failed => tr("That didn't work. Try again."),
         Practice::Transcribing => tr("Typing what you said…"),
         _ => return None,

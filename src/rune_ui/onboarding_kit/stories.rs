@@ -47,8 +47,8 @@ const SLOW_SECS: f64 = 31.0;
 /// model lands, mid-sketch.
 const SKETCH_DOWNLOAD_SECS: f64 = 59.2;
 const DOWNLOAD_HOLD: f64 = 2.8;
-/// How long the first run's `"Setting up Hex"` holds before its download
-/// flies up and `"Without Hex"` opens.
+/// How long the first run's `"Setting up Superhex"` holds before its download
+/// flies up and `"Without Superhex"` opens.
 const FIRST_RUN_HOLD: f64 = 1.6;
 const PERMISSIONS_WAIT: f64 = 0.6;
 const CLOSE_SECS: f64 = 0.65;
@@ -130,18 +130,18 @@ pub(crate) struct Onboard {
     /// rather than growing out of the Launch Room's clicked row.
     pub(crate) in_place: bool,
     pub(crate) voice_from: Option<f64>,
-    /// When the resting HUD plate first showed on `"With Hex"` or
+    /// When the resting HUD plate first showed on `"With Superhex"` or
     /// `"Your turn"`: the HUD unfolds from here and keeps running through the
     /// take, so pressing the shortcut never restarts it.
     pub(crate) hud_from: Option<f64>,
     pub(crate) take_from: Option<f64>,
-    /// How many `"Without Hex"` bubbles have flown out of the field so far.
+    /// How many `"Without Superhex"` bubbles have flown out of the field so far.
     sent_seen: usize,
-    /// Whether `"With Hex"`'s reply has flown out of the field.
+    /// Whether `"With Superhex"`'s reply has flown out of the field.
     hex_seen: bool,
-    /// Every pause and the key pace of `"Without Hex"`, tunable live.
+    /// Every pause and the key pace of `"Without Superhex"`, tunable live.
     pub(crate) timing: typing::Timing,
-    /// `"Without Hex"` as [`Self::timing`] times it.
+    /// `"Without Superhex"` as [`Self::timing`] times it.
     pub(crate) scene: typing::Scene,
     pub(crate) partial: &'static str,
     pub(crate) take: &'static Take,
@@ -170,10 +170,10 @@ pub(crate) struct Onboard {
     /// A dictation's text landed since the plate last stepped.
     pub(crate) hud_landed: bool,
     pub(crate) sfx: SfxTrack,
-    /// Set when this is Hex's real first run (Labs):
+    /// Set when this is Superhex's real first run (Labs):
     /// what the window's tour reports, in place of the fixtures.
     pub(crate) live: Option<Live>,
-    /// `"Hex is ready"`'s Launch at login ask.
+    /// `"Superhex is ready"`'s Launch at login ask.
     pub(crate) login: super::login::LoginAsk,
     /// The dictated words flying into the practice field.
     pub(crate) dictated: Dictated,
@@ -192,14 +192,14 @@ pub(crate) struct Onboard {
     pub(crate) autoplay: bool,
     /// The real download as the first run shows it.
     pub(crate) replay: replay::Replay,
-    /// Where Hex lives once onboarding closes, under `"Hex is ready"`.
+    /// Where Superhex lives once onboarding closes, under `"Superhex is ready"`.
     pub(crate) home: super::landing::Home,
     /// `"Watch another one"` on `"Almost ready"`.
     pub(crate) sketches: super::sketches::Sketches,
 }
 
 /// A story's dictation of [`ANSWER_TRY`] on the interactive `"Your turn"`,
-/// through the same live words and paste as Hex's real one.
+/// through the same live words and paste as Superhex's real one.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Rehearsal {
     /// Whether the model sends live words while the shortcut is held.
@@ -370,7 +370,7 @@ impl Onboard {
     }
 
     /// Toggles the inline language capsule button (`English` ↔ `French`) on
-    /// `"Setting up Hex"`.
+    /// `"Setting up Superhex"`.
     pub(crate) fn cycle_language(&mut self) {
         let next = match self.language.unwrap_or(self.wants) {
             Language::English => Language::Other,
@@ -403,7 +403,7 @@ impl Onboard {
     }
 
     /// Called when the interactive `"Your turn"` [`TextArea`] changes (e.g. a
-    /// real dictation paste from Hex lands or the user types).
+    /// real dictation paste from Superhex lands or the user types).
     pub(crate) fn on_practice_change(&mut self, _: &mut Tx) {
         if super::game::changed(self) {
             return;
@@ -437,7 +437,7 @@ impl Onboard {
     }
 
     /// Skip on the demo or the practice: on to the next step setup still
-    /// needs (the permissions, then the model), else Hex is ready.
+    /// needs (the permissions, then the model), else Superhex is ready.
     pub(crate) fn skip_optional(&mut self) {
         if !self.step.optional() {
             return;
@@ -452,7 +452,7 @@ impl Onboard {
     }
 
     /// Leaving the practice: Accessibility, if it's still to ask for, then
-    /// `"Hex is ready"`.
+    /// `"Superhex is ready"`.
     pub(crate) fn after_game(&mut self) {
         if self.granted {
             self.jump_to_ready();
@@ -525,7 +525,7 @@ impl Onboard {
         park(self, self.now);
     }
 
-    /// the Launch Room's row: plays `"Without Hex"` from the top, then the
+    /// the Launch Room's row: plays `"Without Superhex"` from the top, then the
     /// story moves on by itself.
     /// `Skip →` or Escape: leaves the comedy for whatever follows it. True
     /// when there was one to skip.
@@ -562,7 +562,7 @@ impl Onboard {
         self.auto_due_at = Some(from + self.scene.duration());
     }
 
-    /// `"Without Hex"` with the conversation already open: Jay's messages
+    /// `"Without Superhex"` with the conversation already open: Jay's messages
     /// land in it one by one, each with its sound, and the scene's clock
     /// starts after them. The first run opens this way.
     pub(crate) fn open_scene(&mut self) {
@@ -683,7 +683,7 @@ impl Onboard {
         self.sfx.on_ready(self.now, self.reduced.get());
     }
 
-    /// Seconds since `"Hex is ready"` appeared; a scene opened on it shows
+    /// Seconds since `"Superhex is ready"` appeared; a scene opened on it shows
     /// it settled.
     pub(crate) fn ready_age(&self) -> f64 {
         self.ready_from
@@ -749,7 +749,7 @@ pub(crate) fn add<S: 'static>(playground: Playground<S>) -> Playground<S> {
             Onboard::new(Flow::Shout)
         }))
         .story(story(
-            "Prototypes/Onboarding/Without Hex · With Hex",
+            "Prototypes/Onboarding/Without Superhex · With Superhex",
             || Onboard::new(Flow::Versus),
         ))
         .story(first_run())
@@ -857,7 +857,7 @@ fn first_run() -> Story<Onboard> {
     .variant("Mac in French", |s| s.wants = Language::Other)
     .variant("Model already downloaded", |s| s.had_model = true)
     .variant("Permissions already granted", |s| s.granted = true)
-    .variant("Hex is ready", |s| {
+    .variant("Superhex is ready", |s| {
         s.had_model = true;
         s.jump_to_ready();
     })
@@ -943,7 +943,7 @@ fn view(s: &Onboard, cx: &mut Cx<Onboard>) -> El {
 }
 
 fn play(s: &mut Onboard, play: &mut Play<'_, Onboard>) {
-    // A story opened on `"Hex is ready"` plays that page again.
+    // A story opened on `"Superhex is ready"` plays that page again.
     let on_ready = s.step == Step::Ready;
     s.now = play.now();
     s.ready_from = None;
@@ -980,7 +980,7 @@ fn start_first_run(s: &mut Onboard, play: &mut Play<'_, Onboard>) {
     play.wake_after(Duration::ZERO);
 }
 
-/// `"Without Hex"`, waiting for the Launch Room's row.
+/// `"Without Superhex"`, waiting for the Launch Room's row.
 fn park(s: &mut Onboard, now: f64) {
     s.step = Step::Parked;
     s.parked_from = Some(now);
@@ -1085,7 +1085,7 @@ fn next_beat(s: &mut Onboard, now: f64) -> Option<f64> {
 /// there to press `Continue →`.
 const SCORE_HOLD: f64 = 4.5;
 
-/// `"With Hex"`: the shortcut goes down and Jay's answer is spoken.
+/// `"With Superhex"`: the shortcut goes down and Jay's answer is spoken.
 fn hear(s: &mut Onboard, now: f64) {
     s.take = Script::chosen().take();
     s.take_from = Some(now);
@@ -1098,10 +1098,10 @@ fn hear(s: &mut Onboard, now: f64) {
     s.sfx.on_hex_reply(now, &beats);
 }
 
-/// The first run: `"Without Hex"` and a scripted `"With Hex"` play while
+/// The first run: `"Without Superhex"` and a scripted `"With Superhex"` play while
 /// the model downloads, then the microphone, the practice game as the
-/// user's own `"With Hex"` once the model is in, Accessibility, and
-/// `"Hex is ready"`.
+/// user's own `"With Superhex"` once the model is in, Accessibility, and
+/// `"Superhex is ready"`.
 pub(super) fn first_run_next(s: &mut Onboard, now: f64) -> Option<f64> {
     const WAIT: f64 = 0.25;
     match s.step {
@@ -1129,8 +1129,8 @@ pub(super) fn first_run_next(s: &mut Onboard, now: f64) -> Option<f64> {
             s.open_scene();
             Some(s.scene.lead_in() + s.scene.duration() + COMEDY_HOLD)
         }
-        // `"Without Hex"` plays out and its last line holds a beat; then
-        // `"With Hex"` shows how it goes, with nothing asked of the user
+        // `"Without Superhex"` plays out and its last line holds a beat; then
+        // `"With Superhex"` shows how it goes, with nothing asked of the user
         // yet.
         Step::Parked => {
             let from = s.typing_from?;
@@ -1196,7 +1196,7 @@ pub(super) fn first_run_next(s: &mut Onboard, now: f64) -> Option<f64> {
             s.jump_to_ready();
             None
         }
-        // The first run has no score: `"With Hex"` goes on to the microphone.
+        // The first run has no score: `"With Superhex"` goes on to the microphone.
         Step::Done | Step::Ready => None,
     }
 }
@@ -1207,13 +1207,13 @@ pub(crate) const TAPS_BEFORE_TOGGLE: u8 = 2;
 /// The longest gap between polls that still plays a flight.
 const FLIGHT_SEEN: f64 = 0.25;
 
-/// How long `"Without Hex"`'s last line holds before the first run moves on,
+/// How long `"Without Superhex"`'s last line holds before the first run moves on,
 /// after the scene's own hold on the removal ([`typing::Timing::fired`]).
 const COMEDY_HOLD: f64 = 0.8;
-/// How long `"With Hex"`'s happy ending stays before the first run moves on.
+/// How long `"With Superhex"`'s happy ending stays before the first run moves on.
 const ENDING_HOLD: f64 = 1.5;
 
-/// Out of the comedy, by `"With Hex"`'s end or `Skip →`.
+/// Out of the comedy, by `"With Superhex"`'s end or `Skip →`.
 fn leave_comedy(s: &mut Onboard, now: f64) -> Option<f64> {
     if s.mic_granted || s.granted {
         to_practice(s, now)
@@ -1242,7 +1242,7 @@ fn to_accessibility(s: &mut Onboard, now: f64) -> Option<f64> {
     Some(permissions::AX_SECS)
 }
 
-/// On to the practice game as `"With Hex"`, once Hex can hear: until the
+/// On to the practice game as `"With Superhex"`, once Hex can hear: until the
 /// model is in, a calm `"Almost ready"`. Hex's shortcut works only with
 /// Accessibility, so a real first run without it asks for it first.
 fn to_practice(s: &mut Onboard, now: f64) -> Option<f64> {
@@ -1330,13 +1330,13 @@ pub(super) fn advance_to(s: &mut Onboard, now: f64, tx: &mut Tx) -> bool {
     s.now = now;
     tx.trace_channel("onboarding.step", "phase", s.step as u32 as f32);
     tx.trace_channel("onboarding.mic", "level", s.listening_peak().unwrap_or(0.0));
-    // A sent `"Without Hex"` reply lifts out of the field into its bubble.
+    // A sent `"Without Superhex"` reply lifts out of the field into its bubble.
     let sent = versus::sent_count(s);
     for i in s.sent_seen..sent {
         tx.launch("typed/line0", format!("sent-bubble-{i}"));
     }
     s.sent_seen = sent;
-    // `"With Hex"`'s answer lifts out of the field from its first word.
+    // `"With Superhex"`'s answer lifts out of the field from its first word.
     let hex_sent = versus::hex_sent(s);
     if hex_sent && !s.hex_seen {
         tx.launch("w0", "hex-bubble");
@@ -1354,7 +1354,7 @@ pub(super) fn advance_to(s: &mut Onboard, now: f64, tx: &mut Tx) -> bool {
     if trying && super::game::step(s, now) {
         s.hud.clear();
     } else if trying {
-        // The real first run follows Hex's own dictation, which sounds its
+        // The real first run follows Superhex's own dictation, which sounds its
         // own tones; a rehearsal plays one without them.
         let real = match s.rehearsal {
             Some(rehearsal) => Some(rehearsal.held(now)),
@@ -1437,7 +1437,7 @@ pub(super) fn advance_to(s: &mut Onboard, now: f64, tx: &mut Tx) -> bool {
         || (s.step == Step::Ready && !s.reduced.get() && s.ready_age() < BUILD_SECS);
     moving |= s.dictated.moving();
 
-    // The real first run's download comes from Hex (`live::poll`).
+    // The real first run's download comes from Superhex (`live::poll`).
     let from = s.download_from.filter(|_| s.live.is_none());
     if let Some(download) = s.download.as_mut().filter(|_| s.live.is_some()) {
         if download.done() {
@@ -1566,7 +1566,7 @@ mod tests {
         let mut s = Onboard::new(Flow::FirstRun);
         s.jump_to_try();
         assert_eq!(s.step, Step::Try);
-        s.practice.text = "Testing live dictation in Hex.".into();
+        s.practice.text = "Testing live dictation in Superhex.".into();
         let mut tx = Tx::default();
         s.on_practice_change(&mut tx);
         assert_eq!(s.step, Step::TryHeard);

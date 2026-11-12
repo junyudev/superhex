@@ -1,5 +1,5 @@
 //! Dot scope drawn in Rune's effect slots, including a departing page's slot,
-//! and `"With Hex"`'s fireworks ([`super::fireworks`]).
+//! and `"With Superhex"`'s fireworks ([`super::fireworks`]).
 
 use std::collections::HashMap;
 use std::sync::Mutex;

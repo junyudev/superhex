@@ -6,7 +6,7 @@
 //! as a normal item while on and is hidden while off; a behaviour-only
 //! feature (Live text, Live chapters, Vocabulary biasing, Screen vocabulary,
 //! keyboard-language
-//! model switching, mouse shortcuts, pausing the browser, restoring Paste
+//! model switching, pausing the browser, restoring Paste
 //! last dictation's default shortcut, keeping the dictation on the
 //! clipboard, only copying it instead (macOS and Windows), a second
 //! dictation shortcut,
@@ -42,7 +42,7 @@ pub use self::gates::*;
 pub use self::group::Group;
 
 /// Where people send feedback on Labs features.
-pub const FEEDBACK_URL: &str = "https://github.com/anomalyco/hex/issues/new";
+pub const FEEDBACK_URL: &str = "https://github.com/junyudev/superhex/issues/new";
 
 /// Who a Labs feature is for.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -106,7 +106,6 @@ impl Feature {
             | Self::TerminalPaste
             | Self::KeyboardModelSwitching
             | Self::AppModelSwitching
-            | Self::MouseShortcuts
             | Self::PauseBrowser
             | Self::ShareShortcut
             | Self::UnloadIdle
@@ -186,7 +185,6 @@ impl Feature {
             | Self::VocabularyBiasing
             | Self::TerminalPaste
             | Self::KeyboardModelSwitching
-            | Self::MouseShortcuts
             | Self::PauseBrowser
             | Self::ShareShortcut => 20261030,
             Self::UnloadIdle
@@ -265,7 +263,7 @@ impl Feature {
             )
     }
 
-    /// The feature `hex settings` key `key` switches (its toggle, or
+    /// The feature `superhex settings` key `key` switches (its toggle, or
     /// Unload when idle's minutes).
     pub fn for_settings_key(key: &str) -> Option<Self> {
         if key == "labs.unload_idle_minutes" {
@@ -313,8 +311,7 @@ impl Feature {
             Self::StandaloneSpecialKeys | Self::SkipPauses | Self::TerminalPasteShortcut => {
                 cfg!(any(target_os = "linux", target_os = "windows"))
             }
-            Self::MouseShortcuts
-            | Self::PauseBrowser
+            Self::PauseBrowser
             | Self::SmartSpacing
             | Self::SidedChords
             | Self::RecentDictations
@@ -384,7 +381,7 @@ impl Feature {
         }
     }
 
-    /// The name `hex labs on|off` takes.
+    /// The name `superhex labs on|off` takes.
     pub const fn name(self) -> &'static str {
         match self {
             Self::Meetings => "meetings",
@@ -399,7 +396,6 @@ impl Feature {
             Self::TerminalPaste => "terminal-paste",
             Self::KeyboardModelSwitching => "keyboard-model-switching",
             Self::AppModelSwitching => "app-model-switching",
-            Self::MouseShortcuts => "mouse-shortcuts",
             Self::PauseBrowser => "pause-browser",
             Self::ShareShortcut => "share-shortcut",
             Self::UnloadIdle => "unload-idle",
@@ -468,7 +464,7 @@ impl Feature {
         }
     }
 
-    /// Its `hex settings` key.
+    /// Its `superhex settings` key.
     pub const fn settings_key(self) -> &'static str {
         match self {
             Self::Meetings => "meetings.enabled",
@@ -483,7 +479,6 @@ impl Feature {
             Self::TerminalPaste => "paste_with_shift",
             Self::KeyboardModelSwitching => "keyboard_model_switching.enabled",
             Self::AppModelSwitching => "labs.app_model_switching",
-            Self::MouseShortcuts => "labs.mouse_shortcuts",
             Self::PauseBrowser => "pause_browser_media",
             Self::ShareShortcut => "share_dictation_shortcut",
             Self::UnloadIdle => "labs.unload_idle",
@@ -571,7 +566,6 @@ impl Feature {
             Self::TerminalPaste => settings.paste_with_shift,
             Self::KeyboardModelSwitching => settings.keyboard_model_switching.enabled,
             Self::AppModelSwitching => settings.labs.app_model_switching,
-            Self::MouseShortcuts => settings.labs.mouse_shortcuts,
             Self::PauseBrowser => settings.pause_browser_media,
             Self::ShareShortcut => settings.share_dictation_shortcut,
             Self::UnloadIdle => settings.labs.unload_idle,
@@ -658,7 +652,6 @@ impl Feature {
             &mut labs.live_chapters,
             &mut labs.vocabulary_biasing,
             &mut labs.screen_vocabulary,
-            &mut labs.mouse_shortcuts,
             &mut labs.unload_idle,
             &mut labs.keep_microphone_open,
             &mut labs.restore_shortcut_default,
@@ -745,7 +738,6 @@ impl Feature {
             Self::TerminalPaste => settings.paste_with_shift = on,
             Self::KeyboardModelSwitching => settings.keyboard_model_switching.enabled = on,
             Self::AppModelSwitching => settings.labs.app_model_switching = on,
-            Self::MouseShortcuts => settings.labs.mouse_shortcuts = on,
             Self::PauseBrowser => settings.pause_browser_media = on,
             Self::ShareShortcut => settings.share_dictation_shortcut = on,
             Self::UnloadIdle => settings.labs.unload_idle = on,
@@ -833,7 +825,6 @@ const LIVE_TEXT: u64 = 1 << 1;
 const LIVE_CHAPTERS: u64 = 1 << 2;
 const PLAYGROUND: u64 = 1 << 3;
 const VOCABULARY_BIASING: u64 = 1 << 4;
-const MOUSE_SHORTCUTS: u64 = 1 << 5;
 const UNLOAD_IDLE: u64 = 1 << 6;
 const KEEP_ON_CLIPBOARD: u64 = 1 << 7;
 const COPY_ONLY: u64 = 1 << 8;
@@ -907,7 +898,7 @@ const MEETING_NOTES_FILE: u64 = SPEAKERS_ONLY << 1;
 /// The next bit above Notes' file: a dictation mode's speech model and
 /// language follow the foreground application (macOS, Windows).
 const APP_MODEL_SWITCHING: u64 = MEETING_NOTES_FILE << 1;
-/// The next bit above Switch model with app: the menu bar offers Pause Hex,
+/// The next bit above Switch model with app: the menu bar offers Pause Superhex,
 /// and every capture shortcut is inert while paused (macOS).
 const PAUSE_MENU: u64 = APP_MODEL_SWITCHING << 1;
 /// The next bit above Pause from menu bar: the local API's
@@ -1087,11 +1078,6 @@ fn encode_where(settings: &LabsSettings, reaches: impl Fn(Feature) -> bool) -> u
             Feature::VocabularyBiasing,
             settings.vocabulary_biasing,
             VOCABULARY_BIASING,
-        ),
-        (
-            Feature::MouseShortcuts,
-            settings.mouse_shortcuts,
-            MOUSE_SHORTCUTS,
         ),
         (Feature::UnloadIdle, settings.unload_idle, UNLOAD_IDLE),
         (
@@ -1276,7 +1262,7 @@ fn encode_where(settings: &LabsSettings, reaches: impl Fn(Feature) -> bool) -> u
     .fold(KNOWN | minutes, |state, (_, _, bit)| state | bit)
 }
 
-/// The names of the features on, for `hex status`.
+/// The names of the features on, for `superhex status`.
 pub fn active_names(settings: &AppSettings) -> Vec<String> {
     Feature::available()
         .filter(|feature| feature.on(settings))
@@ -1284,7 +1270,7 @@ pub fn active_names(settings: &AppSettings) -> Vec<String> {
         .collect()
 }
 
-/// Logs the switches to process.log; call once logging is up in a long-lived Hex.
+/// Logs the switches to process.log; call once logging is up in a long-lived Superhex.
 pub fn log_launch() {
     tracing::info!(
         live_text = live_text(),

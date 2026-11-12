@@ -81,7 +81,7 @@ fn state(ui: &Ui, def: &'static ModelDefinition, language: &str) -> State {
     if let Some((label, fraction)) = picker::preparation(ui, def) {
         State::Preparing { label, fraction }
     } else if picker::transcription_selection_is_active(&ui.settings.transcription, def, installed)
-        // A selected import that is missing or changed isn't what Hex runs.
+        // A selected import that is missing or changed isn't what Superhex runs.
         && (!def.id.is_custom() || def.available())
     {
         State::InUse
@@ -168,7 +168,7 @@ pub(super) fn errors_heading(metric: ErrorMetric) -> &'static str {
     }
 }
 
-/// The languages Hex offers with `def`.
+/// The languages Superhex offers with `def`.
 pub(super) fn language_count(def: &ModelDefinition) -> usize {
     def.language_choices()
         .iter()
@@ -197,7 +197,7 @@ pub(super) fn reads_vocabulary(ui: &Ui, def: &ModelDefinition) -> bool {
     }
 }
 
-/// The download's size, or who keeps the model when Hex downloads none.
+/// The download's size, or who keeps the model when Superhex downloads none.
 pub(super) fn size_text(def: &ModelDefinition) -> String {
     match def.runtime {
         ModelRuntime::AppleSpeech => tr("Managed by macOS").into(),

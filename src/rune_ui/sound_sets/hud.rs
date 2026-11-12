@@ -1,4 +1,4 @@
-//! The HUD the stage shows: Hex's own, told what the real one is told as
+//! The HUD the stage shows: Superhex's own, told what the real one is told as
 //! each sound plays, and stepped on its own clock from the start of the
 //! playback, so a held moment always draws the same picture.
 //!

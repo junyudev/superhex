@@ -1,5 +1,5 @@
 //! The plain-text scene files in `scenes/` (syntax in `scenes/README.md`):
-//! one `"Without Hex"` disaster and its `"With Hex"` triumph each, parsed
+//! one `"Without Superhex"` disaster and its `"With Superhex"` triumph each, parsed
 //! into a [`Script`] that [`typing::Scene`](super::typing::Scene) plays.
 //!
 //! [`parse`] reports every mistake with its line number. Renders pick a
@@ -53,7 +53,7 @@ const DEFAULT_COLOURS: [&str; 4] = ["cobalt", "lilac", "amber", "mint"];
 /// How many side characters a scene can have.
 const SIDES: usize = 3;
 
-/// The most lines `"Without Hex"`'s thread holds, and `"With Hex"`'s
+/// The most lines `"Without Superhex"`'s thread holds, and `"With Superhex"`'s
 /// payoff.
 pub(crate) const MAX_LINES: usize = 18;
 pub(crate) const MAX_CHEERS: usize = 8;
@@ -121,7 +121,7 @@ impl Ending {
     }
 }
 
-/// A celebration over the stage in `"With Hex"`.
+/// A celebration over the stage in `"With Superhex"`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Effect {
     Confetti,
@@ -131,7 +131,7 @@ pub(crate) enum Effect {
 /// Tapbacks, each at a time from now if the scene gives one.
 pub(crate) type Taps = Vec<(Glyph, Option<f64>)>;
 
-/// One step of `"Without Hex"`.
+/// One step of `"Without Superhex"`.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Op<'a> {
     /// Someone's line. `hold`: how long the scene holds after it, else its
@@ -197,7 +197,7 @@ pub(crate) enum Op<'a> {
     },
 }
 
-/// One step of `"With Hex"`, after your spoken line.
+/// One step of `"With Superhex"`, after your spoken line.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Cheer<'a> {
     /// Tapbacks on your spoken line.
@@ -237,7 +237,7 @@ pub(crate) struct Script<'a> {
     pub(crate) people: Vec<Person<'a>>,
     /// The red status pill under the header.
     pub(crate) pill: Option<&'a str>,
-    /// The line under `"Without Hex"`.
+    /// The line under `"Without Superhex"`.
     pub(crate) lead: &'a str,
     pub(crate) ops: Vec<Op<'a>>,
     pub(crate) with: Triumph<'a>,
@@ -435,7 +435,7 @@ struct Parser<'a> {
     /// What's in the field, to check deletes, sends and autocorrect.
     draft: String,
     labels: Vec<&'a str>,
-    /// A sketch: `"Without Hex"` alone, which ends at `end`.
+    /// A sketch: `"Without Superhex"` alone, which ends at `end`.
     sketch: bool,
 }
 

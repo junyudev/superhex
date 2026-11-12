@@ -1,10 +1,10 @@
-// Types for Hex config scripts. Hex writes this file and replaces it when it
+// Types for Superhex config scripts. Superhex writes this file and replaces it when it
 // changes, so edit hex.config.ts instead.
 
 declare module "@hex/commands" {
   export type Modifier = "command" | "control" | "option" | "shift"
 
-  /** Something Hex does natively once a command's handler returns. */
+  /** Something Superhex does natively once a command's handler returns. */
   export type NativeAction =
     | { readonly type: "openUrl"; readonly url: string }
     | { readonly type: "openApplication"; readonly application: string }
@@ -35,10 +35,10 @@ declare module "@hex/commands" {
 
   /**
    * The actions a handler can ask for. Each call queues its action and
-   * resolves at once; Hex runs the queued actions in order after the handler
+   * resolves at once; Superhex runs the queued actions in order after the handler
    * returns, and a failing action fails the command.
    */
-  export interface Hex {
+  export interface Superhex {
     readonly openUrl: (url: string) => Promise<void>
     readonly openApplication: (application: string) => Promise<void>
     readonly openPath: (path: string) => Promise<void>
@@ -118,7 +118,7 @@ declare module "@hex/commands" {
   }
 
   export interface HandlerArguments<Captures extends UntypedCaptures = Readonly<Record<string, string>>> {
-    readonly hex: Hex
+    readonly hex: Superhex
     readonly context: HandlerContext
     /**
      * Values matched by `{name}` placeholders in the spoken phrase. Without a
@@ -137,7 +137,7 @@ declare module "@hex/commands" {
 
   /**
    * Returns the transformed text. It must finish within its `timeout`; if it
-   * throws or runs out of time, Hex pastes the text it was given.
+   * throws or runs out of time, Superhex pastes the text it was given.
    */
   export type Transformation = (text: string, context: HandlerContext) => string | Promise<string>
 
@@ -147,7 +147,7 @@ declare module "@hex/commands" {
     readonly transform: Transformation
     /**
      * Milliseconds, 1 to 60000. Defaults to 1000, or 30000 when the config
-     * uses `fetch` or `node:child_process`. When it runs out, Hex aborts its
+     * uses `fetch` or `node:child_process`. When it runs out, Superhex aborts its
      * requests and ends every program it started.
      */
     readonly timeout?: number
@@ -208,7 +208,7 @@ declare module "@hex/commands" {
   ): typeof config
 }
 
-/** Writes to Hex's log. */
+/** Writes to Superhex's log. */
 interface Console {
   log(...values: unknown[]): void
   info(...values: unknown[]): void
@@ -219,7 +219,7 @@ interface Console {
 declare var console: Console
 
 // Host APIs. `fetch` and `node:child_process` work only after the person
-// allows this exact config in Hex's Output pane; Hex asks again whenever a
+// allows this exact config in Superhex's Output pane; Superhex asks again whenever a
 // file changes. Docs: https://anoma.ly/hex/docs/transforms
 
 type HeadersInit = Headers | readonly (readonly [string, string])[] | Readonly<Record<string, string>>
@@ -298,14 +298,14 @@ declare module "node:child_process" {
   export interface ExecOptions {
     /** Defaults to the config folder. */
     readonly cwd?: string
-    /** Added to a minimal environment (PATH, HOME, locale, temp folder), not Hex's. */
+    /** Added to a minimal environment (PATH, HOME, locale, temp folder), not Superhex's. */
     readonly env?: Readonly<Record<string, string | undefined>>
-    /** Milliseconds before Hex sends SIGTERM to the program and its children. */
+    /** Milliseconds before Superhex sends SIGTERM to the program and its children. */
     readonly timeout?: number
     /** Bytes of stdout or stderr to keep; 1 MiB by default, 16 MiB at most. */
     readonly maxBuffer?: number
     readonly signal?: AbortSignal
-    /** Hex's addition: written to stdin, which is then closed. Without it stdin is empty. */
+    /** Superhex's addition: written to stdin, which is then closed. Without it stdin is empty. */
     readonly input?: string
   }
 

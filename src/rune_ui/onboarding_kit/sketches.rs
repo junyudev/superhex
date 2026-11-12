@@ -1,4 +1,4 @@
-//! "Watch another one": short `"Without Hex"` sketches for a slow download.
+//! "Watch another one": short `"Without Superhex"` sketches for a slow download.
 //!
 //! Everyone gets the same opener. When the speech model is still
 //! downloading on `"Almost ready"`, a button beside the download's bar plays
@@ -183,7 +183,7 @@ pub(super) fn hold(s: &mut Onboard, now: f64) -> Option<f64> {
     None
 }
 
-/// The playing sketch's lead, under `"Without Hex"`.
+/// The playing sketch's lead, under `"Without Superhex"`.
 pub(super) fn lead(s: &Onboard) -> Option<&'static str> {
     on(s).map(|p| p.scene.script().lead)
 }

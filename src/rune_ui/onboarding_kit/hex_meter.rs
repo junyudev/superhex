@@ -1,6 +1,6 @@
-//! The Hex mark: a thin single-hexagon outline matching Round 3 of the icon
+//! The Superhex mark: a thin single-hexagon outline matching Round 3 of the icon
 //! (`t573`, Hairline), built from one swappable [`HexGlyphSpec`], and the
-//! full three-hexagon logo `"Hex is ready"` builds.
+//! full three-hexagon logo `"Superhex is ready"` builds.
 
 use rune::{El, LineCap, Shape, canvas};
 
@@ -151,7 +151,7 @@ pub(crate) fn hex_meter(p: Paint, key: &str, size: f32, progress: f32, closed: f
         .label(format!("{}%", (progress.clamp(0.0, 1.0) * 100.0).round()))
 }
 
-/// When each of the logo's hexagons lands on `"Hex is ready"`, outside in,
+/// When each of the logo's hexagons lands on `"Superhex is ready"`, outside in,
 /// in seconds after the page appears; each sounds one rising note.
 pub(crate) const BUILD_AT: [f64; 3] = [0.0, 0.15, 0.30];
 /// When the last hexagon has settled.
@@ -213,7 +213,7 @@ fn rounded_hex(centre: Point, radius: f32, corner: f32) -> Vec<Point> {
     pts
 }
 
-/// The Hex logo for `"Hex is ready"`, built outside in `age` seconds after
+/// The Superhex logo for `"Superhex is ready"`, built outside in `age` seconds after
 /// the page appears: the outline, the middle line, then the filled centre,
 /// each springing in from just beyond its place. `handed`: the outline
 /// arrives from the download pill already drawn. Reduced Motion shows it
@@ -254,7 +254,7 @@ pub(crate) fn hex_logo(
         let core = rounded_hex(centre, INNER * half * scale, line * 0.75);
         shape = shape.fill(core, p.text().alpha(shown));
     }
-    canvas(shape).key(key).size(total, total).label("Hex")
+    canvas(shape).key(key).size(total, total).label("Superhex")
 }
 
 fn meter_shape(p: Paint, size: f32, progress: f32, closed: f32) -> Shape {

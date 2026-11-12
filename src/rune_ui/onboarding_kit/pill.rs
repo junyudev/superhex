@@ -1,8 +1,8 @@
 //! The download pill and the inline language capsule button.
 //!
 //! [`pill`] carries [`PILL`] as a shared element, so the centerpiece loader on
-//! `"Setting up Hex"` flies smoothly up to the top bar during the demo and
-//! permissions, then back to centre stage for `"Hex is ready"`.
+//! `"Setting up Superhex"` flies smoothly up to the top bar during the demo and
+//! permissions, then back to centre stage for `"Superhex is ready"`.
 
 use crate::desktop::i18n::{tr, tr_named};
 use rune::{Align, El, Spring, Transition, el, icon, row, text};

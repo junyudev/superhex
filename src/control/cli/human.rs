@@ -32,7 +32,7 @@ pub(crate) fn print(reply: ControlReply, output: Output) -> u8 {
         ControlReply::ScrawlCaptureDetail(detail) => print!("{}", human_capture_detail(&detail)),
         ControlReply::ScrawlCaptureRoute { explanation } => print!("{explanation}"),
         ControlReply::Transcript { text } => println!("{text}"),
-        ControlReply::Error { message, .. } => eprintln!("hex: {message}"),
+        ControlReply::Error { message, .. } => eprintln!("superhex: {message}"),
     }
     code
 }
@@ -93,7 +93,7 @@ pub(super) fn human_captures(captures: &[crate::control::ScrawlCaptureSummary]) 
         .collect()
 }
 
-/// `1792933491953.scrawl  2026-10-26 14:02  0:04  window · Brave  12 words  → Hex`
+/// `1792933491953.scrawl  2026-10-26 14:02  0:04  window · Brave  12 words  → Superhex`
 pub(super) fn capture_line(capture: &crate::control::ScrawlCaptureSummary) -> String {
     let seconds = capture.duration_ms / 1_000;
     let mut line = format!(
@@ -153,7 +153,7 @@ pub(super) fn human_capture_detail(detail: &crate::control::ScrawlCaptureDetail)
     out
 }
 
-/// `2026-10-26 14:02` in local time where Hex knows it.
+/// `2026-10-26 14:02` in local time where Superhex knows it.
 pub(super) fn local_minute(ms: u64) -> String {
     let iso = crate::meeting::query::iso_local(ms);
     iso.get(..16)
@@ -246,7 +246,7 @@ pub(super) fn human_models(models: &[ModelInfo]) -> String {
 
 pub(super) fn human_vocabulary(entries: &[VocabularyEntry]) -> String {
     if entries.is_empty() {
-        return "The vocabulary is empty; `hex vocabulary add <term>` adds one\n".into();
+        return "The vocabulary is empty; `superhex vocabulary add <term>` adds one\n".into();
     }
     entries
         .iter()
@@ -307,6 +307,11 @@ pub(super) fn human_status(report: &StatusReport) -> String {
         _ if report.features.meetings => report.meeting.state.clone(),
         _ => "off".into(),
     };
+    let backend = match report.dictation.backend {
+        crate::dictation::backend::DictationBackend::VoiceBuddy => "VoiceBuddy",
+        crate::dictation::backend::DictationBackend::Local => "Local",
+    };
+    let voice_buddy_setup = &report.dictation.voice_buddy_setup;
     let model = &report.model;
     let mut model_line = format!(
         "{} ({}){}",
@@ -361,10 +366,11 @@ pub(super) fn human_status(report: &StatusReport) -> String {
         _ => "closed".into(),
     };
     format!(
-        "Hex {} (pid {}{memory})\n\
+        "Superhex {} (pid {}{memory})\n\
          Listener     {}\n\
          Capture      {capture}{pending}\n\
          Meeting      {meeting}\n\
+         Dictation    {backend} (VoiceBuddy: {voice_buddy_setup})\n\
          Model        {model_line}\n\
          Features     meetings {}, release mic while idle {}, history {}\n\
          Permissions  {permission_line}\n\

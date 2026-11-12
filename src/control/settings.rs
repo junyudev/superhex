@@ -1,4 +1,4 @@
-//! The `hex settings` registry: one key per persisted setting, named by its
+//! The `superhex settings` registry: one key per persisted setting, named by its
 //! dotted path in `settings.json`, with the same rules and side effects the
 //! window applies when you change it there.
 
@@ -17,7 +17,7 @@ use hotkeys::check_shortcut;
 pub use hotkeys::{format_hotkey, parse_hotkey};
 use registry::{CAPTURE_KEYS, KEYS, Key, Kind, RETIRED, needs};
 
-/// One setting as `hex settings get` reports it.
+/// One setting as `superhex settings get` reports it.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SettingValue {
     pub key: String,
@@ -28,7 +28,7 @@ pub struct SettingValue {
     pub choices: Vec<String>,
     pub writable: bool,
     pub about: String,
-    /// False where this OS's Hex lacks what the setting needs ([`needs`]):
+    /// False where this OS's Superhex lacks what the setting needs ([`needs`]):
     /// it is kept, but does nothing here and `set` refuses it.
     #[serde(default = "available")]
     pub available: bool,
@@ -38,7 +38,7 @@ fn available() -> bool {
     true
 }
 
-/// Why `hex settings set` refuses `name` on this OS, if it does.
+/// Why `superhex settings set` refuses `name` on this OS, if it does.
 pub fn unavailable(name: &str) -> Option<ControlError> {
     unavailable_under(name, crate::policy::Policy::current())
 }
@@ -81,7 +81,7 @@ fn unavailable_under(name: &str, policy: crate::policy::Policy) -> Option<Contro
     Some(ControlError::new(
         "unsupported",
         format!(
-            "`{name}` does nothing on this OS: it needs {capability}, which Hex has only elsewhere"
+            "`{name}` does nothing on this OS: it needs {capability}, which Superhex has only elsewhere"
         ),
     ))
 }
@@ -98,11 +98,11 @@ fn keys() -> impl Iterator<Item = &'static Key> {
     KEYS.iter().chain(CAPTURE_KEYS)
 }
 
-/// Settings `hex settings` never shows: Hex's own bookkeeping.
+/// Settings `superhex settings` never shows: Superhex's own bookkeeping.
 #[cfg(test)]
-const INTERNAL: &[&str] = &["migrations", "mouse_shortcut_notice", "labs.groups"];
+const INTERNAL: &[&str] = &["migrations", "labs.groups"];
 
-/// Settings another `hex` command edits instead (`hex vocabulary`).
+/// Settings another `hex` command edits instead (`superhex vocabulary`).
 #[cfg(test)]
 const OWN_COMMAND: &[&str] = &["vocabulary"];
 
@@ -155,7 +155,7 @@ fn recognition_hints(settings: &AppSettings) -> SettingValue {
         kind: Kind::Text.name().into(),
         choices: Vec::new(),
         writable: true,
-        about: "Deprecated: the vocabulary's terms; setting it adds names to the vocabulary                 (use `hex vocabulary`)"
+        about: "Deprecated: the vocabulary's terms; setting it adds names to the vocabulary                 (use `superhex vocabulary`)"
             .into(),
         available: true,
     }
@@ -188,7 +188,7 @@ fn unknown(name: &str) -> ControlError {
     if let Some((_, replacement)) = RETIRED.iter().find(|(retired, _)| *retired == name) {
         return ControlError::new(
             "unknown-setting",
-            format!("`{name}` was replaced: use `hex settings set {replacement}`"),
+            format!("`{name}` was replaced: use `superhex settings set {replacement}`"),
         );
     }
     let near = keys()
@@ -202,7 +202,7 @@ fn unknown(name: &str) -> ControlError {
         .unwrap_or_default();
     ControlError::new(
         "unknown-setting",
-        format!("unknown setting `{name}`.{near} Run `hex settings list` for every key."),
+        format!("unknown setting `{name}`.{near} Run `superhex settings list` for every key."),
     )
 }
 
@@ -257,7 +257,7 @@ pub fn apply(
             settings: candidate,
             effects: Vec::new(),
             message: "Added the names to the vocabulary (transcription.recognition_hints is \
-                      deprecated; use `hex vocabulary`)"
+                      deprecated; use `superhex vocabulary`)"
                 .into(),
         });
     }
@@ -456,10 +456,10 @@ pub fn apply(
 }
 
 /// Validates every `key: value` in `values` against `settings` and returns
-/// the settings to save, all or none (`hex settings apply`, the Home Manager
+/// the settings to save, all or none (`superhex settings apply`, the Home Manager
 /// module). Values are JSON: booleans, numbers, `null` for `none`, objects
 /// and arrays for json settings, text for the rest. `transcription.model`
-/// and `transcription.language` select a model, as `hex model use` would,
+/// and `transcription.language` select a model, as `superhex model use` would,
 /// without needing it installed. Keys that depend on each other (a
 /// double-tap-only start and its shortcut) apply in any order.
 pub fn apply_all(
@@ -480,6 +480,10 @@ pub fn apply_all(
             .unwrap_or_else(|| candidate.transcription.model.as_str().to_owned());
         let language = text("transcription.language", language)?;
         candidate.transcription = super::model_selection(&candidate, &model, language.as_deref())?;
+        #[cfg(target_os = "macos")]
+        if !values.contains_key("dictation_backend") {
+            candidate.dictation_backend = crate::dictation::backend::DictationBackend::Local;
+        }
     }
     let mut pending = Vec::new();
     for (name, value) in values {
@@ -685,6 +689,7 @@ mod tests {
                 key: Some(HotkeyKey {
                     code,
                     label: label.into(),
+                    native_mouse: None,
                 }),
             }
         };
@@ -740,22 +745,27 @@ mod tests {
         ShortcutRules {
             key_named: |name| match name.to_ascii_lowercase().as_str() {
                 "space" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 49,
                     label: "Space".into(),
                 }),
                 "f5" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 96,
                     label: "F5".into(),
                 }),
                 "left" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 123,
                     label: "Left".into(),
                 }),
                 "menu" => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: 0,
                     label: "Menu".into(),
                 }),
                 name if name.chars().count() == 1 => Ok(HotkeyKey {
+                    native_mouse: None,
                     code: u16::from(name.as_bytes()[0]),
                     label: name.to_uppercase(),
                 }),
@@ -781,8 +791,8 @@ mod tests {
         }
     }
 
-    /// Fails when a persisted setting has no `hex settings` key: add one to
-    /// `KEYS` (or to `INTERNAL` if it is Hex's own bookkeeping, or to
+    /// Fails when a persisted setting has no `superhex settings` key: add one to
+    /// `KEYS` (or to `INTERNAL` if it is Superhex's own bookkeeping, or to
     /// `OWN_COMMAND` if another `hex` command edits it).
     #[test]
     fn every_persisted_setting_has_a_cli_key() {
@@ -812,7 +822,7 @@ mod tests {
                 .any(|key| path == key || path.starts_with(&format!("{key}.")));
             assert!(
                 covered,
-                "settings.json has `{path}`, which `hex settings` can't name"
+                "settings.json has `{path}`, which `superhex settings` can't name"
             );
         }
         for key in keys() {
@@ -1559,6 +1569,27 @@ mod tests {
         assert!(parse_hotkey("option+mouse1", named).is_ok());
         assert!(parse_hotkey("mouse2", named).is_ok());
         assert!(parse_hotkey("mouse4", named).is_ok());
+    }
+
+    #[test]
+    fn graduated_mouse_shortcuts_are_cli_settings_without_a_labs_switch() {
+        let named: fn(&str) -> Result<HotkeyKey, String> = |name| Ok(HotkeyKey::named(name));
+        let rules = ShortcutRules {
+            key_named: named,
+            ..rules()
+        };
+        let settings = AppSettings::default();
+        assert!(get(&settings, "labs.mouse_shortcuts").is_err());
+        for text in ["mouse4", "option+mouse5@6421:44572"] {
+            let updated = apply(&settings, "dictation_hotkey", text, &rules)
+                .unwrap()
+                .settings;
+            assert_eq!(format_hotkey(&updated.dictation_hotkey), text);
+            assert_eq!(parse_hotkey(text, named).unwrap(), updated.dictation_hotkey);
+        }
+        for text in ["mouse2@6421:44572", "mouse5@65536:1", "mouse5@1:bad"] {
+            assert!(parse_hotkey(text, named).is_err());
+        }
     }
 
     #[test]

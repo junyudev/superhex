@@ -1,7 +1,7 @@
 //! Vocabulary: a sheet from General's Vocabulary row with one row per term
 //! and its "sounds like" spellings, edited in place and saved when typing
 //! pauses, like a mode's corrections. The boost has no control here; it
-//! stays a setting (`hex settings set vocabulary_boost`).
+//! stays a setting (`superhex settings set vocabulary_boost`).
 
 use rune::tok::motion::{SETTLE, SETTLE_EXIT};
 use rune::{El, SpringPair, TextEdit, Transition, Tx, col, edit_access, el, row, text};
@@ -103,7 +103,7 @@ impl VocabularyEditor {
     }
 
     /// The rows as saved entries: blank terms are left out and repeated
-    /// terms merge, as `hex vocabulary add` does.
+    /// terms merge, as `superhex vocabulary add` does.
     pub(super) fn project(&self) -> Vec<VocabularyEntry> {
         self.projection().0
     }
@@ -140,6 +140,12 @@ pub(super) fn summary(ui: &Ui) -> String {
 /// none (Parakeet biases toward it; Whisper and Qwen3-ASR read it as a
 /// prompt).
 pub(super) fn unused_note(ui: &Ui) -> Option<String> {
+    if super::voice_buddy::in_effect(ui) {
+        return Some(tr_fill(
+            "{} doesn't use these terms; rewriting and search still do",
+            tr("VoiceBuddy"),
+        ));
+    }
     let model = crate::transcription::models::definition(ui.settings.transcription.model);
     (!model.uses_vocabulary()).then(|| {
         tr_fill(

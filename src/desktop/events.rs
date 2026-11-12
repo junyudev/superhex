@@ -122,7 +122,7 @@ pub enum DictationPhase {
     /// The paste shortcut was sent. No platform confirms that the focused
     /// application accepted it, so this does not prove the text landed.
     Pasted,
-    /// `hex dictation stop --print` received the text instead of a paste.
+    /// `superhex dictation stop --print` received the text instead of a paste.
     Printed,
     Edited,
     VoiceAction,

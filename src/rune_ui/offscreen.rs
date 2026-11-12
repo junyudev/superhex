@@ -1,4 +1,4 @@
-//! Renders drawn as Hex's windows and overlays draw them, for tests and the
+//! Renders drawn as Superhex's windows and overlays draw them, for tests and the
 //! screenshot editor's export: sRGB blending into a non-sRGB target. Theme
 //! colours resolve for the blend mode when the view is built, so a runtime
 //! turns it on before its first frame.

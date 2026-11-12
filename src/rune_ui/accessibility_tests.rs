@@ -20,6 +20,10 @@ fn runtime(scene: &str) -> Runtime<Ui> {
         .find(|(name, _)| *name == scene)
         .unwrap_or_else(|| panic!("no scene {scene}"));
     apply(&mut state);
+    // The local model picker is what these tests reach. With VoiceBuddy
+    // chosen (macOS's default), General shows its status row instead, so
+    // the picker is absent by design; select the local backend here.
+    state.settings.dictation_backend = crate::dictation::backend::DictationBackend::Local;
     let env = Env {
         system_dark: true,
         scale: 2.0,

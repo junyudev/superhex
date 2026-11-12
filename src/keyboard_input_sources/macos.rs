@@ -206,7 +206,7 @@ impl Watcher {
             mtm,
         };
         // SAFETY: the boxed flags have a stable address and outlive registration.
-        // 4 = DeliverImmediately, including when Hex is in the background.
+        // 4 = DeliverImmediately, including when Superhex is in the background.
         unsafe {
             CFNotificationCenterAddObserver(
                 CFNotificationCenterGetDistributedCenter(),

@@ -1,6 +1,6 @@
 //! macOS' proxy for a URL: CFNetwork applies the network's proxy settings
 //! and their exceptions list (`CFNetworkCopyProxiesForURL`). A PAC file
-//! (automatic proxy configuration) isn't evaluated: Hex passes over it to the
+//! (automatic proxy configuration) isn't evaluated: Superhex passes over it to the
 //! next HTTP or HTTPS entry, so a PAC-only network needs `HTTPS_PROXY`.
 
 use std::ffi::{c_char, c_void};
@@ -84,7 +84,7 @@ pub(super) fn proxy(url: &str) -> Option<String> {
             return None;
         }
         // The entries in the order macOS would try them (#1235): a PAC
-        // entry Hex can't evaluate is passed over for the next one.
+        // entry Superhex can't evaluate is passed over for the next one.
         let mut entries = Vec::new();
         for index in 0..CFArrayGetCount(proxies.0) {
             let entry = CFArrayGetValueAtIndex(proxies.0, index);

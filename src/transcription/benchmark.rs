@@ -162,7 +162,7 @@ fn ratio(numerator: usize, denominator: usize) -> Option<f64> {
 }
 
 /// Ignore case and internal spacing, but never match a substring of a word.
-/// Thus OpenCode == open code, while Hex != hexadecimal and Kit != toolkit.
+/// Thus OpenCode == open code, while Superhex != hexadecimal and Kit != toolkit.
 fn term_count(text: &str, term: &str) -> usize {
     let target = normalized_words(term).concat();
     if target.is_empty() {
@@ -613,7 +613,10 @@ mod tests {
     #[test]
     fn vocabulary_scoring_respects_word_boundaries_and_counts_insertions() {
         assert_eq!(term_count("Use OPEN CODE and OpenCode.", "OpenCode"), 2);
-        assert_eq!(term_count("hexadecimal toolkit effects runes", "Hex"), 0);
+        assert_eq!(
+            term_count("hexadecimal toolkit effects runes", "Superhex"),
+            0
+        );
         assert_eq!(term_count("hexadecimal toolkit effects runes", "Kit"), 0);
         assert_eq!(term_count("a rune carved in stone", "Rune"), 1);
         let clip = Clip {
@@ -627,8 +630,8 @@ mod tests {
         let mut quality = Quality::default();
         quality.record(
             &clip,
-            "Tom Hex found a rune",
-            &["Hex".into(), "Rune".into()],
+            "Tom Superhex found a rune",
+            &["Superhex".into(), "Rune".into()],
         );
         assert_eq!(quality.false_replacements, 1);
         assert_eq!(quality.clips_with_false_replacements, 1);

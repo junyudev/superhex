@@ -50,12 +50,6 @@ pub fn screen_vocabulary() -> bool {
     SCREEN_VOCABULARY.load(Ordering::Acquire) && Feature::ScreenVocabulary.on_this_os()
 }
 
-/// Mouse buttons may be recorded as shortcuts (macOS).
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub fn mouse_shortcuts() -> bool {
-    on(MOUSE_SHORTCUTS)
-}
-
 /// A finished Annotate capture copies to the clipboard as one light zip file
 /// rather than its image and summary (read where a written capture is copied).
 #[cfg_attr(not(hex_capture), allow(dead_code))]

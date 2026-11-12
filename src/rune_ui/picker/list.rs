@@ -141,10 +141,11 @@ fn fold(p: Paint, count: usize, language: &str, open: bool, first: bool) -> El {
     let label = if language == AUTO_LANGUAGE {
         tr_fill("{} more that can't detect the language", &count.to_string())
     } else {
+        let count = count.to_string();
         tr_named(
             "{count} more that don't speak {language}",
             &[
-                ("count", &count.to_string()),
+                ("count", count.as_str()),
                 ("language", language_name(language)),
             ],
         )

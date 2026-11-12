@@ -1,5 +1,5 @@
 //! Keyboard layouts (HKLs) as input sources. Windows keeps a layout per
-//! thread, so the current source is the foreground window's. Hex reads them
+//! thread, so the current source is the foreground window's. Superhex reads them
 //! only while keyboard model switching is on.
 
 use windows_sys::Win32::Globalization::{

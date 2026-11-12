@@ -70,21 +70,21 @@ pactl info >/dev/null
 cc "$root/tests/fixtures/wayland-paste-target.c" $(pkg-config --cflags --libs gtk+-3.0) -o "$work/target"
 "$work/target" "$work/pasted.txt" >"$work/target.log" 2>&1 &
 target=$!
-window=$(xdotool search --sync --name '^Hex Wayland Test$' | head -n 1)
+window=$(xdotool search --sync --name '^Superhex Wayland Test$' | head -n 1)
 xdotool windowfocus --sync "$window"
 "$binary" service >"$work/listener.log" 2>&1 &
 listener=$!
 echo 'Waiting for the model and virtual microphone...'
 for ((attempt = 0; attempt < 1200; attempt++)); do
   kill -0 "$listener"
-  if grep -q 'Hex dictation is ready' "$work/listener.log"; then break; fi
+  if grep -q 'Superhex dictation is ready' "$work/listener.log"; then break; fi
   sleep 0.05
 done
-grep -q 'Hex dictation is ready' "$work/listener.log"
-# A second launch forwards to the running Hex, which opens its window; the
+grep -q 'Superhex dictation is ready' "$work/listener.log"
+# A second launch forwards to the running Superhex, which opens its window; the
 # complete dictation below runs beside it in the same process.
 "$binary" app >"$work/app.log" 2>&1
-xdotool search --sync --onlyvisible --all --pid "$listener" --name '^Hex$' >/dev/null
+xdotool search --sync --onlyvisible --all --pid "$listener" --name '^Superhex$' >/dev/null
 kill -0 "$listener"
 # Holds the shortcut over the speech, then waits until the target holds
 # `$1` transcripts of it.
@@ -117,7 +117,7 @@ HEX_STREAMING=1 "$binary" service >"$work/stream.log" 2>&1 &
 listener=$!
 for ((attempt = 0; attempt < 1200; attempt++)); do
   kill -0 "$listener"
-  if grep -q 'Hex dictation is ready' "$work/stream.log"; then break; fi
+  if grep -q 'Superhex dictation is ready' "$work/stream.log"; then break; fi
   sleep 0.05
 done
 grep -q 'streaming transcription is available' "$work/stream.log"

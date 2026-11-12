@@ -224,9 +224,9 @@ pub fn hit_test(x: f64, y: f64) -> Option<Hit> {
                     && y <= wy + wh
             })?
             .pid;
-        // Over the host's own normal window (Hex's Settings), `element` may still be its
+        // Over the host's own normal window (Superhex's Settings), `element` may still be its
         // chrome's (the capsule panel above it): AX finds elements by position per app, not
-        // per window. Unused in Hex, whose agent context is off.
+        // per window. Unused in Superhex, whose agent context is off.
         if pid != own {
             let app = Owned(unsafe { AXUIElementCreateApplication(pid) });
             unsafe { AXUIElementSetMessagingTimeout(app.0, MESSAGE_TIMEOUT_S) };

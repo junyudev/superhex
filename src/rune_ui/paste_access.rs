@@ -1,5 +1,5 @@
 //! The desktop's paste permission on Wayland desktops without a virtual
-//! keyboard (GNOME, KDE): Hex sends its paste shortcut through the
+//! keyboard (GNOME, KDE): Superhex sends its paste shortcut through the
 //! RemoteDesktop portal, whose dialog asks once (#932). Onboarding and
 //! Settings explain it and ask before a paste would, so the dialog never
 //! shows unexplained.

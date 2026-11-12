@@ -1,4 +1,4 @@
-//! `"Hex is ready"`'s Launch at login ask: one button that turns the real
+//! `"Superhex is ready"`'s Launch at login ask: one button that turns the real
 //! login item on (`SMAppService` on macOS) and pops into a check, with a
 //! line that changes its tune once it is on.
 

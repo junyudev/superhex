@@ -16,7 +16,7 @@ use crate::durable::{sync_directory, sync_file};
 
 const SAMPLE_RATE: u32 = 16_000;
 const TRANSCRIPT_TURN_GAP_MS: u64 = 3_000;
-/// Beside the manifest of a meeting Hex quit while recording or during its
+/// Beside the manifest of a meeting Superhex quit while recording or during its
 /// final transcription: its audio is
 /// saved and its final transcript runs at the next launch.
 const FINAL_PENDING_FILE: &str = "final.pending";
@@ -105,7 +105,7 @@ pub struct MeetingStart {
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TitleSource {
-    /// The app-and-time title Hex made up.
+    /// The app-and-time title Superhex made up.
     #[default]
     Default,
     /// The detected call's own name, such as a browser tab's.
@@ -213,7 +213,7 @@ pub struct MeetingManifest {
     /// kept 24 hours by default. Older meetings stay until then.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub retention_applies: bool,
-    /// SHA-256 of the exported Markdown as Hex last wrote it. Expiry moves
+    /// SHA-256 of the exported Markdown as Superhex last wrote it. Expiry moves
     /// that file to the Trash only while it still matches, so a copy the
     /// user edited stays.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -611,7 +611,7 @@ pub fn record(
             write_manifest(&meeting_dir, &manifest)?;
             tracing::info!(
                 meeting = manifest.id,
-                "Hex quit while recording; the transcript finishes at the next launch"
+                "Superhex quit while recording; the transcript finishes at the next launch"
             );
             return Ok(manifest);
         }
@@ -971,7 +971,7 @@ fn transcribe(
     Ok(())
 }
 
-/// Meetings Hex left with `final.pending` (quit while recording or
+/// Meetings Superhex left with `final.pending` (quit while recording or
 /// importing), oldest first.
 pub fn pending_final_transcripts() -> Vec<String> {
     let Ok(entries) = root().and_then(|root| Ok(fs::read_dir(root)?)) else {
@@ -986,7 +986,7 @@ pub fn pending_final_transcripts() -> Vec<String> {
     ids
 }
 
-/// Transcribes and publishes a meeting left with `final.pending` (Hex quit
+/// Transcribes and publishes a meeting left with `final.pending` (Superhex quit
 /// while recording or importing), as Stop would have. `None` when it is no
 /// longer pending or another process holds it. Quitting again, or a missing
 /// model, leaves it pending for the next launch; any other failure keeps it

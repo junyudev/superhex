@@ -418,7 +418,7 @@ impl AudioInput {
     }
 
     /// The OS's default input, or a real one standing in when the default is
-    /// Hex Microphone or missing.
+    /// Superhex Microphone or missing.
     #[cfg(target_os = "windows")]
     pub fn open_system_default() -> Result<Self> {
         match open_configured_input(&OpenRequest {
@@ -488,7 +488,7 @@ impl AudioInput {
         })
     }
 
-    /// Whether this stream's audio feeds Hex Microphone. Only the dictation
+    /// Whether this stream's audio feeds Superhex Microphone. Only the dictation
     /// listener's current input does; a meeting's second stream on the same
     /// microphone must not.
     pub fn feed_hex_microphone(&self, on: bool) {
@@ -678,7 +678,7 @@ impl RecoveringAudioInput {
     #[cfg(test)]
     pub fn pending_for_test() -> (Self, Sender<InputOpenResult>) {
         let mut input = Self::closed(
-            Some("Hex nonexistent microphone for pending open test"),
+            Some("Superhex nonexistent microphone for pending open test"),
             0,
             None,
         );
@@ -719,7 +719,7 @@ impl RecoveringAudioInput {
     }
 
     /// Makes `input` the listener's microphone and the only stream feeding
-    /// Hex Microphone, stopping the previous stream first.
+    /// Superhex Microphone, stopping the previous stream first.
     fn install(&mut self, input: AudioInput) {
         self.retire_input();
         input.feed_hex_microphone(true);
@@ -1028,7 +1028,7 @@ enum InputTarget {
     Named(usize),
     /// The OS's default input.
     SystemDefault,
-    /// A real input standing in for a default that is Hex Microphone, the
+    /// A real input standing in for a default that is Superhex Microphone, the
     /// built-in microphone with the lid closed, a passed-over Bluetooth
     /// headset, or missing: the built-in microphone while the lid is open,
     /// else the first usable one listed, never a virtual input or an
@@ -1055,9 +1055,9 @@ struct InputPlan {
     selection: Selection,
 }
 
-/// Resolves the input Hex captures from: `--device` exactly as named, else
-/// the saved microphone while it is listed, else the system default. Hex
-/// never captures from its own virtual microphone, so a default that is Hex
+/// Resolves the input Superhex captures from: `--device` exactly as named, else
+/// the saved microphone while it is listed, else the system default. Superhex
+/// never captures from its own virtual microphone, so a default that is Superhex
 /// Microphone (or none) falls back to a real input. With the lid closed, the
 /// built-in microphone is switched off in hardware though still listed, so
 /// it is passed over the same way. With `avoid_bluetooth`, a Bluetooth
@@ -1082,7 +1082,7 @@ fn resolve_input(
     if let Some(name) = device_override {
         if is_hex(name) {
             return Err(format!(
-                "Hex cannot capture from its own virtual microphone: {name}"
+                "Superhex cannot capture from its own virtual microphone: {name}"
             ));
         }
         return position(name)
@@ -1252,7 +1252,7 @@ fn open_configured_input(request: &OpenRequest) -> Result<Opened> {
                 using = %name,
                 lid_closed = route.lid_closed,
                 avoid_bluetooth = route.avoid_bluetooth,
-                "the system default input is Hex Microphone, off with the lid closed, Bluetooth, or missing; using another microphone"
+                "the system default input is Superhex Microphone, off with the lid closed, Bluetooth, or missing; using another microphone"
             );
         }
         match plan.selection {
@@ -1364,7 +1364,7 @@ fn open_selected<T>(
     open_default()
 }
 
-/// The inputs Settings offers, without Hex Microphone, and what System
+/// The inputs Settings offers, without Superhex Microphone, and what System
 /// default currently resolves to.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct InputDevices {
@@ -1372,7 +1372,7 @@ pub struct InputDevices {
     /// The input System default captures from. Linux's ALSA default has no
     /// useful name, so it is `None` there.
     pub system_default: Option<String>,
-    /// The OS default is Hex Microphone, so `system_default` stands in.
+    /// The OS default is Superhex Microphone, so `system_default` stands in.
     pub default_is_hex_microphone: bool,
     /// The internal microphone, listed but off because the lid is closed. A
     /// headphone-jack microphone stays usable and is never named here.
@@ -1475,7 +1475,7 @@ struct StreamErrorReporter {
 impl StreamErrorReporter {
     fn report(&self, error: cpal::Error) {
         // WASAPI reports a default-input change as invalidation, yet the
-        // stream keeps capturing the old device. Hex switches once capture is
+        // stream keeps capturing the old device. Superhex switches once capture is
         // idle rather than failing a recording.
         #[cfg(target_os = "windows")]
         if error.kind() == cpal::ErrorKind::StreamInvalidated
@@ -1624,7 +1624,7 @@ mod tests {
         use InputTarget::{Named, StandIn, SystemDefault};
         use Transport::{Bluetooth, BuiltIn, Other};
         let names = listed(&[
-            "Hex Microphone",
+            "Superhex Microphone",
             "AirPods Pro",
             "MacBook Pro Microphone",
             "USB Mic",
@@ -1685,15 +1685,15 @@ mod tests {
             plan(None, Some("AirPods Pro"), closed),
             found(StandIn(3), Selection::InUse)
         );
-        // A Hex Microphone default prefers a wired input to Bluetooth too.
-        let no_built_in = listed(&["Hex Microphone", "AirPods Pro", "USB Mic"]);
+        // A Superhex Microphone default prefers a wired input to Bluetooth too.
+        let no_built_in = listed(&["Superhex Microphone", "AirPods Pro", "USB Mic"]);
         let no_built_in_transports = [Other, Bluetooth, Other];
         assert_eq!(
             resolve_input(
                 None,
                 None,
                 &no_built_in,
-                Some("Hex Microphone"),
+                Some("Superhex Microphone"),
                 |index| no_built_in_transports[index],
                 avoid
             ),
@@ -1750,7 +1750,7 @@ mod tests {
             })
         };
 
-        let only_bluetooth = listed(&["Hex Microphone", "AirPods Pro", "Beats"]);
+        let only_bluetooth = listed(&["Superhex Microphone", "AirPods Pro", "Beats"]);
         let bluetooth = |index: usize| [Other, Bluetooth, Bluetooth][index];
         assert_eq!(
             resolve_input(
@@ -1834,15 +1834,15 @@ mod tests {
             ),
             found(SystemDefault, Selection::InUse)
         );
-        // Only Hex Microphone and a virtual input: nothing to record from.
-        let virtual_only = listed(&["Hex Microphone", "Microsoft Teams Audio"]);
+        // Only Superhex Microphone and a virtual input: nothing to record from.
+        let virtual_only = listed(&["Superhex Microphone", "Microsoft Teams Audio"]);
         let virtual_transports = |index: usize| [Virtual, Virtual][index];
         assert_eq!(
             resolve_input(
                 None,
                 None,
                 &virtual_only,
-                Some("Hex Microphone"),
+                Some("Superhex Microphone"),
                 virtual_transports,
                 OPEN
             ),
@@ -1995,7 +1995,7 @@ mod tests {
     fn inputs_resolve_to_the_selection_then_the_system_default() {
         use InputTarget::{Named, StandIn, SystemDefault};
         let names = listed(&[
-            "Hex Microphone",
+            "Superhex Microphone",
             "ALEX PODS",
             "MacBook Pro Microphone",
             "USB Mic",
@@ -2020,22 +2020,23 @@ mod tests {
             plan(Some("Studio Display Microphone"), Some("ALEX PODS")),
             found(SystemDefault, Selection::Unlisted)
         );
-        // A Hex Microphone default never loops back: the built-in mic stands in.
+        // A Superhex Microphone default never loops back: the built-in mic stands in.
         assert_eq!(
-            plan(None, Some("Hex Microphone")),
+            plan(None, Some("Superhex Microphone")),
             found(StandIn(2), Selection::InUse)
         );
         assert_eq!(
-            plan(Some("Gone"), Some("Hex Microphone")),
+            plan(Some("Gone"), Some("Superhex Microphone")),
             found(StandIn(2), Selection::Unlisted)
         );
         // Without a built-in mic or any default, the first real input stands in.
-        let no_built_in = resolve_input(None, None, &names, Some("Hex Microphone"), other, OPEN);
+        let no_built_in =
+            resolve_input(None, None, &names, Some("Superhex Microphone"), other, OPEN);
         assert_eq!(no_built_in, found(StandIn(1), Selection::InUse));
         assert_eq!(plan(None, None), found(StandIn(2), Selection::InUse));
-        // A saved Hex Microphone is never captured from.
+        // A saved Superhex Microphone is never captured from.
         assert_eq!(
-            plan(Some("Hex Microphone"), Some("ALEX PODS")),
+            plan(Some("Superhex Microphone"), Some("ALEX PODS")),
             found(SystemDefault, Selection::InUse)
         );
         // No real inputs at all.
@@ -2043,8 +2044,8 @@ mod tests {
             resolve_input(
                 None,
                 None,
-                &listed(&["Hex Microphone"]),
-                Some("Hex Microphone"),
+                &listed(&["Superhex Microphone"]),
+                Some("Superhex Microphone"),
                 &built_in,
                 OPEN
             ),
@@ -2071,7 +2072,7 @@ mod tests {
     fn a_closed_lid_passes_over_the_built_in_microphone() {
         use InputTarget::{Named, StandIn, SystemDefault};
         let names = listed(&[
-            "Hex Microphone",
+            "Superhex Microphone",
             "MacBook Pro Microphone",
             "Studio Display Microphone",
             "USB Mic",
@@ -2086,9 +2087,9 @@ mod tests {
             closed(None, Some("MacBook Pro Microphone")),
             found(StandIn(2), Selection::InUse)
         );
-        // So does a Hex Microphone or missing default: never the built-in.
+        // So does a Superhex Microphone or missing default: never the built-in.
         assert_eq!(
-            closed(None, Some("Hex Microphone")),
+            closed(None, Some("Superhex Microphone")),
             found(StandIn(2), Selection::InUse)
         );
         assert_eq!(closed(None, None), found(StandIn(2), Selection::InUse));
@@ -2127,8 +2128,12 @@ mod tests {
             found(SystemDefault, Selection::InUse)
         );
         // With nothing else to use, say why rather than record silence.
-        let only_built_in = listed(&["Hex Microphone", "MacBook Pro Microphone"]);
-        for default in [Some("MacBook Pro Microphone"), Some("Hex Microphone"), None] {
+        let only_built_in = listed(&["Superhex Microphone", "MacBook Pro Microphone"]);
+        for default in [
+            Some("MacBook Pro Microphone"),
+            Some("Superhex Microphone"),
+            None,
+        ] {
             assert_eq!(
                 resolve_input(None, None, &only_built_in, default, &built_in, CLOSED),
                 Err(LID_CLOSED_ERROR.into())
@@ -2149,7 +2154,7 @@ mod tests {
 
     #[test]
     fn device_override_wins_and_never_falls_back() {
-        let names = listed(&["Hex Microphone", "ALEX PODS", "USB Mic"]);
+        let names = listed(&["Superhex Microphone", "ALEX PODS", "USB Mic"]);
         let plan = |device_override| {
             resolve_input(
                 device_override,
@@ -2173,7 +2178,7 @@ mod tests {
             Err("microphone is unavailable: Missing Mic".into())
         );
         assert!(
-            plan(Some("Hex Microphone"))
+            plan(Some("Superhex Microphone"))
                 .unwrap_err()
                 .contains("its own virtual microphone")
         );
@@ -2556,7 +2561,7 @@ mod tests {
     #[test]
     fn startup_recovery_opens_even_when_a_capture_is_pending() {
         let mut input = RecoveringAudioInput::closed(
-            Some("Hex nonexistent microphone for pending recovery test"),
+            Some("Superhex nonexistent microphone for pending recovery test"),
             3,
             None,
         );

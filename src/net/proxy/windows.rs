@@ -62,7 +62,7 @@ enum Automatic {
 
 /// A PAC file's answer for `url`: the configured script, else WPAD.
 fn automatic(url: &str, script: Option<&str>, detect: bool) -> Automatic {
-    let agent = wide("Hex");
+    let agent = wide("Superhex");
     // SAFETY: a plain session handle, closed below; no proxy of its own.
     let session = unsafe {
         WinHttpOpen(

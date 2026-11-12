@@ -68,7 +68,7 @@ pub(super) struct Chapter {
     pub(super) summary: String,
     pub(super) start_ms: u64,
     /// What Copy section copies, from the same transcript lines as the menu
-    /// bar and `hex meetings show --chapter`.
+    /// bar and `superhex meetings show --chapter`.
     pub(super) markdown: String,
 }
 

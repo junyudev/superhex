@@ -1,4 +1,4 @@
-//! Hex on Windows: one tray process per login session.
+//! Superhex on Windows: one tray process per login session.
 //!
 //! - The main thread runs Rune's event loop and the window; the Rune tray
 //!   runs on its own thread.
@@ -73,11 +73,11 @@ pub(crate) enum Request {
     CancelModel,
     /// The window saved `settings.json`; adopt it.
     ReloadSettings,
-    /// The tray's Enable / Disable Hex.
+    /// The tray's Enable / Disable Superhex.
     ToggleListening,
     /// The tray's Paste last dictation, into the app its menu covered.
     PasteLast,
-    /// The window's Quit Hex: stop the listener, then end the app.
+    /// The window's Quit Superhex: stop the listener, then end the app.
     Quit,
 }
 
@@ -139,7 +139,7 @@ impl RuntimeHandle {
     pub(crate) fn send(&self, request: Request) -> Result<()> {
         self.requests
             .send(request)
-            .map_err(|_| eyre!("Hex's runtime stopped"))
+            .map_err(|_| eyre!("Superhex's runtime stopped"))
     }
 
     pub(crate) fn published(&self) -> Option<Arc<Published>> {
@@ -235,10 +235,10 @@ pub fn open(event_path: PathBuf, shutdown: &'static AtomicBool, start_hidden: bo
             };
             Some(Arc::new(tray))
         }
-        // Without a tray, closing the window quits: Hex must not run on
+        // Without a tray, closing the window quits: Superhex must not run on
         // with no way back to it.
         Err(error) => {
-            tracing::warn!(%error, "Windows system tray is unavailable; closing Hex will quit");
+            tracing::warn!(%error, "Windows system tray is unavailable; closing Superhex will quit");
             None
         }
     };
@@ -250,7 +250,7 @@ pub fn open(event_path: PathBuf, shutdown: &'static AtomicBool, start_hidden: bo
             shared: shared.clone(),
             history: history.clone(),
         })
-        .map_err(|_| eyre!("the Hex runtime already started"))?;
+        .map_err(|_| eyre!("the Superhex runtime already started"))?;
     let (control_calls, control_receiver) = mpsc::sync_channel(8);
     let (dictation_controls, dictations) = mpsc::sync_channel(8);
     let processing = crate::dictation::modes::ProcessingState::from_settings(&settings);
@@ -322,7 +322,7 @@ fn quit_hook(_: &mut Ui, _: &mut rune::Tx) {
 }
 
 /// Names the main thread, which runs Rune's event loop and draws, so
-/// profilers and debuggers tell it from Hex's other threads (which the
+/// profilers and debuggers tell it from Superhex's other threads (which the
 /// standard library names when they start).
 fn name_ui_thread() {
     use windows_sys::Win32::System::Threading::{GetCurrentThread, SetThreadDescription};
@@ -423,7 +423,7 @@ struct WindowsControl {
     window: Mutex<rune::AppHandle<Ui>>,
 }
 
-/// Lets the local API write the reply before Hex quits.
+/// Lets the local API write the reply before Superhex quits.
 const QUIT_GRACE: Duration = Duration::from_millis(250);
 
 impl WindowsControl {
@@ -444,12 +444,12 @@ impl WindowsControl {
         let listener = lock(&self.shared.listener).clone().ok_or_else(|| {
             ControlError::new(
                 "not-ready",
-                "Hex is not listening; turn it on in the tray or the window",
+                "Superhex is not listening; turn it on in the tray or the window",
             )
         })?;
         listener
             .send(command)
-            .map_err(|_| ControlError::new("busy", "Hex's listener stopped; try again"))?;
+            .map_err(|_| ControlError::new("busy", "Superhex's listener stopped; try again"))?;
         crate::windows::dictation::wake();
         Ok(())
     }
@@ -460,7 +460,7 @@ impl crate::control::host::Host for WindowsControl {
         let published = self
             .runtime
             .published()
-            .ok_or_else(|| ControlError::new("not-ready", "Hex is starting; try again"))?;
+            .ok_or_else(|| ControlError::new("not-ready", "Superhex is starting; try again"))?;
         Ok(crate::control::host::HostState {
             settings: published.settings.clone(),
             listener: published.listener.clone(),
@@ -559,7 +559,7 @@ impl crate::control::host::Host for WindowsControl {
         })
     }
 
-    /// `hex restart` opens Hex again once this one has gone.
+    /// `superhex restart` opens Superhex again once this one has gone.
     fn quit(&self, _restart: bool) -> std::result::Result<(), ControlError> {
         let runtime = self.runtime.clone();
         std::thread::spawn(move || {
@@ -573,7 +573,7 @@ impl crate::control::host::Host for WindowsControl {
         crate::rune_ui::shortcut_rules()
     }
 
-    /// `hex annotate`: recording commands wait for the listener's capture
+    /// `superhex annotate`: recording commands wait for the listener's capture
     /// host; the captures folder is read here.
     fn annotate(&self, command: crate::control::ControlCommand) -> ControlReply {
         use crate::capture_host::{self as capture, CaptureCommand, CaptureControl};
@@ -598,7 +598,7 @@ impl crate::control::host::Host for WindowsControl {
             } => capture::send_capture(&capture, to, always),
             C::ScrawlCaptureUndo => {
                 capture::send_to_listener(CaptureControl::Command(CaptureCommand::Undo))
-                    .map(|()| ControlReply::done("Asked Hex to take the newest send back"))
+                    .map(|()| ControlReply::done("Asked Superhex to take the newest send back"))
                     .map_err(|error| ControlError::new("not-ready", format!("{error:#}")))
             }
             C::ScrawlCaptureRoute { capture, ask_jev } => {
@@ -852,7 +852,7 @@ fn create_tray(window: rune::AppHandle<Ui>) -> Result<rune::Tray> {
         tray_icon::pixels(taskbar_is_light()),
     );
     let view = TrayView::default();
-    let spec = rune::TraySpec::new("hex", "Hex", icon)
+    let spec = rune::TraySpec::new("hex", "Superhex", icon)
         .tooltip(view.tooltip())
         .menu(view.menu());
     let tray = rune::Tray::new(spec, move |event| match event {

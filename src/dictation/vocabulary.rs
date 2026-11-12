@@ -1,4 +1,4 @@
-//! The shared vocabulary: names Hex should know (people, projects,
+//! The shared vocabulary: names Superhex should know (people, projects,
 //! products), each with spellings a transcript may show instead ("sounds
 //! like"). Search uses it to find a term's likely mis-transcriptions,
 //! prompts can read it through [`terms`], Parakeet biases its transcripts
@@ -574,7 +574,7 @@ mod tests {
             serde_json::to_string(&file).unwrap(),
             r#"{"vocabulary":["Rune",{"term":"OpenCode","sounds_like":["open code"]},"Kaffar"]}"#
         );
-        // Replies to `hex vocabulary` keep the object form.
+        // Replies to `superhex vocabulary` keep the object form.
         assert_eq!(
             serde_json::to_string(&entry("Rune", &[])).unwrap(),
             r#"{"term":"Rune"}"#

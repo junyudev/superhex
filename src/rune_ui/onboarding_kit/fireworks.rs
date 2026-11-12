@@ -1,4 +1,4 @@
-//! `"With Hex"`'s fireworks, on the GPU: shells rise on fading trails and
+//! `"With Superhex"`'s fireworks, on the GPU: shells rise on fading trails and
 //! burst into a few hundred sparks each, white-hot, then their hue, then
 //! embers that crackle out, under gravity and air drag. Each burst lights
 //! the page under it for a moment in its colour.

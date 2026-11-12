@@ -1,12 +1,12 @@
-//! Hex's app icon on Linux: `anomaly.hex` in the hicolor theme, the name its
+//! Superhex's app icon on Linux: `io.github.junyudev.superhex` in the hicolor theme, the name its
 //! desktop entries and window app id use. Packages install it under
 //! `/usr/share/icons`; a direct or source install and a downloaded executable
-//! have no package, so Hex writes the same PNGs into the user's icon theme at
-//! startup (#652). Each PNG carries an `X-Hex-Managed=true` text chunk, so
-//! Hex replaces, and the installer removes, only icons Hex wrote: a user's own
-//! `anomaly.hex.png` or a symlink stays.
+//! have no package, so Superhex writes the same PNGs into the user's icon theme at
+//! startup (#652). Each PNG carries an `X-Superhex-Managed=true` text chunk, so
+//! Superhex replaces, and the installer removes, only icons Superhex wrote: a user's own
+//! `io.github.junyudev.superhex.png` or a symlink stays.
 //!
-//! [`install_tray_symbolic`] writes the tray's own `anomaly.hex-symbolic.svg`
+//! [`install_tray_symbolic`] writes the tray's own `io.github.junyudev.superhex-symbolic.svg`
 //! beside them, always: it is a runtime tray asset, not a packaged app icon.
 //! Its KDE `current-color-scheme` stylesheet lets Plasma 6 draw the mark in the
 //! panel's text color; GNOME's AppIndicator extension and Waybar recolor the
@@ -28,7 +28,7 @@ macro_rules! icon {
                 $size,
                 "x",
                 $size,
-                "/apps/anomaly.hex.png"
+                "/apps/io.github.junyudev.superhex.png"
             ))
             .as_slice(),
         )
@@ -47,7 +47,7 @@ const ICONS: [(&str, &[u8]); 8] = [
     icon!("512"),
 ];
 
-/// Writes Hex's icon into the user's hicolor theme, unless a package
+/// Writes Superhex's icon into the user's hicolor theme, unless a package
 /// already installs it; rewrites only icons that differ.
 pub(crate) fn install() -> Result<()> {
     let Some(home) = dirs::data_dir() else {
@@ -66,10 +66,10 @@ pub(crate) fn install() -> Result<()> {
     install_in(&home)
 }
 
-const MANAGED_MARK: &[u8] = b"X-Hex-Managed=true";
+const MANAGED_MARK: &[u8] = b"X-Superhex-Managed=true";
 
 /// The tray's symbolic icon in the user's hicolor theme.
-pub(crate) const TRAY_ICON: &str = "anomaly.hex-symbolic";
+pub(crate) const TRAY_ICON: &str = "io.github.junyudev.superhex-symbolic";
 /// The symbolic mark, its default color in the `<style>` block.
 const TRAY_SVG: &str = include_str!("../../resources/linux/tray-symbolic.svg");
 /// The mark's color on a light panel, and its default for the dark one.
@@ -104,7 +104,7 @@ fn install_in(data: &Path) -> Result<()> {
 }
 
 /// Writes the tray's symbolic icon into the user's hicolor theme, also when a
-/// package installs Hex's PNGs, and rewrites only one Hex wrote. Its default
+/// package installs Superhex's PNGs, and rewrites only one Superhex wrote. Its default
 /// color follows the desktop's color-scheme guess so a host that does not
 /// recolor it shows the same mark the pixmap has. Reports whether the icon is
 /// in place, including a file a user put at that name, and whether this call
@@ -254,16 +254,16 @@ mod tests {
             .unwrap()
             .as_nanos();
         let data = std::env::temp_dir().join(format!("hex-icons-own-{unique}"));
-        let own = data.join("icons/hicolor/48x48/apps/anomaly.hex.png");
-        let linked = data.join("icons/hicolor/64x64/apps/anomaly.hex.png");
+        let own = data.join("icons/hicolor/48x48/apps/io.github.junyudev.superhex.png");
+        let linked = data.join("icons/hicolor/64x64/apps/io.github.junyudev.superhex.png");
         std::fs::create_dir_all(own.parent().unwrap()).unwrap();
         std::fs::create_dir_all(linked.parent().unwrap()).unwrap();
         std::fs::write(&own, b"mine").unwrap();
         std::os::unix::fs::symlink(&own, &linked).unwrap();
-        // An older icon Hex wrote is replaced.
-        let older = data.join("icons/hicolor/32x32/apps/anomaly.hex.png");
+        // An older icon Superhex wrote is replaced.
+        let older = data.join("icons/hicolor/32x32/apps/io.github.junyudev.superhex.png");
         std::fs::create_dir_all(older.parent().unwrap()).unwrap();
-        std::fs::write(&older, b"old X-Hex-Managed=true").unwrap();
+        std::fs::write(&older, b"old X-Superhex-Managed=true").unwrap();
         install_in(&data).unwrap();
         assert_eq!(std::fs::read(&own).unwrap(), b"mine");
         assert!(linked.is_symlink());
@@ -279,7 +279,9 @@ mod tests {
             .as_nanos();
         let data = std::env::temp_dir().join(format!("hex-icons-{unique}"));
         install_in(&data).unwrap();
-        let written = std::fs::read(data.join("icons/hicolor/48x48/apps/anomaly.hex.png")).unwrap();
+        let written =
+            std::fs::read(data.join("icons/hicolor/48x48/apps/io.github.junyudev.superhex.png"))
+                .unwrap();
         assert_eq!(written, ICONS[3].1);
         std::fs::remove_dir_all(data).unwrap();
     }
@@ -298,7 +300,7 @@ mod tests {
         assert!(dark.contains(r#"<style id="current-color-scheme" type="text/css">"#));
         assert!(dark.contains(".ColorScheme-Text"));
         assert!(dark.contains("color:#ffffff;"));
-        assert!(dark.contains("X-Hex-Managed=true"));
+        assert!(dark.contains("X-Superhex-Managed=true"));
         for path in dark.split("<path").skip(1) {
             assert!(path.contains(r#"class="ColorScheme-Text""#));
             assert!(path.contains(r#"fill="currentColor""#));
@@ -314,7 +316,8 @@ mod tests {
         let installed = install_tray_in(&data, false).unwrap();
         assert!(installed.present);
         assert!(installed.wrote);
-        let path = data.join("icons/hicolor/scalable/apps/anomaly.hex-symbolic.svg");
+        let path =
+            data.join("icons/hicolor/scalable/apps/io.github.junyudev.superhex-symbolic.svg");
         assert_eq!(std::fs::read_to_string(&path).unwrap(), tray_svg(false));
         std::fs::remove_dir_all(data).unwrap();
     }
@@ -326,7 +329,8 @@ mod tests {
         let installed = install_tray_in(&data, true).unwrap();
         assert!(installed.present);
         assert!(installed.wrote);
-        let path = data.join("icons/hicolor/scalable/apps/anomaly.hex-symbolic.svg");
+        let path =
+            data.join("icons/hicolor/scalable/apps/io.github.junyudev.superhex-symbolic.svg");
         let written = std::fs::read_to_string(&path).unwrap();
         assert_eq!(written, tray_svg(true));
         assert!(written.contains("color:#232629;"));
@@ -336,7 +340,8 @@ mod tests {
     #[test]
     fn a_tray_icon_hex_did_not_write_stays() {
         let data = temporary("icons-tray-own");
-        let path = data.join("icons/hicolor/scalable/apps/anomaly.hex-symbolic.svg");
+        let path =
+            data.join("icons/hicolor/scalable/apps/io.github.junyudev.superhex-symbolic.svg");
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, b"mine").unwrap();
         let installed = install_tray_in(&data, true).unwrap();
@@ -349,7 +354,8 @@ mod tests {
     #[test]
     fn a_dangling_tray_icon_link_is_not_in_place() {
         let data = temporary("icons-tray-dangling");
-        let path = data.join("icons/hicolor/scalable/apps/anomaly.hex-symbolic.svg");
+        let path =
+            data.join("icons/hicolor/scalable/apps/io.github.junyudev.superhex-symbolic.svg");
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::os::unix::fs::symlink(data.join("gone.svg"), &path).unwrap();
         let installed = install_tray_in(&data, false).unwrap();

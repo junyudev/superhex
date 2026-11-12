@@ -232,15 +232,19 @@ mod tests {
         fs::write(&source, b"bytes").unwrap();
         let sha256 = crate::transcription::models::sha256_hex(&source, None).unwrap();
         let target = Target {
-            url: format!("files/{sha256}/Hex.zip"),
+            url: format!("files/{sha256}/Superhex.zip"),
             size: 5,
             sha256: sha256.clone(),
         };
         // A complete partial download needs no request.
         fs::create_dir_all(directory.join(&sha256)).unwrap();
-        fs::copy(&source, directory.join(&sha256).join("Hex.zip.partial")).unwrap();
+        fs::copy(
+            &source,
+            directory.join(&sha256).join("Superhex.zip.partial"),
+        )
+        .unwrap();
         let file = download(
-            "https://invalid.invalid/Hex.zip",
+            "https://invalid.invalid/Superhex.zip",
             "hex/dev/0.0.0-dev-1",
             &target,
             &directory,
@@ -249,7 +253,7 @@ mod tests {
         assert_eq!(fs::read(&file).unwrap(), b"bytes");
         assert_eq!(
             download(
-                "https://invalid.invalid/Hex.zip",
+                "https://invalid.invalid/Superhex.zip",
                 "hex/dev/0.0.0-dev-1",
                 &target,
                 &directory
@@ -262,7 +266,7 @@ mod tests {
         assert!(
             !valid_file_name("../x")
                 && !valid_file_name(".hidden")
-                && valid_file_name("Hex-2.4.0-macos-arm64.zip")
+                && valid_file_name("Superhex-2.4.0-macos-arm64.zip")
         );
         let _ = fs::remove_dir_all(directory);
     }

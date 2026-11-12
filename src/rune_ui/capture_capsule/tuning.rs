@@ -1,5 +1,5 @@
 //! The capsule's timings and springs in one place. The
-//! app reads [`DEFAULT`]; the playground (`hex capsule-playground`) changes
+//! app reads [`DEFAULT`]; the playground (`superhex capsule-playground`) changes
 //! them live in its own process and prints them back as the constants.
 
 // Only the macOS playground reads much of this.

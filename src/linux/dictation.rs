@@ -46,7 +46,7 @@ struct Job {
     language: String,
     /// The clip, kept for History while Labs › Keep recordings is on.
     recording: Option<crate::history::Recording>,
-    /// `hex dictation stop --print`: the text goes here, never pasted.
+    /// `superhex dictation stop --print`: the text goes here, never pasted.
     print: Option<PrintReply>,
     /// The shortcut that started this capture: dictation, Dictate without
     /// processing, or Labs › Terminal paste.
@@ -69,7 +69,7 @@ enum OutputJob {
 #[derive(Clone, Copy, PartialEq)]
 enum OutputKind {
     Dictation,
-    /// A dictation printed by `hex dictation stop --print`.
+    /// A dictation printed by `superhex dictation stop --print`.
     Printed,
     PasteLast,
     TypedText,
@@ -721,7 +721,7 @@ pub(crate) fn run(
                         Some(host) => host.control(action, &timeline),
                         None => crate::control::ControlReply::error(
                             "feature-off",
-                            "Annotate is off; turn it on with `hex settings set capture.enabled on`",
+                            "Annotate is off; turn it on with `superhex settings set capture.enabled on`",
                         ),
                     };
                     let _ = answer.send(report);

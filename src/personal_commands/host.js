@@ -1,4 +1,4 @@
-// Hex's side of a loaded config: the transformation registration Rust compiles,
+// Superhex's side of a loaded config: the transformation registration Rust compiles,
 // and the transformation calls it makes, one transformation at a time so each
 // runs under its own timeout. Values cross as JSON strings.
 
@@ -25,7 +25,7 @@ function registerTransformations(config, transforms) {
 
 export function install(config) {
   if (!isRecord(config)) {
-    throw new Error("The config's default export must be a Hex config object")
+    throw new Error("The config's default export must be a Superhex config object")
   }
   const transforms = new Map()
   const registration = JSON.stringify({

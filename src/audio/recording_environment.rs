@@ -23,7 +23,7 @@ mod ducking;
 
 const VIRTUAL_MAIN_VOLUME: u32 = u32::from_be_bytes(*b"vmvc");
 
-/// A media player Hex may pause while recording and resume afterwards.
+/// A media player Superhex may pause while recording and resume afterwards.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum MediaPlayer {
     Music,
@@ -176,7 +176,7 @@ pub fn wait_until_restored(deadline: Duration) -> bool {
             return true;
         }
         if started.elapsed() >= deadline {
-            tracing::warn!("Hex quit before restoring output or media after recording");
+            tracing::warn!("Superhex quit before restoring output or media after recording");
             return false;
         }
         thread::sleep(Duration::from_millis(10));

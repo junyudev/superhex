@@ -1,7 +1,7 @@
-//! The capsule's states as stories in Hex's own window playground (the
+//! The capsule's states as stories in Superhex's own window playground (the
 //! Labs): each of [`SCENES`] on the capsule's overlay
 //! frame, driven by the same fake host, with the states, tuning, and log
-//! beside it. Sound and its volume stay Hex's.
+//! beside it. Sound and its volume stay Superhex's.
 
 use std::time::Duration;
 
@@ -59,7 +59,7 @@ fn scene<const I: usize>() -> Story<CapsuleState> {
 /// flow the Flow card picked; the rest are each flow after a capture, so a
 /// link names one (`?variant=toast`).
 fn story(name: &'static str, init: fn() -> CapsuleState) -> Story<CapsuleState> {
-    let frame = OverlaySpec::new("Hex capture", (PANEL_W, PANEL_H), stage);
+    let frame = OverlaySpec::new("Superhex capture", (PANEL_W, PANEL_H), stage);
     let mut story = controls(Story::overlay(name, &frame, init)).variant("tuned", |_| {});
     for (variant, flow) in FLOWS {
         story = story.variant(variant, move |s| {

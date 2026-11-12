@@ -7,10 +7,12 @@ use std::time::{Duration, Instant};
 use rune::{Edge, El, Key, KeyEvent, Transition, Tx, col, row, spacer, text};
 
 use super::controls::{
-    ButtonKind, Choice, DESCRIPTION, KEY_GAP, KeySize, METRICS, Paint, button, keycap, note,
-    pulsing_dot, section, setting_row, status_dot,
+    ButtonKind, Choice, DESCRIPTION, KEY_GAP, KeySize, METRICS, Paint, button, icon_described_row,
+    keycap, note, pulsing_dot, section, setting_row, status_dot,
 };
 use super::host;
+use super::icons::MOUSE;
+use super::platform::{MouseAccessNeeded, PlatformRequest};
 use super::{Menu, Request, Service, ShortcutTarget, Ui};
 use crate::app_settings::{AppSettings, HotkeyBinding, HotkeyKey, HotkeyModifiers, ModifierSide};
 use crate::desktop::host::{
@@ -636,7 +638,7 @@ pub(super) fn error_notes(p: Paint, error: &str) -> [El; 2] {
     [
         note(
             "error-title",
-            tr("Hex could not apply this change."),
+            tr("Superhex could not apply this change."),
             p.danger(),
         ),
         note("error", error, p.muted()),
@@ -653,7 +655,7 @@ pub(super) fn listener_card(ui: &Ui, p: Paint) -> (String, El) {
         None => tr("Connecting…").to_string(),
     };
     // The key the desktop granted, which it may have changed in its own
-    // settings (#723), else the one Hex records.
+    // settings (#723), else the one Superhex records.
     let shortcut = match portal_grant(ui, ShortcutTarget::Dictation) {
         Some(DesktopGrantedShortcut {
             trigger: Some(trigger),
@@ -663,7 +665,7 @@ pub(super) fn listener_card(ui: &Ui, p: Paint) -> (String, El) {
     };
     let no_model = super::general::missing_model(ui).is_some();
     let hint = match (running, ui.settings.shortcut_mode) {
-        _ if no_model => tr("Hex can't dictate until a speech model is installed").to_string(),
+        _ if no_model => tr("Superhex can't dictate until a speech model is installed").to_string(),
         _ if !ui.records_shortcuts() => {
             tr("Ready anywhere · Use your desktop's shortcuts to dictate").to_string()
         }
@@ -672,7 +674,7 @@ pub(super) fn listener_card(ui: &Ui, p: Paint) -> (String, El) {
             &shortcut,
         ),
         (true, ShortcutMode::Hold) => tr_fill("Ready anywhere · Hold {} to dictate", &shortcut),
-        (false, _) => tr_fill("Enable Hex to dictate into any app with {}", &shortcut),
+        (false, _) => tr_fill("Enable Superhex to dictate into any app with {}", &shortcut),
     };
     let search = format!("{status} {hint} {} {}", tr("Enable"), tr("Disable"));
     let failure = ui
@@ -779,13 +781,63 @@ pub(super) fn refused_note(ui: &Ui, p: Paint, target: ShortcutTarget) -> Option<
             note(
                 "refused",
                 if binding(&ui.settings, target).is_some_and(|binding| binding.key.as_ref().is_some_and(HotkeyKey::is_mouse)) {
-                    tr("Configure mouse shortcuts in your Wayland desktop using the hex commands")
+                    tr("Configure mouse shortcuts in your Wayland desktop using the superhex commands")
                 } else {
                     tr("Your desktop kept a shortcut for itself. Record another one, or free it in your desktop's keyboard settings (on niri, remove its bind from config.kdl).")
                 },
                 p.danger(),
             )
         })
+}
+
+/// Direct mouse access, where it matters to this shortcut: while recording, for
+/// a side button the usual route can't see, and when a saved shortcut's button
+/// can no longer be read.
+pub(super) fn mouse_access_row(ui: &Ui, p: Paint, target: ShortcutTarget) -> Option<El> {
+    let needed = ui.platform.mouse_access.needed?;
+    let listening = matches!(
+        ui.capture,
+        Capture::Listening { target: active, .. } if active == target
+    );
+    let stopped = ui.platform.mouse_access.shortcut_stopped
+        && binding(&ui.settings, target)
+            .and_then(|binding| binding.key.as_ref())
+            .is_some_and(|key| key.native_mouse.is_some());
+    let (title, description, color) = if stopped {
+        (
+            tr("This mouse button needs Input Monitoring"),
+            tr("Superhex reads it directly from the mouse, and macOS no longer allows that"),
+            p.danger(),
+        )
+    } else if listening {
+        (
+            tr("Side button not detected?"),
+            tr("Some mice only report their side buttons to apps with Input Monitoring"),
+            p.muted(),
+        )
+    } else {
+        return None;
+    };
+    let (label, request): (_, fn() -> PlatformRequest) = match needed {
+        MouseAccessNeeded::Ask => (tr("Allow…"), || PlatformRequest::RequestMouseAccess),
+        MouseAccessNeeded::Settings => (tr("Open System Settings"), || {
+            PlatformRequest::OpenMouseInputMonitoring
+        }),
+    };
+    Some(icon_described_row(
+        p,
+        "mouse-access",
+        &MOUSE,
+        title,
+        Some((description.to_owned(), color)),
+        button(
+            p,
+            "mouse-access-allow",
+            label,
+            ButtonKind::Secondary,
+            move |ui: &mut Ui, _| ui.ask(request()),
+        ),
+    ))
 }
 
 /// Without a shortcuts portal the desktop's keybindings own every shortcut:
@@ -824,11 +876,11 @@ pub(super) fn desktop_commands(ui: &Ui, p: Paint) -> El {
             p,
             "raw-dictation",
             tr("Dictate without processing"),
-            tr("Paste your words as Hex heard them, skipping every step"),
+            tr("Paste your words as Superhex heard them, skipping every step"),
             &["hex dictation toggle --raw"],
         ),
     ];
-    // GNOME without a shortcuts portal (GNOME 46 and older, #781): Hex writes
+    // GNOME without a shortcuts portal (GNOME 46 and older, #781): Superhex writes
     // the commands into GNOME's own custom shortcuts.
     if on_gnome() {
         rows.insert(1, gnome_shortcuts_row(ui, p));
@@ -836,12 +888,12 @@ pub(super) fn desktop_commands(ui: &Ui, p: Paint) -> El {
     section(p, "desktop-shortcuts", tr("Desktop shortcuts"), rows)
 }
 
-/// Adds or removes Hex's GNOME custom keyboard shortcuts.
+/// Adds or removes Superhex's GNOME custom keyboard shortcuts.
 fn gnome_shortcuts_row(ui: &Ui, p: Paint) -> El {
     let on = ui.settings.gnome_keyboard_shortcuts;
     let description = if on {
         tr(
-            "Added to GNOME Settings › Keyboard › Custom Shortcuts while Hex is enabled. GNOME runs them on the key press, so your dictation shortcut toggles dictation. Change the keys there.",
+            "Added to GNOME Settings › Keyboard › Custom Shortcuts while Superhex is enabled. GNOME runs them on the key press, so your dictation shortcut toggles dictation. Change the keys there.",
         )
     } else {
         tr(
@@ -1310,6 +1362,7 @@ mod section_key_tests {
             key: Some(HotkeyKey {
                 code: ISO_SECTION_KEY_CODE,
                 label: "^".into(),
+                native_mouse: None,
             }),
         };
         assert!(dead_key.is_lone_section_key());
@@ -1339,5 +1392,48 @@ mod gnome_keys_tests {
         assert!(!gnome_keeps("Ctrl+Alt+Space"));
         assert!(!gnome_keeps("F9"));
         assert!(!gnome_keeps("Super+D"));
+    }
+}
+
+#[cfg(test)]
+mod mouse_access_tests {
+    use super::super::scenes::mac_fixture;
+    use super::*;
+
+    fn offers(ui: &Ui) -> bool {
+        mouse_access_row(ui, Paint::new(false, 1.0), ShortcutTarget::Dictation).is_some()
+    }
+
+    #[test]
+    fn direct_mouse_access_is_offered_while_recording_only_until_it_is_granted() {
+        let mut ui = mac_fixture();
+        ui.platform.mouse_access.needed = Some(MouseAccessNeeded::Ask);
+        assert!(!offers(&ui), "nothing needs it yet");
+        ui.capture = Capture::Listening {
+            target: ShortcutTarget::Dictation,
+            message: None,
+            held: HotkeyModifiers::default(),
+        };
+        assert!(offers(&ui));
+        ui.platform.mouse_access.needed = None;
+        assert!(!offers(&ui), "granted says nothing");
+    }
+
+    #[test]
+    fn a_saved_button_read_directly_says_so_when_it_can_no_longer_be_read() {
+        let mut ui = mac_fixture();
+        ui.platform.mouse_access.needed = Some(MouseAccessNeeded::Settings);
+        ui.platform.mouse_access.shortcut_stopped = true;
+        assert!(!offers(&ui), "a keyboard shortcut needs no mouse access");
+        let native = crate::app_settings::NativeMouseButton {
+            vendor: 1,
+            product: 2,
+            usage: 5,
+        };
+        ui.settings.dictation_hotkey = HotkeyBinding {
+            modifiers: HotkeyModifiers::default(),
+            key: native.key(),
+        };
+        assert!(offers(&ui));
     }
 }

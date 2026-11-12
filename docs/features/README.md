@@ -1,4 +1,4 @@
-# Hex Feature Map
+# Superhex Feature Map
 
 What can the user do, how do they reach it, and what would prove it works?
 This maps existing behavior. [ROADMAP.md](../../ROADMAP.md) owns future work;
@@ -14,8 +14,8 @@ locators unless an executed result is explicitly recorded, as in the
 
 ```ts
 Hex                                      // macOS release
-├── Get ready                            // install, permissions, local model
-├── Dictate                              // hold OR double-tap lock
+├── Get ready                            // install, permissions, VoiceBuddy or a local model
+├── Dictate                              // hold OR double-tap lock; General › Speech chooses who hears it
 ├── Use the result                       // paste, paste-last, History
 ├── Adjust behavior                      // shortcut, microphone, recording preferences
 ├── Process text                         // Output tab + context-selected Modes
@@ -66,14 +66,17 @@ and Windows) records the screen while you draw and talk and sends it to an agent
 window screenshots.
 The other capabilities stay here until they need their own verification recipe.
 
+macOS mouse shortcuts are always available. The [dictation map](dictation.md#how-to-get-to-it)
+covers global recording, standard/native HID selection, explicit mouse-only
+Input Monitoring actions, and the read-only device observation. No physical
+button was pressed during that verification.
+
 ## Get Ready
 
-Install the signed macOS app with `brew install --cask anomalyco/tap/hex` or the
-[manual DMG](../../README.md#downloads). The cask uses a versioned, checksum-pinned
-DMG, requires Apple silicon/macOS 15+, and leaves updates to Hex's own updater. It does
-not require OpenCode, launch the app automatically, migrate the legacy
-Swift app's data, or forcibly replace an existing app destination. Homebrew uninstall
-leaves runtime settings, models, and retained data intact.
+This fork installs from [junyudev/superhex HEAD](branding.md) with
+`scripts/install-app.sh`; its own app identity and data folders are described
+there. The release and distribution details below document inherited Hex
+behavior, not published Superhex artifacts.
 
 ```ts
 Download Hex                              // setup.download-recovery
@@ -244,7 +247,7 @@ Launch Hex, setup incomplete              // setup.tour; every build and OS, ful
 │   ├── macOS: "Let Hex hear you" (Microphone), then "Make it work everywhere"
 │   │   (Accessibility), both before Your turn: the shortcut needs Accessibility;
 │   │   each card floats off once allowed
-│   │   ├── No Input Monitoring row: Accessibility also lets the shortcut taps listen
+│   │   ├── No Input Monitoring setup row: Accessibility lets ordinary shortcut taps listen
 │   │   ├── Microphone -> macOS prompt; refused -> "Open System Settings" + guide
 │   │   ├── Accessibility -> Privacy pane + drag guide
 │   │   │   ├── Retired Hex bundle IDs (`com.kitlangton.hex2`, `com.kitlangton.Hex`,
@@ -783,7 +786,7 @@ worker readiness; a later worker-load failure does not roll back saved selection
 ## Dictate
 
 ```ts
-Saved shortcut                           // dictation; Option by default; Windows and X11 accept mouse buttons, macOS with Labs > Mouse shortcuts
+Saved shortcut                           // dictation; Option by default; macOS, Windows and X11 accept mouse buttons
 ├── Hold -> Speak -> Release
 ├── Tap, tap -> Speak hands-free -> Press again   // Shortcut mode: Hold or double-tap
 ├── Tap mode (Toggle) -> Cancel shortcut, Escape by default, while recording
@@ -1465,7 +1468,7 @@ or the driver installed; off, the pane is hidden  // fun.hex-microphone; macOS, 
 │   ├── macOS driver status -> Installed v<ver> / In use by <app> + Uninstall
 │   │   ├── Version mismatch -> v<old> installed + Update + Uninstall
 │   │   ├── Pre-Anomaly com.kitlangton driver at the same path -> Update replaces it in place
-│   │   ├── Not installed -> Install -> macOS admin prompt -> copies bundled HexMicrophone.driver + restarts coreaudiod
+│   │   ├── Not installed -> Install -> macOS admin prompt -> copies bundled SuperhexMicrophone.driver + restarts coreaudiod
 │   │   └── Inline state -> Installing… / Uninstalling… / Cancelled / Failed with reason
 │   ├── Mode while dictating -> Muffled (default), Muted, Quiet, Normal, Chipmunk, Robot, Walkie, Underwater, Far
 │   ├── Key sliders -> Live mode tuning + Effect strength + Reset
@@ -1482,7 +1485,7 @@ or the driver installed; off, the pane is hidden  // fun.hex-microphone; macOS, 
 
 Sources: [audio/voice_filter.rs](../../src/audio/voice_filter.rs),
 [audio/hex_microphone.rs](../../src/audio/hex_microphone.rs),
-[HexMicrophoneDriver.c](../../macos/HexMicrophoneDriver/HexMicrophoneDriver.c),
+[SuperhexMicrophoneDriver.c](../../macos/SuperhexMicrophoneDriver/SuperhexMicrophoneDriver.c),
 [build-app.sh](../../scripts/build-app.sh),
 and [rune_ui/fun.rs](../../src/rune_ui/fun.rs). Checks:
 `default_mode_is_muffled`,

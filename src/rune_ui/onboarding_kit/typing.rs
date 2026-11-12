@@ -1,4 +1,4 @@
-//! `"Without Hex"` as one timeline, played from a [`Script`]: a scene file
+//! `"Without Superhex"` as one timeline, played from a [`Script`]: a scene file
 //! in `scenes/` (syntax in `scenes/README.md`). In the shipping scene Jay
 //! (CEO) is presenting to the investors and asks whether we're ready to
 //! ship; you type the answer by hand, slow and shaky, then frantic, and every
@@ -32,13 +32,13 @@ pub(crate) struct Timing {
     pub(crate) panic_pace: f64,
     /// The silence after the accidental send, before `"Read"`.
     pub(crate) freeze: f64,
-    /// `"With Hex"`: how far apart the cheers land.
+    /// `"With Superhex"`: how far apart the cheers land.
     pub(crate) cheer: f64,
-    /// How long the removal holds before `"With Hex"`.
+    /// How long the removal holds before `"With Superhex"`.
     pub(crate) fired: f64,
-    /// `"With Hex"`: from the words landing to the reply sending.
+    /// `"With Superhex"`: from the words landing to the reply sending.
     pub(crate) hex_send: f64,
-    /// `"With Hex"`: from the send to a first reply that types first.
+    /// `"With Superhex"`: from the send to a first reply that types first.
     pub(crate) hex_reply: f64,
 }
 
@@ -759,7 +759,7 @@ impl Scene {
         &self.strokes
     }
 
-    /// The whole scene, from start to the cut to `"With Hex"`.
+    /// The whole scene, from start to the cut to `"With Superhex"`.
     pub(crate) fn duration(&self) -> f64 {
         self.end
     }
@@ -1059,7 +1059,7 @@ impl Scene {
     }
 }
 
-/// How long `"Without Hex"` may run, and how many tapbacks a line holds.
+/// How long `"Without Superhex"` may run, and how many tapbacks a line holds.
 #[cfg(test)]
 pub(crate) const LENGTH: std::ops::RangeInclusive<f64> = 26.0..=36.0;
 #[cfg(test)]
@@ -1214,7 +1214,7 @@ mod tests {
         let t = Timing::default();
         for (name, src) in scene_script::SCENES {
             let problems = validate(src);
-            // C and C-plus keep v3's approved 22-second "Without Hex".
+            // C and C-plus keep v3's approved 22-second "Without Superhex".
             let problems: Vec<_> = problems
                 .into_iter()
                 .filter(|p| {

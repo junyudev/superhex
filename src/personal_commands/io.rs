@@ -502,12 +502,12 @@ fn refuse_unless(
     tracing::warn!(
         target: "hex_config",
         capability,
-        "a transformation needs permission; allow it in Hex's Output pane"
+        "a transformation needs permission; allow it in Superhex's Output pane"
     );
     Err(Exception::throw_message(
         ctx,
         &format!(
-            "Hex has not allowed this config to {action}. Allow it in Hex's Output pane; Hex asks again whenever the config changes"
+            "Superhex has not allowed this config to {action}. Allow it in Superhex's Output pane; Superhex asks again whenever the config changes"
         ),
     ))
 }

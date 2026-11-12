@@ -1,7 +1,7 @@
 # Silently installs, reinstalls, installs over another version with, and
 # uninstalls a hex-setup-*.exe on a disposable Windows machine (CI), checking
 # the managed layout that src/updater/windows.rs expects at every step. It
-# uses the real %APPDATA%, so never run it on a machine with Hex installed.
+# uses the real %APPDATA%, so never run it on a machine with Superhex installed.
 #
 #   scripts/test-windows-installer.ps1 -Installer dist\hex-setup-2.4.0-windows-x64.exe `
 #     -Executable dist\hex-2.4.0-windows-x64.exe -Console dist\hex-2.4.0-windows-x64.com -Version 2.4.0
@@ -22,8 +22,8 @@ $installedConsole = Join-Path $support "versions\$Version\hex.com"
 $bin = Join-Path $support 'bin'
 $pointer = Join-Path $support 'current-version'
 $receipt = Join-Path $support 'install.json'
-$shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Hex.lnk'
-$uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{6ED48C92-5177-41F4-B8D6-37B7B02CFDF4}_is1'
+$shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Superhex.lnk'
+$uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{D2816BB2-472C-4631-89DB-AF873CFCE1A8}_is1'
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $logs = Join-Path $env:RUNNER_TEMP 'hex-installer-logs'
 New-Item -ItemType Directory -Force $logs | Out-Null
@@ -58,9 +58,9 @@ Check ($null -ne $strict.GetString($receiptBytes)) 'install.json is valid UTF-8'
 $link = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut)
 Check ($link.TargetPath -eq $installed) 'Start Menu shortcut targets the managed executable'
 Check ($link.Arguments -eq 'app') 'Start Menu shortcut launches the app'
-Check ($link.Description -eq 'Hex managed install') 'Start Menu shortcut carries the managed mark the updater repoints'
+Check ($link.Description -eq 'Superhex managed install') 'Start Menu shortcut carries the managed mark the updater repoints'
 $entry = Get-ItemProperty $uninstallKey
-Check ($entry.DisplayName -eq 'Hex') 'Apps & Features lists Hex'
+Check ($entry.DisplayName -eq 'Superhex') 'Apps & Features lists Superhex'
 Check ($entry.DisplayVersion -eq $Version) "Apps & Features shows $Version"
 $uninstaller = ($entry.UninstallString -replace '"', '')
 Check ($uninstaller -like "$support\uninstall\*") 'the uninstaller lives outside versions\, which updates prune'
@@ -132,7 +132,7 @@ if ($Console) {
 }
 New-Item -ItemType Directory -Force (Join-Path $support 'updates') | Out-Null
 if (-not (Test-Path $runKey)) { New-Item -Path $runKey | Out-Null }
-Set-ItemProperty -Path $runKey -Name 'Hex' -Value "`"$updated`" app --hidden"
+Set-ItemProperty -Path $runKey -Name 'Superhex' -Value "`"$updated`" app --hidden"
 Set-Content -Path (Join-Path $support 'settings.json') -Value '{}'
 
 $process = Start-Process $uninstaller -Wait -PassThru -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$logs\uninstall.log"
@@ -146,7 +146,7 @@ Check (-not (Test-Path (Join-Path $support 'updates'))) 'staged updates are remo
 Check (-not (Test-Path $pointer)) 'current-version is removed'
 Check (-not (Test-Path $receipt)) 'install.json is removed'
 Check (-not (Test-Path $shortcut)) 'Start Menu shortcut is removed'
-Check ($null -eq (Get-ItemProperty -Path $runKey -Name 'Hex' -ErrorAction SilentlyContinue)) 'Launch at login is removed'
+Check ($null -eq (Get-ItemProperty -Path $runKey -Name 'Superhex' -ErrorAction SilentlyContinue)) 'Launch at login is removed'
 Check (Test-Path (Join-Path $support 'settings.json')) 'settings are kept'
 if ($Console) {
     Check (-not (Test-Path $bin)) 'bin is removed'

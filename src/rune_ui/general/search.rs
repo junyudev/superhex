@@ -150,7 +150,7 @@ pub(super) fn cancel_rows(ui: &Ui, p: Paint) -> (&'static str, Vec<CardRow>) {
         Some(crate::desktop::host::DesktopShortcuts::Portal(_))
     ) {
         let description =
-            tr("Bind hex dictation cancel to a key in your desktop's keyboard shortcuts");
+            tr("Bind superhex dictation cancel to a key in your desktop's keyboard shortcuts");
         return (
             description,
             vec![

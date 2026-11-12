@@ -2,7 +2,7 @@
 //! and the requests they make of it.
 //!
 //! The panes never call macOS or Windows APIs. Permissions, the login item,
-//! the meetings store, and the Hex Microphone driver reach them as plain data
+//! the meetings store, and the Superhex Microphone driver reach them as plain data
 //! in [`PlatformState`], and every action they take goes out as a
 //! [`PlatformRequest`] through [`PlatformHost`]. Linux scenes and tests feed
 //! preview data and record the requests, so macOS and Windows surfaces render
@@ -12,7 +12,7 @@ use std::path::PathBuf;
 
 use super::meetings::Meeting;
 use crate::audio::hex_microphone::{
-    DemoPlaybackTrack, DemoSnapshot, DemoSourceKind, HexMicrophoneStatus, TunedFilterConfig,
+    DemoPlaybackTrack, DemoSnapshot, DemoSourceKind, SuperhexMicrophoneStatus, TunedFilterConfig,
 };
 use crate::calendar::{CalendarAccess, CalendarInfo, CallProvider};
 use crate::desktop::login_item::{LoginItemResult, LoginItemStatus};
@@ -48,14 +48,14 @@ pub(super) struct Capabilities {
     pub(super) terminal_paste: bool,
     /// The dictation shortcut can pass through to other apps (Windows).
     pub(super) share_shortcut: bool,
-    /// Hex Microphone is a driver to install (macOS). Elsewhere with the
-    /// Voice Filter, Hex creates it while the filter is on (a PipeWire
+    /// Superhex Microphone is a driver to install (macOS). Elsewhere with the
+    /// Voice Filter, Superhex creates it while the filter is on (a PipeWire
     /// virtual source on Linux).
     pub(super) hex_microphone: bool,
     /// The window sees dictation events, so the tour can end with a
     /// practice dictation into its own field.
     pub(super) practice_dictation: bool,
-    /// The Voice Filter pane: Hex Microphone, its tuning, and the try-it
+    /// The Voice Filter pane: Superhex Microphone, its tuning, and the try-it
     /// demo (macOS and Linux, in Labs).
     pub(super) fun: bool,
     /// Modifier-only shortcuts can require the left or right key (macOS,
@@ -70,6 +70,8 @@ pub(super) struct Capabilities {
     /// Labs › Transform typed text: run Output steps on text already typed in
     /// the focused field and replace it (Linux).
     pub(super) typed_text: bool,
+    /// Dictation can go through the VoiceBuddy speech service (macOS).
+    pub(super) voice_buddy: bool,
 }
 
 impl Capabilities {
@@ -90,6 +92,7 @@ impl Capabilities {
         keyboard_model_switching: true,
         app_model_switching: false,
         typed_text: true,
+        voice_buddy: false,
     };
 
     pub(super) const MACOS: Self = Self {
@@ -109,6 +112,7 @@ impl Capabilities {
         keyboard_model_switching: true,
         app_model_switching: true,
         typed_text: false,
+        voice_buddy: true,
     };
 
     pub(super) const WINDOWS: Self = Self {
@@ -128,6 +132,7 @@ impl Capabilities {
         keyboard_model_switching: true,
         app_model_switching: true,
         typed_text: false,
+        voice_buddy: false,
     };
 
     /// This OS's capabilities, with the rows its window host decides.
@@ -240,12 +245,12 @@ impl NotesAvailability {
 pub(super) struct ScrawlView {
     /// Screen Recording, which a capture needs to record the screen.
     pub(super) screen_recording: bool,
-    /// Screen Recording is on in System Settings, but this Hex can't use it
+    /// Screen Recording is on in System Settings, but this Superhex can't use it
     /// until it restarts.
     pub(super) screen_needs_restart: bool,
     /// Scrawl's own app runs, so it owns the capture shortcut.
     pub(super) scrawl_running: bool,
-    /// Use Hex for annotations was pressed and Scrawl has not quit yet.
+    /// Use Superhex for annotations was pressed and Scrawl has not quit yet.
     pub(super) quitting_scrawl: bool,
     /// A captures folder that could not be revealed or chosen.
     pub(super) folder_error: Option<String>,
@@ -271,11 +276,31 @@ pub(super) enum ScrawlRequest {
     /// Read Screen Recording and Scrawl's app again now (the pane opened
     /// or the window became key), not at the next once-a-second refresh.
     Refresh,
-    /// Use Hex for annotations: ask Scrawl's own app to quit. Nothing else
+    /// Use Superhex for annotations: ask Scrawl's own app to quit. Nothing else
     /// ever quits it.
     QuitScrawl,
     RevealFolder,
     ChooseFolder,
+}
+
+/// How the person can let Superhex read a mouse's buttons directly (macOS's Input
+/// Monitoring): some mice report their side buttons no other way.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum MouseAccessNeeded {
+    /// macOS can ask.
+    Ask,
+    /// It was refused: only System Settings can turn it on.
+    Settings,
+}
+
+/// What the recorder and a saved shortcut need to say about direct mouse
+/// access. The default says nothing, as on the OSes without it.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(super) struct MouseAccessView {
+    /// `None` once access is granted.
+    pub(super) needed: Option<MouseAccessNeeded>,
+    /// A saved shortcut's button can only be read directly, and now can't be.
+    pub(super) shortcut_stopped: bool,
 }
 
 /// The OS-only state the panes show; the host keeps it current.
@@ -284,6 +309,7 @@ pub(super) struct PlatformState {
     pub(super) caps: Capabilities,
     /// Whether this Linux window is on Wayland (previews are).
     pub(super) wayland: bool,
+    pub(super) mouse_access: MouseAccessView,
     pub(super) input_sources: Vec<crate::transcription::keyboard_model_switching::InputSource>,
     /// Microphone, Accessibility, and whether the selected
     /// speech model is installed. Every permission is ready where the OS has
@@ -295,7 +321,7 @@ pub(super) struct PlatformState {
     /// so their row offers `"Still grey? Fix it"`.
     pub(super) permissions_stale: Vec<PermissionKind>,
     /// Untrusted permissions whose row is visible right now, so the native
-    /// host clears retired Hex bundle IDs' stale TCC rows once in the
+    /// host clears retired Superhex bundle IDs' stale TCC rows once in the
     /// background.
     pub(super) permissions_shown: Vec<PermissionKind>,
     /// Screen & System Audio Recording, for meetings.
@@ -308,15 +334,15 @@ pub(super) struct PlatformState {
     /// the login item, so the switch moves at once. Memory only: macOS's
     /// answer replaces it.
     pub(super) login_item_requested: Option<bool>,
-    pub(super) hex_microphone: Option<HexMicrophoneStatus>,
+    pub(super) hex_microphone: Option<SuperhexMicrophoneStatus>,
     pub(super) notes: NotesAvailability,
     /// A meeting folder that could not be revealed or chosen.
     pub(super) meeting_folder_error: Option<String>,
     /// The Calendar card's access, calendars, and next meetings.
     pub(super) calendar: CalendarView,
-    /// The tour's relaunch failed; the person must reopen Hex.
+    /// The tour's relaunch failed; the person must reopen Superhex.
     pub(super) relaunch_failed: bool,
-    /// The desktop's paste permission where Hex pastes through the
+    /// The desktop's paste permission where Superhex pastes through the
     /// RemoteDesktop portal (GNOME and KDE on Wayland); `None` elsewhere.
     pub(super) paste: Option<super::paste_access::PasteAccess>,
     /// A Wayland desktop without data-control (GNOME): a paste can't put
@@ -331,7 +357,7 @@ pub(super) struct PlatformState {
     /// macOS 27 lists Accessibility as "Device Control and Data Access"
     /// (`permission_guide::list_name`); the permission rows use that name.
     pub(super) accessibility_renamed: bool,
-    /// The Hex Microphone's live filter tuning
+    /// The Superhex Microphone's live filter tuning
     /// (`hex_microphone::current_tuned_config`).
     pub(super) tuning: TunedFilterConfig,
     /// The Voice Filter pane's try-it demo (`hex_microphone::demo_snapshot`); `None`
@@ -396,6 +422,7 @@ impl PlatformState {
         Self {
             caps,
             wayland: wayland_session(),
+            mouse_access: MouseAccessView::default(),
             input_sources: Vec::new(),
             permissions: crate::desktop::onboarding::status_with_transcription_model(false),
             permissions_asked: Vec::new(),
@@ -559,7 +586,7 @@ impl PlatformState {
             // Fixed, so the scenes' goldens don't change with the crate version.
             let version = "0.0.0".to_string();
             let driver = caps.hex_microphone;
-            state.hex_microphone = Some(HexMicrophoneStatus {
+            state.hex_microphone = Some(SuperhexMicrophoneStatus {
                 driver_bundle_installed: driver,
                 driver_loaded: true,
                 installed_version: driver.then(|| version.clone()),
@@ -604,19 +631,22 @@ pub(super) enum PlatformRequest {
     Permission(PermissionAction),
     /// Screen & System Audio Recording, for meetings.
     SystemAudio,
+    /// Explicit mouse action: the only route to an Input Monitoring prompt.
+    RequestMouseAccess,
+    OpenMouseInputMonitoring,
     SetLaunchAtLogin(bool),
     OpenLoginItemSettings,
-    InstallHexMicrophone,
-    UninstallHexMicrophone,
+    InstallSuperhexMicrophone,
+    UninstallSuperhexMicrophone,
     Meeting(MeetingRequest),
     Calendar(CalendarRequest),
-    /// Quit and reopen Hex so macOS applies new permissions.
+    /// Quit and reopen Superhex so macOS applies new permissions.
     Relaunch,
-    /// Apply this tuning to the live Hex Microphone filter
+    /// Apply this tuning to the live Superhex Microphone filter
     /// (`hex_microphone::update_tuned_config`). The pane has already saved
     /// the mode, comfort noise, and strength in `settings.json`.
     SetTuning(TunedFilterConfig),
-    HexMicrophoneDemo(DemoRequest),
+    SuperhexMicrophoneDemo(DemoRequest),
     /// Show this on the dictation indicator: `DictationIndicatorEvent::
     /// ConfigureDotScope` with the tuning, then `Reset` and the
     /// demonstrated state.
@@ -633,15 +663,15 @@ pub(super) enum PlatformRequest {
     Scrawl(ScrawlRequest),
 }
 
-/// Performs a Voice Filter request on the Hex Microphone in this process.
+/// Performs a Voice Filter request on the Superhex Microphone in this process.
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub(super) fn voice_filter_request(request: PlatformRequest) {
     use crate::audio::hex_microphone as mic;
     match request {
-        PlatformRequest::InstallHexMicrophone => mic::install_driver_async(),
-        PlatformRequest::UninstallHexMicrophone => mic::uninstall_driver_async(),
+        PlatformRequest::InstallSuperhexMicrophone => mic::install_driver_async(),
+        PlatformRequest::UninstallSuperhexMicrophone => mic::uninstall_driver_async(),
         PlatformRequest::SetTuning(tuning) => mic::update_tuned_config(|current| *current = tuning),
-        PlatformRequest::HexMicrophoneDemo(request) => match request {
+        PlatformRequest::SuperhexMicrophoneDemo(request) => match request {
             DemoRequest::Record => mic::start_demo_recording(),
             DemoRequest::StopRecording => mic::stop_demo_recording(),
             DemoRequest::SelectSource(source) => mic::select_demo_source(source),
@@ -652,9 +682,9 @@ pub(super) fn voice_filter_request(request: PlatformRequest) {
     }
 }
 
-/// The Voice Filter pane's state from the Hex Microphone in this process:
+/// The Voice Filter pane's state from the Superhex Microphone in this process:
 /// the demo every frame while it records or plays, and, when `refresh`, the
-/// tuning and Hex Microphone's status. Nothing decodes or renders while the
+/// tuning and Superhex Microphone's status. Nothing decodes or renders while the
 /// Voice Filter is off.
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub(super) fn poll_voice_filter(state: &mut PlatformState, refresh: bool) -> bool {
@@ -760,7 +790,7 @@ impl PlatformHost {
     pub(super) fn poll(&mut self, state: &mut PlatformState) -> bool {
         match self {
             Self::Native(host) => host.poll(state),
-            // Hex Microphone's status is a few atomics on Linux, so it
+            // Superhex Microphone's status is a few atomics on Linux, so it
             // refreshes every frame.
             #[cfg(target_os = "linux")]
             Self::Local(_) => scrawl_poll(state) | poll_voice_filter(state, true),
@@ -846,6 +876,10 @@ impl Difference {
 #[cfg(test)]
 const DIFFERENCES: &[(&str, Difference)] = &[
     (
+        "voice_buddy",
+        Difference::Pending("the speech client is only wired into macOS's capture loop"),
+    ),
+    (
         "calendar",
         Difference::OsPattern("EventKit; there is no cross-platform calendar source"),
     ),
@@ -902,7 +936,7 @@ const DIFFERENCES: &[(&str, Difference)] = &[
 impl Capabilities {
     /// Every capability by name. Destructuring makes a new capability a
     /// compile error here until it is named.
-    pub(super) fn fields(self) -> [(&'static str, bool); 15] {
+    pub(super) fn fields(self) -> [(&'static str, bool); 16] {
         let Self {
             os: _,
             meetings,
@@ -920,6 +954,7 @@ impl Capabilities {
             keyboard_model_switching,
             app_model_switching,
             typed_text,
+            voice_buddy,
         } = self;
         [
             ("meetings", meetings),
@@ -937,6 +972,7 @@ impl Capabilities {
             ("keyboard_model_switching", keyboard_model_switching),
             ("app_model_switching", app_model_switching),
             ("typed_text", typed_text),
+            ("voice_buddy", voice_buddy),
         ]
     }
 }

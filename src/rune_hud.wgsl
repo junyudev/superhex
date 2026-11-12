@@ -214,7 +214,7 @@ fn ears(window_point: vec2f, island_shape: f32) -> vec4f {
     }
 
     // Trailing: the level bars, at rest with light running through them
-    // while Hex works.
+    // while Superhex works.
     let trail = (window_point - vec2f(inset, middle_y)) / s;
     let profile = array<f32, 5>(0.5, 0.8, 1.0, 0.75, 0.55);
     let rate = array<f32, 5>(1.7, 2.3, 1.9, 2.6, 2.1);
